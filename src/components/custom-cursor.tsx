@@ -1,61 +1,38 @@
 "use client";
 
-
-
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { motion, useMotionValue, useSpring } from "motion/react";
 
 export function CustomCursor() {
   const [isHovering, setIsHovering] = useState(false);
   const [cursorColor, setCursorColor] = useState("#00F0FF");
   const [isHidden, setIsHidden] = useState(false);
 
-  const cursorDotRef = useRef<HTMLDivElement>(null);
-  const cursorRingRef = useRef<HTMLDivElement>(null);
-  const mousePos = useRef({ x: 0, y: 0 });
-  const cursorDotPos = useRef({ x: 0, y: 0 });
-  const cursorRingPos = useRef({ x: 0, y: 0 });
+  // Motion values for raw mouse position
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Optimized springs: Tighter stiffness for less lag, but keeping the smooth "cinematic" feel
+  // Dot: Very fast (stiffness 1500)
+  const dotX = useSpring(mouseX, { damping: 40, stiffness: 1500 });
+  const dotY = useSpring(mouseY, { damping: 40, stiffness: 1500 });
+
+  // Ring: Fast follow (stiffness 300), slightly behind dot
+  const ringX = useSpring(mouseX, { damping: 25, stiffness: 300 });
+  const ringY = useSpring(mouseY, { damping: 25, stiffness: 300 });
 
   useEffect(() => {
-    let rafId: number;
-
-    // Smooth cursor animation using RAF
-    const animate = () => {
-      // Lerp (linear interpolation) for smooth following
-      const dotSpeed = 0.15;
-      const ringSpeed = 0.08;
-
-      // Update dot position
-      cursorDotPos.current.x += (mousePos.current.x - cursorDotPos.current.x) * dotSpeed;
-      cursorDotPos.current.y += (mousePos.current.y - cursorDotPos.current.y) * dotSpeed;
-
-      // Update ring position
-      cursorRingPos.current.x += (mousePos.current.x - cursorRingPos.current.x) * ringSpeed;
-      cursorRingPos.current.y += (mousePos.current.y - cursorRingPos.current.y) * ringSpeed;
-
-      // Apply transforms
-      if (cursorDotRef.current) {
-        cursorDotRef.current.style.transform = `translate3d(${cursorDotPos.current.x - 6}px, ${cursorDotPos.current.y - 6}px, 0)`;
-      }
-
-      if (cursorRingRef.current) {
-        const offset = isHovering ? 24 : 16;
-        cursorRingRef.current.style.transform = `translate3d(${cursorRingPos.current.x - offset}px, ${cursorRingPos.current.y - offset}px, 0) scale(${isHovering ? 1.5 : 1})`;
-      }
-
-      rafId = requestAnimationFrame(animate);
-    };
-
-    rafId = requestAnimationFrame(animate);
-
-    const updateMousePosition = (e: MouseEvent) => {
-      mousePos.current.x = e.clientX;
-      mousePos.current.y = e.clientY;
+    // Optimization: Use standard loop just to update motion values, 
+    // letting Framer handle the animation frame efficiently only when changed.
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
     };
 
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Check if hovering over textarea or input
+      // Handle Input/Textarea hiding
       if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
         setIsHidden(true);
         return;
@@ -63,6 +40,7 @@ export function CustomCursor() {
         setIsHidden(false);
       }
 
+      // Handle Hover States
       if (
         target.tagName === "A" ||
         target.tagName === "BUTTON" ||
@@ -71,105 +49,85 @@ export function CustomCursor() {
         target.classList.contains("cursor-hover")
       ) {
         setIsHovering(true);
-        // Change color based on context
-        if (target.classList.contains("purple-context")) {
-          setCursorColor("#D946EF");
-        } else {
-          setCursorColor("#00F0FF");
-        }
+        // Context-aware colors
+        const isPurple = target.classList.contains("purple-context") || target.closest(".purple-context");
+        setCursorColor(isPurple ? "#D946EF" : "#00F0FF");
       } else {
         setIsHovering(false);
+        setCursorColor("#00F0FF");
       }
     };
 
-    // Hide cursor when input/textarea gains focus
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-        setIsHidden(true);
-      }
+      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") setIsHidden(true);
     };
 
-    // Show cursor when input/textarea loses focus
     const handleFocusOut = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-        setIsHidden(false);
-      }
+      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") setIsHidden(false);
     };
 
-    window.addEventListener("mousemove", updateMousePosition, { passive: true });
-    document.addEventListener("mouseover", handleMouseOver, { passive: true });
-    document.addEventListener("focusin", handleFocusIn);
-    document.addEventListener("focusout", handleFocusOut);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    // Using mouseover on window to catch all elements
+    window.addEventListener("mouseover", handleMouseOver, { passive: true });
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("focusout", handleFocusOut);
 
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("mousemove", updateMousePosition);
-      document.removeEventListener("mouseover", handleMouseOver);
-      document.removeEventListener("focusin", handleFocusIn);
-      document.removeEventListener("focusout", handleFocusOut);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseover", handleMouseOver);
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [isHovering]);
+  }, []); // Empty dependency array ensures listeners are attached only once
 
-  // Hide cursor completely when typing in input fields
-  if (isHidden) {
-    return null;
-  }
+  if (isHidden) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 pointer-events-none z-[9999] mix-blend-screen overflow-hidden">
       {/* Main cursor dot */}
-      <div
-        ref={cursorDotRef}
-        className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-screen"
+      <motion.div
+        className="absolute top-0 left-0 w-3 h-3 rounded-full"
         style={{
-          willChange: 'transform',
+          x: dotX,
+          y: dotY,
+          translateX: "-50%",
+          translateY: "-50%",
+          backgroundColor: cursorColor,
+          boxShadow: `0 0 20px ${cursorColor}, 0 0 40px ${cursorColor}`,
         }}
-      >
-        <div
-          className="w-3 h-3 rounded-full transition-colors duration-300"
-          style={{
-            backgroundColor: cursorColor,
-            boxShadow: `0 0 20px ${cursorColor}, 0 0 40px ${cursorColor}`,
-          }}
-        />
-      </div>
+      />
 
       {/* Outer ring */}
-      <div
-        ref={cursorRingRef}
-        className="fixed top-0 left-0 pointer-events-none z-[9998] mix-blend-screen"
+      <motion.div
+        className="absolute top-0 left-0 rounded-full border border-solid"
         style={{
-          willChange: 'transform',
-          transition: 'transform 0.15s ease-out',
+          x: ringX,
+          y: ringY,
+          translateX: "-50%",
+          translateY: "-50%",
+          borderColor: cursorColor,
+          width: isHovering ? 48 : 32,
+          height: isHovering ? 48 : 32,
+          boxShadow: isHovering ? `0 0 30px ${cursorColor}` : `0 0 15px ${cursorColor}`,
+        }}
+        animate={{
+          scale: isHovering ? 1.2 : 1,
+        }}
+        transition={{
+          type: "spring",
+          damping: 20,
+          stiffness: 300
         }}
       >
-        <div
-          className="rounded-full transition-all duration-300"
-          style={{
-            width: isHovering ? "48px" : "32px",
-            height: isHovering ? "48px" : "32px",
-            border: `1px solid ${cursorColor}`,
-            boxShadow: isHovering
-              ? `0 0 30px ${cursorColor}`
-              : `0 0 15px ${cursorColor}`,
-          }}
-        >
-          {isHovering && (
-            <>
-              <div
-                className="absolute top-1/2 left-0 w-full h-[1px]"
-                style={{ backgroundColor: cursorColor, opacity: 0.5 }}
-              />
-              <div
-                className="absolute top-0 left-1/2 w-[1px] h-full"
-                style={{ backgroundColor: cursorColor, opacity: 0.5 }}
-              />
-            </>
-          )}
-        </div>
-      </div>
-    </>
+        {isHovering && (
+          <>
+            <div className="absolute top-1/2 left-0 w-full h-[1px] -translate-y-1/2 opacity-50" style={{ backgroundColor: cursorColor }} />
+            <div className="absolute top-0 left-1/2 w-[1px] h-full -translate-x-1/2 opacity-50" style={{ backgroundColor: cursorColor }} />
+          </>
+        )}
+      </motion.div>
+    </div>
   );
 }

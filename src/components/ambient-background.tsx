@@ -32,6 +32,7 @@ export function AmbientBackground() {
         className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px]"
         style={{
           background: "radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, transparent 70%)",
+          willChange: "transform", // Performance optimization
         }}
         animate={{
           x: [0, 100, 0],
@@ -49,6 +50,7 @@ export function AmbientBackground() {
         className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px]"
         style={{
           background: "radial-gradient(circle, rgba(217, 70, 239, 0.15) 0%, transparent 70%)",
+          willChange: "transform", // Performance optimization
         }}
         animate={{
           x: [0, -100, 0],

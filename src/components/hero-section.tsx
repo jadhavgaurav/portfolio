@@ -6,31 +6,42 @@ import { ChevronDown } from "lucide-react";
 const profileImage = "/images/profile.png";
 
 export function HeroSection() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [hasScrolled, setHasScrolled] = useState(false);
-
+  // Optimization: Use MotionValues for all mouse-driven animations to avoid re-renders
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const rawMouseX = useMotionValue(0);
+  const rawMouseY = useMotionValue(0);
 
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  // Smooth springs for 3D tilt
   const springConfig = { damping: 25, stiffness: 150 };
   const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), springConfig);
   const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), springConfig);
+
+  // Smooth springs for background parallax (lighter damping for "floaty" feel)
+  const bgX = useSpring(rawMouseX, { damping: 40, stiffness: 40 });
+  const bgY = useSpring(rawMouseY, { damping: 40, stiffness: 40 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const rect = document.getElementById("hero")?.getBoundingClientRect();
       if (rect) {
+        // Calculate normalized position for 3D tilt
         const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
         const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
-        setMousePosition({ x: e.clientX, y: e.clientY });
         mouseX.set(x);
         mouseY.set(y);
+
+        // Update raw pixel values for background translation
+        rawMouseX.set(e.clientX * 0.02);
+        rawMouseY.set(e.clientY * 0.02);
       }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, rawMouseX, rawMouseY]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,7 +50,7 @@ export function HeroSection() {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -50,7 +61,7 @@ export function HeroSection() {
     >
       {/* Animated background grid */}
       <div className="absolute inset-0 overflow-hidden opacity-20">
-        <div
+        <motion.div
           className="absolute inset-0"
           style={{
             backgroundImage: `
@@ -58,7 +69,8 @@ export function HeroSection() {
               linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px)
             `,
             backgroundSize: "50px 50px",
-            transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`,
+            x: bgX,
+            y: bgY,
           }}
         />
       </div>
@@ -320,6 +332,26 @@ export function HeroSection() {
               />
               <span className="text-sm">System Status: ONLINE // Mumbai, IN</span>
             </motion.div>
+
+            {/* Resume Download Button */}
+            <motion.a
+              href="/resume/resume.pdf"
+              download="Gaurav_Jadhav_Resume.pdf"
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg group cursor-hover relative overflow-hidden"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                border: "1px solid #00F0FF",
+                background: "rgba(0, 240, 255, 0.05)",
+              }}
+              whileHover={{ scale: 1.05 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.0 }}
+            >
+              <div className="absolute inset-0 bg-[#00F0FF] opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+              <span className="text-[#00F0FF] group-hover:text-white transition-colors">DOWNLOAD_RESUME</span>
+              <ChevronDown className="w-4 h-4 text-[#00F0FF] group-hover:text-white transition-colors" />
+            </motion.a>
           </motion.div>
 
           {/* Scroll Indicator */}
