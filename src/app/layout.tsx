@@ -15,8 +15,19 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Gaurav Vijay Jadhav | AI Engineer",
+    title: "Gaurav Jadhav | AI Engineer",
     description: "Portfolio of Gaurav Vijay Jadhav - AI Engineer, Data Scientist, Full Stack Architect.",
+    icons: {
+        icon: [
+            { url: "/favicon/favicon.ico" },
+            { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+            { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        ],
+        apple: [
+            { url: "/favicon/apple-touch-icon.png" },
+        ],
+    },
+    manifest: "/favicon/site.webmanifest",
 };
 
 export default function RootLayout({
