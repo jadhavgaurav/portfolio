@@ -3,7 +3,16 @@
 import { motion } from "motion/react";
 import { Briefcase, GraduationCap } from "lucide-react";
 
-const experiences = [
+interface Experience {
+  type: string;
+  title: string;
+  company: string;
+  period: string;
+  description: string;
+  color: string;
+}
+
+const experiences: Experience[] = [
   {
     type: "work",
     title: "AI Research Intern",
@@ -52,18 +61,13 @@ export function ExperienceSection() {
           className="mb-16 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60 mb-4 block"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              color: "#00F0FF",
-            }}
+            className="text-sm tracking-wider opacity-60 mb-4 block font-body text-[#00F0FF]"
           >
-            // CODE LOG TIMELINE
+            {"// CODE LOG TIMELINE"}
           </span>
           <h2
-            className="text-4xl md:text-6xl tracking-wider"
+            className="text-4xl md:text-6xl tracking-wider font-heading"
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
               background: "linear-gradient(to right, #00F0FF, #D946EF)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -90,7 +94,7 @@ export function ExperienceSection() {
   );
 }
 
-function ExperienceCard({ experience, index }: { experience: any; index: number }) {
+function ExperienceCard({ experience, index }: { experience: Experience; index: number }) {
   const isLeft = index % 2 === 0;
 
   return (
@@ -158,9 +162,8 @@ function ExperienceCard({ experience, index }: { experience: any; index: number 
         >
           {/* Period badge */}
           <motion.span
-            className="inline-block px-3 py-1 rounded-full text-xs mb-3"
+            className="inline-block px-3 py-1 rounded-full text-xs mb-3 font-body"
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
               background: `${experience.color}20`,
               color: experience.color,
               border: `1px solid ${experience.color}40`,
@@ -170,9 +173,8 @@ function ExperienceCard({ experience, index }: { experience: any; index: number 
           </motion.span>
 
           <h3
-            className="text-2xl mb-1 tracking-wide"
+            className="text-2xl mb-1 tracking-wide font-heading"
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
               color: experience.color,
             }}
           >
@@ -180,10 +182,7 @@ function ExperienceCard({ experience, index }: { experience: any; index: number 
           </h3>
 
           <p
-            className="text-lg mb-3 opacity-90"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
+            className="text-lg mb-3 opacity-90 font-body"
           >
             {experience.company}
           </p>

@@ -80,7 +80,7 @@ export function CustomCursor() {
       window.removeEventListener("focusin", handleFocusIn);
       window.removeEventListener("focusout", handleFocusOut);
     };
-  }, []); // Empty dependency array ensures listeners are attached only once
+  }, [mouseX, mouseY]); // Dependency array ensures listeners are attached only once (stable values)
 
   if (isHidden) return null;
 

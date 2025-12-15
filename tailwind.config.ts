@@ -6,12 +6,15 @@ const config: Config = {
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+        "./src/data/**/*.{js,ts,jsx,tsx,mdx}",
     ],
     theme: {
         extend: {
             fontFamily: {
-                sans: ["Space Grotesk", "sans-serif"],
-                mono: ["JetBrains Mono", "monospace"]
+                sans: ["var(--font-body)", "monospace"],
+                mono: ["var(--font-body)", "monospace"],
+                heading: ["var(--font-heading)", "sans-serif"],
+                body: ["var(--font-body)", "monospace"]
             },
             colors: {
                 background: 'var(--background)',

@@ -6,6 +6,7 @@ import { Navigation } from "@/components/navigation";
 import { HeroSection } from "@/components/hero-section";
 import { TechStack } from "@/components/tech-stack";
 import { ProjectsSection } from "@/components/projects-section";
+import { CapabilitiesSection } from "@/components/capabilities-section";
 import { ExperienceSection } from "@/components/experience-section";
 import { ContactSection } from "@/components/contact-section";
 import { AmbientBackground } from "@/components/ambient-background";
@@ -60,6 +61,7 @@ export default function PortfolioPage() {
                 <HeroSection />
                 <TechStack />
                 <ProjectsSection />
+                <CapabilitiesSection />
                 <ExperienceSection />
                 <ContactSection />
             </main>

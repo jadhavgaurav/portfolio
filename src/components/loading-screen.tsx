@@ -51,8 +51,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
 
         {/* Loading Text */}
         <motion.div
-          className="space-y-2"
-          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          className="space-y-2 font-body"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}

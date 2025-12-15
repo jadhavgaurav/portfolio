@@ -24,23 +24,39 @@ export function HeroSection() {
   const bgY = useSpring(rawMouseY, { damping: 40, stiffness: 40 });
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = document.getElementById("hero")?.getBoundingClientRect();
-      if (rect) {
-        // Calculate normalized position for 3D tilt
-        const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
-        const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
-        mouseX.set(x);
-        mouseY.set(y);
+    let rect: DOMRect | null = null;
+    const heroSection = document.getElementById("hero");
 
-        // Update raw pixel values for background translation
-        rawMouseX.set(e.clientX * 0.02);
-        rawMouseY.set(e.clientY * 0.02);
+    const updateRect = () => {
+      if (heroSection) {
+        rect = heroSection.getBoundingClientRect();
       }
     };
 
+    // Initial calc
+    updateRect();
+    window.addEventListener("resize", updateRect);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!rect) return;
+
+      // Calculate normalized position for 3D tilt
+      const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
+      const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+      mouseX.set(x);
+      mouseY.set(y);
+
+      // Update raw pixel values for background translation
+      rawMouseX.set(e.clientX * 0.02);
+      rawMouseY.set(e.clientY * 0.02);
+    };
+
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("resize", updateRect);
+    };
   }, [mouseX, mouseY, rawMouseX, rawMouseY]);
 
   useEffect(() => {
@@ -77,8 +93,8 @@ export function HeroSection() {
 
       {/* Ambient particles */}
       <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
+        {[...Array(10)].map((_, i) => (
+          <div
             key={i}
             className="absolute w-1 h-1 rounded-full"
             style={{
@@ -86,15 +102,8 @@ export function HeroSection() {
               boxShadow: `0 0 10px ${i % 2 === 0 ? "#00F0FF" : "#D946EF"}`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.2, 0.8, 0.2],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
+              animation: `float-particle ${3 + Math.random() * 2}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
             }}
           />
         ))}
@@ -131,25 +140,18 @@ export function HeroSection() {
               }}
             />
 
-            <motion.div
+            <div
               className="absolute inset-0 -m-8 rounded-full border-2"
               style={{
                 borderColor: "#00F0FF",
                 boxShadow: "0 0 30px rgba(0, 240, 255, 0.5)",
-              }}
-              animate={{
-                rotate: 360,
-              }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear",
+                animation: "spin-slow 20s linear infinite",
               }}
             >
               <div className="absolute top-0 left-1/2 w-2 h-2 -ml-1 -mt-1 rounded-full bg-[#00F0FF]"
                 style={{ boxShadow: "0 0 10px #00F0FF" }}
               />
-            </motion.div>
+            </div>
 
             {/* Profile Image with glass effect */}
             <div className="relative w-64 h-64 rounded-full overflow-hidden group"
@@ -197,20 +199,13 @@ export function HeroSection() {
                 }}
               />
 
-              {/* Glitch effect overlay */}
-              <motion.div
+              {/* Glitch effect overlay - CSS Animation */}
+              <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
                 style={{
                   background: "linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.3) 50%, transparent 100%)",
-                }}
-                animate={{
-                  x: [-300, 300],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatDelay: 2,
-                  ease: "linear",
+                  animation: "glitch-pass 1.5s linear infinite",
+                  animationDelay: "0s",
                 }}
               />
 
@@ -228,34 +223,20 @@ export function HeroSection() {
             </div>
 
             {/* Holographic overlay */}
-            <motion.div
+            <div
               className="absolute inset-0 rounded-full pointer-events-none"
               style={{
                 background: "linear-gradient(45deg, transparent 30%, rgba(0, 240, 255, 0.15) 50%, transparent 70%)",
-              }}
-              animate={{
-                rotate: 360,
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "linear",
+                animation: "spin-slow 8s linear infinite",
               }}
             />
 
             {/* Purple accent ring on opposite side */}
-            <motion.div
+            <div
               className="absolute inset-0 rounded-full pointer-events-none"
               style={{
                 background: "linear-gradient(225deg, transparent 30%, rgba(217, 70, 239, 0.15) 50%, transparent 70%)",
-              }}
-              animate={{
-                rotate: -360,
-              }}
-              transition={{
-                duration: 12,
-                repeat: Infinity,
-                ease: "linear",
+                animation: "spin-reverse-slow 12s linear infinite",
               }}
             />
           </motion.div>
@@ -268,9 +249,8 @@ export function HeroSection() {
             className="space-y-6"
           >
             <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl tracking-wider"
+              className="text-5xl md:text-7xl lg:text-8xl tracking-wider font-heading"
               style={{
-                fontFamily: "'Space Grotesk', sans-serif",
                 background: "linear-gradient(to right, #ffffff, #00F0FF, #ffffff)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
@@ -284,9 +264,8 @@ export function HeroSection() {
             </motion.h1>
 
             <motion.div
-              className="text-lg md:text-xl space-y-2"
+              className="text-lg md:text-xl space-y-2 font-body"
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
                 color: "#a0a0a0",
               }}
               initial={{ opacity: 0 }}
@@ -305,9 +284,8 @@ export function HeroSection() {
 
             {/* System Status */}
             <motion.div
-              className="inline-flex items-center gap-3 px-6 py-3 rounded-full"
+              className="inline-flex items-center gap-3 px-6 py-3 rounded-full font-body"
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
                 background: "rgba(0, 240, 255, 0.05)",
                 border: "1px solid rgba(0, 240, 255, 0.2)",
                 backdropFilter: "blur(10px)",
@@ -337,9 +315,8 @@ export function HeroSection() {
             <motion.a
               href="/resume/resume.pdf"
               download="Gaurav_Jadhav_Resume.pdf"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg group cursor-hover relative overflow-hidden"
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg group cursor-hover relative overflow-hidden font-body"
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
                 border: "1px solid #00F0FF",
                 background: "rgba(0, 240, 255, 0.05)",
               }}
@@ -362,9 +339,8 @@ export function HeroSection() {
             transition={{ delay: 1.2, duration: 0.5 }}
           >
             <motion.div
-              className="flex flex-col items-center gap-2"
+              className="flex flex-col items-center gap-2 font-body"
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
                 color: "#00F0FF",
               }}
               animate={{

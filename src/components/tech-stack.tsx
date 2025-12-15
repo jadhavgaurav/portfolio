@@ -1,26 +1,26 @@
 "use client";
 
 import { motion } from "motion/react";
-import { 
-  FileCode2, 
-  BrainCircuit, 
-  Zap, 
-  Rocket, 
-  Link2, 
-  Container, 
-  Database, 
-  Eye, 
-  Cloud, 
-  Layout, 
-  Code2, 
-  FileJson, 
-  Server, 
-  Workflow, 
+import {
+  FileCode2,
+  BrainCircuit,
+  Zap,
+  Rocket,
+  Link2,
+  Container,
+  Database,
+  Eye,
+  Cloud,
+  Layout,
+  Code2,
+  FileJson,
+  Server,
   Boxes,
   Network,
   GitBranch,
   Cpu,
-  BarChart3
+  BarChart3,
+  LucideIcon
 } from "lucide-react";
 
 const technologies = [
@@ -51,7 +51,7 @@ export function TechStack() {
     <section className="relative py-16 overflow-hidden">
       {/* Section divider line */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#00F0FF] to-transparent opacity-30" />
-      
+
       <div className="relative">
         <motion.div
           initial={{ opacity: 0 }}
@@ -60,36 +60,28 @@ export function TechStack() {
           className="mb-8 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60"
+            className="text-sm tracking-wider opacity-60 font-body"
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
               color: "#00F0FF",
             }}
           >
-            // CORE_DEPENDENCIES
+            {"// CORE_DEPENDENCIES"}
           </span>
         </motion.div>
 
         {/* Infinite scrolling marquee */}
         <div className="relative">
           <div className="flex overflow-hidden">
-            <motion.div
+            <div
               className="flex gap-8 py-4"
-              animate={{
-                x: [0, -1920],
-              }}
-              transition={{
-                x: {
-                  duration: 30,
-                  repeat: Infinity,
-                  ease: "linear",
-                },
+              style={{
+                animation: "marquee 30s linear infinite",
               }}
             >
               {[...technologies, ...technologies, ...technologies].map((tech, index) => (
                 <TechBadge key={`${tech.name}-${index}`} name={tech.name} icon={tech.icon} />
               ))}
-            </motion.div>
+            </div>
           </div>
 
           {/* Gradient overlays for fade effect */}
@@ -104,12 +96,11 @@ export function TechStack() {
   );
 }
 
-function TechBadge({ name, icon: Icon }: { name: string, icon: any }) {
+function TechBadge({ name, icon: Icon }: { name: string, icon: LucideIcon }) {
   return (
     <motion.div
-      className="relative cursor-hover group px-6 py-3 rounded-lg whitespace-nowrap flex items-center gap-3"
+      className="relative cursor-hover group px-6 py-3 rounded-lg whitespace-nowrap flex items-center gap-3 font-body"
       style={{
-        fontFamily: "'JetBrains Mono', monospace",
         background: "rgba(255, 255, 255, 0.03)",
         border: "1px solid rgba(0, 240, 255, 0.2)",
         backdropFilter: "blur(10px)",
@@ -128,9 +119,9 @@ function TechBadge({ name, icon: Icon }: { name: string, icon: any }) {
         whileHover={{ x: "100%" }}
         transition={{ duration: 0.6 }}
       />
-      
+
       <Icon className="relative z-10 w-5 h-5 text-[#00F0FF] group-hover:text-white transition-colors duration-200" />
-      
+
       <span className="relative z-10 text-white group-hover:text-[#00F0FF] transition-colors duration-200">
         {name}
       </span>

@@ -72,9 +72,8 @@ export function Navigation() {
 
           {/* CTA Button */}
           <motion.button
-            className="hidden md:block relative cursor-hover group overflow-hidden px-6 py-2 rounded-lg"
+            className="hidden md:block relative cursor-hover group overflow-hidden px-6 py-2 rounded-lg font-body"
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
               border: "1px solid #00F0FF",
               background: "rgba(0, 240, 255, 0.05)",
             }}
@@ -99,10 +98,9 @@ export function Navigation() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden cursor-hover"
+            className="md:hidden cursor-hover font-body"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
               color: "#00F0FF",
               border: "1px solid #00F0FF",
               padding: "8px",
@@ -155,10 +153,9 @@ export function Navigation() {
 
                 {/* Close Button */}
                 <button
-                  className="md:hidden"
+                  className="md:hidden font-body"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
                     color: "#00F0FF",
                     border: "1px solid #00F0FF",
                     padding: "8px",
@@ -179,9 +176,8 @@ export function Navigation() {
                 ].map((link, index) => (
                   <motion.button
                     key={link.id}
-                    className="block w-full text-left px-4 py-3 rounded-lg cursor-hover"
+                    className="block w-full text-left px-4 py-3 rounded-lg cursor-hover font-body"
                     style={{
-                      fontFamily: "'JetBrains Mono', monospace",
                       color: "#00F0FF",
                       border: "1px solid rgba(0, 240, 255, 0.3)",
                       background: "rgba(0, 240, 255, 0.05)",
@@ -212,9 +208,8 @@ function NavLink({ label, onClick }: { label: string; onClick: () => void }) {
 
   return (
     <motion.button
-      className="relative cursor-hover group"
+      className="relative cursor-hover group font-body"
       style={{
-        fontFamily: "'JetBrains Mono', monospace",
         color: "#a0a0a0",
       }}
       onHoverStart={() => setIsHovered(true)}

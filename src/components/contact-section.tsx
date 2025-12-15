@@ -6,7 +6,9 @@ import { Send, Mail, Linkedin, Github, Twitter, Instagram } from "lucide-react";
 
 export function ContactSection() {
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  // We'll treat the sender as "guest" or capture it if you want to add an email input field later. 
+  // For now, sticking to the "terminal" feel where it's a direct message.
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [isFocused, setIsFocused] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -16,8 +18,8 @@ export function ContactSection() {
   useEffect(() => {
     if (textareaRef.current && containerRef.current && isFocused) {
       const textarea = textareaRef.current;
-      const container = containerRef.current;
-      
+      // const container = containerRef.current;
+
       // Create a temporary span to measure text width
       const measureSpan = document.createElement('span');
       measureSpan.style.font = window.getComputedStyle(textarea).font;
@@ -26,47 +28,62 @@ export function ContactSection() {
       measureSpan.style.whiteSpace = 'pre-wrap';
       measureSpan.style.wordWrap = 'break-word';
       measureSpan.style.width = `${textarea.clientWidth}px`;
-      
+
       const textBeforeCursor = message.substring(0, textarea.selectionStart);
       measureSpan.textContent = textBeforeCursor || '\u200B'; // Zero-width space if empty
-      
+
       document.body.appendChild(measureSpan);
-      
+
       // Calculate position
       const lines = textBeforeCursor.split('\n');
       const currentLine = lines[lines.length - 1];
-      
+
       const lineSpan = document.createElement('span');
       lineSpan.style.font = window.getComputedStyle(textarea).font;
       lineSpan.style.visibility = 'hidden';
       lineSpan.style.position = 'absolute';
       lineSpan.textContent = currentLine || '\u200B';
       document.body.appendChild(lineSpan);
-      
+
       const x = lineSpan.offsetWidth;
       const y = (lines.length - 1) * 24; // Line height approximation
-      
+
       document.body.removeChild(measureSpan);
       document.body.removeChild(lineSpan);
-      
+
       setCursorPosition({ x, y });
     }
   }, [message, isFocused]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || status !== "idle") return;
-    
+
     setStatus("sending");
-    
-    // Simulate sending
-    setTimeout(() => {
-      setStatus("sent");
-      setTimeout(() => {
-        setStatus("idle");
-        setMessage("");
-      }, 3000);
-    }, 2000);
+
+    try {
+      const response = await fetch('/api/send', {
+        method: 'POST',
+        body: JSON.stringify({ message, senderEmail: "Portfolio Guest" }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setStatus("sent");
+        setTimeout(() => {
+          setStatus("idle");
+          setMessage("");
+        }, 5000);
+      } else {
+        setStatus("error");
+        setTimeout(() => setStatus("idle"), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to send:", error);
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
   };
 
   // Handle Enter key to submit (like a real terminal)
@@ -92,18 +109,16 @@ export function ContactSection() {
           className="mb-16 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60 mb-4 block"
+            className="text-sm tracking-wider opacity-60 mb-4 block font-body"
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
               color: "#00F0FF",
             }}
           >
-            // TERMINAL INTERFACE
+            {"// TERMINAL INTERFACE"}
           </span>
           <h2
-            className="text-4xl md:text-6xl tracking-wider"
+            className="text-4xl md:text-6xl tracking-wider font-heading"
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
               background: "linear-gradient(to right, #00F0FF, #D946EF)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -142,15 +157,14 @@ export function ContactSection() {
               <div className="w-3 h-3 rounded-full bg-green-500" />
             </div>
             <span
-              className="ml-4 text-sm opacity-70"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              className="ml-4 text-sm opacity-70 font-body"
             >
               user@guest:~$ ./contact_gaurav.sh
             </span>
           </div>
 
           {/* Terminal Body */}
-          <div className="p-6 space-y-4" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          <div className="p-6 space-y-4 font-body">
             {/* Terminal Output */}
             <div className="space-y-2 text-sm">
               <motion.div
@@ -195,9 +209,8 @@ export function ContactSection() {
                       placeholder="Type your message here..."
                       rows={4}
                       disabled={status !== "idle"}
-                      className="w-full bg-transparent border-none outline-none resize-none text-white placeholder-gray-600 leading-6"
-                      style={{ 
-                        fontFamily: "'JetBrains Mono', monospace",
+                      className="w-full bg-transparent border-none outline-none resize-none text-white placeholder-gray-600 leading-6 font-body"
+                      style={{
                         caretColor: 'transparent',
                         cursor: 'inherit',
                         paddingTop: '0px',
@@ -276,6 +289,21 @@ export function ContactSection() {
                   </div>
                   <div className="text-green-400">
                     <span className="text-green-500">[SUCCESS]</span> Transmission complete
+                  </div>
+                </motion.div>
+              )}
+
+              {status === "error" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm space-y-1"
+                >
+                  <div className="text-red-400">
+                    <span className="text-red-500">[ERROR]</span> Connection failed
+                  </div>
+                  <div className="text-red-400">
+                    <span className="text-red-500">[CRITICAL]</span> Transmission aborted. Check API Key.
                   </div>
                 </motion.div>
               )}
