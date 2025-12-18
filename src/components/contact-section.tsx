@@ -255,7 +255,7 @@ export function ContactSection() {
                   <button
                     type="submit"
                     className="text-[#00F0FF] hover:text-white transition-colors"
-                    disabled={!currentInput.trim() || status === "sending"}
+                    disabled={!currentInput.trim()}
                   >
                     <Send className="w-4 h-4" />
                   </button>

@@ -28,15 +28,24 @@ export const CreativeEmailTemplate: React.FC<CreativeEmailTemplateProps> = ({
                 color: textColor,
                 padding: '40px',
                 borderRadius: '8px',
-                border: `1px solid ${accentColor}`
+                border: `1px solid ${accentColor}`,
+                textAlign: 'center'
             }}>
+                <div style={{ marginBottom: '20px' }}>
+                    {/* Replace with your actual domain */}
+                    <img
+                        src="https://your-portfolio-url.com/logo/logo-128.png"
+                        alt="Logo"
+                        style={{ width: '64px', height: '64px', borderRadius: '8px' }}
+                    />
+                </div>
                 <h1 style={{ color: accentColor, borderBottom: `1px dashed ${accentColor}`, paddingBottom: '10px' }}>
                     [NEW_TRANSMISSION_DETECTED]
                 </h1>
                 <div style={{ marginTop: '20px' }}>
-                    <p><strong>// SOURCE_ID:</strong> {name}</p>
-                    <p><strong>// FREQUENCY:</strong> {email}</p>
-                    <p><strong>// TIMESTAMP:</strong> {new Date().toISOString()}</p>
+                    <p><strong>{`// SOURCE_ID:`}</strong> {name}</p>
+                    <p><strong>{`// FREQUENCY:`}</strong> {email}</p>
+                    <p><strong>{`// TIMESTAMP:`}</strong> {new Date().toISOString()}</p>
                 </div>
                 <div style={{
                     marginTop: '30px',
@@ -44,11 +53,11 @@ export const CreativeEmailTemplate: React.FC<CreativeEmailTemplateProps> = ({
                     backgroundColor: 'rgba(0, 240, 255, 0.05)',
                     borderLeft: `3px solid ${secondaryColor}`
                 }}>
-                    <h3 style={{ marginTop: 0, color: secondaryColor }}>// DECODED_PAYLOAD:</h3>
+                    <h3 style={{ marginTop: 0, color: secondaryColor }}>{`// DECODED_PAYLOAD:`}</h3>
                     <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{message}</p>
                 </div>
                 <div style={{ marginTop: '40px', fontSize: '12px', opacity: 0.6 }}>
-                    END_OF_TRANSMISSION // ACT_ACCORDINGLY
+                    END_OF_TRANSMISSION {`// ACT_ACCORDINGLY`}
                 </div>
             </div>
         );
@@ -62,8 +71,17 @@ export const CreativeEmailTemplate: React.FC<CreativeEmailTemplateProps> = ({
             color: textColor,
             padding: '40px',
             borderRadius: '8px',
-            border: `1px solid ${secondaryColor}`
+            border: `1px solid ${secondaryColor}`,
+            textAlign: 'center'
         }}>
+            <div style={{ marginBottom: '20px' }}>
+                {/* Replace with your actual domain */}
+                <img
+                    src="https://your-portfolio-url.com/logo/logo-128.png"
+                    alt="Logo"
+                    style={{ width: '64px', height: '64px', borderRadius: '8px' }}
+                />
+            </div>
             <h1 style={{ color: secondaryColor, borderBottom: `1px dashed ${secondaryColor}`, paddingBottom: '10px' }}>
                 [TRANSMISSION_ACKNOWLEDGED]
             </h1>
@@ -79,8 +97,8 @@ export const CreativeEmailTemplate: React.FC<CreativeEmailTemplateProps> = ({
                 border: `1px solid ${accentColor}`,
                 borderRadius: '4px'
             }}>
-                <p style={{ margin: 0, color: accentColor }}><strong>// LOGGED_MESSAGE:</strong></p>
-                <p style={{ fontStyle: 'italic', opacity: 0.8 }}>"{message}"</p>
+                <p style={{ margin: 0, color: accentColor }}><strong>{`// LOGGED_MESSAGE:`}</strong></p>
+                <p style={{ fontStyle: 'italic', opacity: 0.8 }}>&quot;{message}&quot;</p>
             </div>
 
             <p style={{ marginTop: '30px' }}>
