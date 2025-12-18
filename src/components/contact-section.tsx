@@ -5,97 +5,79 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Mail, Linkedin, Github, Twitter, Instagram } from "lucide-react";
 
 export function ContactSection() {
-  const [message, setMessage] = useState("");
-  // We'll treat the sender as "guest" or capture it if you want to add an email input field later. 
-  // For now, sticking to the "terminal" feel where it's a direct message.
+  const [step, setStep] = useState<"message" | "email" | "name">("message");
+  const [history, setHistory] = useState<{ type: "question" | "answer"; content: string }[]>([]);
+  const [formData, setFormData] = useState({ message: "", email: "", name: "" });
+  const [currentInput, setCurrentInput] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [isFocused, setIsFocused] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Update cursor position based on text content
+  // Auto-focus input on step change
   useEffect(() => {
-    if (textareaRef.current && containerRef.current && isFocused) {
-      const textarea = textareaRef.current;
-      // const container = containerRef.current;
-
-      // Create a temporary span to measure text width
-      const measureSpan = document.createElement('span');
-      measureSpan.style.font = window.getComputedStyle(textarea).font;
-      measureSpan.style.visibility = 'hidden';
-      measureSpan.style.position = 'absolute';
-      measureSpan.style.whiteSpace = 'pre-wrap';
-      measureSpan.style.wordWrap = 'break-word';
-      measureSpan.style.width = `${textarea.clientWidth}px`;
-
-      const textBeforeCursor = message.substring(0, textarea.selectionStart);
-      measureSpan.textContent = textBeforeCursor || '\u200B'; // Zero-width space if empty
-
-      document.body.appendChild(measureSpan);
-
-      // Calculate position
-      const lines = textBeforeCursor.split('\n');
-      const currentLine = lines[lines.length - 1];
-
-      const lineSpan = document.createElement('span');
-      lineSpan.style.font = window.getComputedStyle(textarea).font;
-      lineSpan.style.visibility = 'hidden';
-      lineSpan.style.position = 'absolute';
-      lineSpan.textContent = currentLine || '\u200B';
-      document.body.appendChild(lineSpan);
-
-      const x = lineSpan.offsetWidth;
-      const y = (lines.length - 1) * 24; // Line height approximation
-
-      document.body.removeChild(measureSpan);
-      document.body.removeChild(lineSpan);
-
-      setCursorPosition({ x, y });
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
-  }, [message, isFocused]);
+  }, [step, status]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleNextStep = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || status !== "idle") return;
+    if (!currentInput.trim()) return;
 
-    setStatus("sending");
+    // Add answer to history
+    setHistory(prev => [...prev, { type: "answer", content: currentInput }]);
 
-    try {
-      const response = await fetch('/api/send', {
-        method: 'POST',
-        body: JSON.stringify({ message, senderEmail: "Portfolio Guest" }),
-      });
+    if (step === "message") {
+      setFormData(prev => ({ ...prev, message: currentInput }));
+      setHistory(prev => [...prev, { type: "question", content: "Please enter your email frequency:" }]);
+      setStep("email");
+      setCurrentInput("");
+    } else if (step === "email") {
+      // Basic validation
+      if (!currentInput.includes("@")) {
+        setHistory(prev => [...prev, { type: "question", content: "[ERROR] Invalid frequency format. Retry email:" }]);
+        setCurrentInput("");
+        return;
+      }
+      setFormData(prev => ({ ...prev, email: currentInput }));
+      setHistory(prev => [...prev, { type: "question", content: "Identify yourself (Name):" }]);
+      setStep("name");
+      setCurrentInput("");
+    } else if (step === "name") {
+      const finalName = currentInput;
+      const finalData = { ...formData, name: finalName };
+      setFormData(finalData); // Update state for consistency
+      setCurrentInput("");
+      setStatus("sending");
 
-      const data = await response.json();
+      // Submit
+      try {
+        const response = await fetch('/api/send', {
+          method: 'POST',
+          body: JSON.stringify(finalData),
+        });
 
-      if (response.ok && data.success) {
-        setStatus("sent");
-        setTimeout(() => {
-          setStatus("idle");
-          setMessage("");
-        }, 5000);
-      } else {
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setStatus("sent");
+          setTimeout(() => {
+            setStep("message");
+            setHistory([]);
+            setFormData({ message: "", email: "", name: "" });
+            setStatus("idle");
+            setCurrentInput("");
+          }, 6000);
+        } else {
+          setStatus("error");
+        }
+      } catch (error) {
+        console.error("Failed to send:", error);
         setStatus("error");
-        setTimeout(() => setStatus("idle"), 3000);
       }
-    } catch (error) {
-      console.error("Failed to send:", error);
-      setStatus("error");
-      setTimeout(() => setStatus("idle"), 3000);
     }
   };
 
-  // Handle Enter key to submit (like a real terminal)
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (message.trim() && status === "idle") {
-        handleSubmit(e as unknown as React.FormEvent);
-      }
-    }
-    // Shift+Enter allows new lines
-  };
+
 
   return (
     <section id="contact" className="relative py-32 px-6">
@@ -109,7 +91,7 @@ export function ContactSection() {
           className="mb-16 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60 mb-4 block font-body"
+            className="text-sm tracking-wider opacity-60 mb-4 block font-mono"
             style={{
               color: "#00F0FF",
             }}
@@ -157,155 +139,127 @@ export function ContactSection() {
               <div className="w-3 h-3 rounded-full bg-green-500" />
             </div>
             <span
-              className="ml-4 text-sm opacity-70 font-body"
+              className="ml-4 text-sm opacity-70 font-mono"
             >
               user@guest:~$ ./contact_gaurav.sh
             </span>
           </div>
 
           {/* Terminal Body */}
-          <div className="p-6 space-y-4 font-body">
+          <div className="p-6 space-y-4 font-mono">
             {/* Terminal Output */}
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pr-2">
               <motion.div
                 initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-[#00F0FF]"
+                animate={{ opacity: 1 }}
+                className="text-[#00F0FF] mb-4"
               >
-                <span className="text-green-400">[OK]</span> Initializing secure connection...
+                <span className="text-green-400">[OK]</span> Secure connection established.
+                <br />
+                <span className="text-white/60">Initialize contact sequence...</span>
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-[#00F0FF]"
-              >
-                <span className="text-green-400">[OK]</span> Neural handshake complete.
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="text-white"
-              >
-                Enter your inquiry below:
-              </motion.div>
-            </div>
 
-            {/* Input Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="relative" ref={containerRef}>
-                <div className="flex items-start gap-2">
-                  <span className="text-[#00F0FF] mt-2">&gt;</span>
-                  <div className="flex-1 relative" style={{ cursor: isFocused ? 'none' : 'text' }}>
-                    <textarea
-                      ref={textareaRef}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      placeholder="Type your message here..."
-                      rows={4}
-                      disabled={status !== "idle"}
-                      className="w-full bg-transparent border-none outline-none resize-none text-white placeholder-gray-600 leading-6 font-body"
-                      style={{
-                        caretColor: 'transparent',
-                        cursor: 'inherit',
-                        paddingTop: '0px',
-                        lineHeight: '24px',
-                      }}
-                    />
-                    {/* Custom Terminal Cursor */}
-                    {isFocused && (
-                      <motion.div
-                        className="absolute w-2 h-5 bg-[#00F0FF] pointer-events-none"
-                        style={{
-                          left: `${cursorPosition.x}px`,
-                          top: `${cursorPosition.y + 8}px`,
-                        }}
-                        animate={{ opacity: [1, 0, 1] }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* Chat History */}
+              {history.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="space-y-1"
+                >
+                  {item.type === "question" ? (
+                    <div className="text-[#00F0FF]">
+                      <span className="text-yellow-500 mr-2">?</span>
+                      {item.content}
+                    </div>
+                  ) : (
+                    <div className="text-white ml-6 border-l border-white/20 pl-2 opacity-80">
+                      {item.content}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
 
-              {/* Submit Button */}
-              <motion.button
-                type="submit"
-                disabled={!message.trim() || status !== "idle"}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg cursor-hover disabled:opacity-50 disabled:cursor-not-allowed group"
-                style={{
-                  border: "1px solid #00F0FF",
-                  background: "rgba(0, 240, 255, 0.1)",
-                }}
-                whileHover={{ scale: message.trim() && status === "idle" ? 1.05 : 1 }}
-                whileTap={{ scale: message.trim() && status === "idle" ? 0.95 : 1 }}
-              >
-                <Send className="w-4 h-4" style={{ color: "#00F0FF" }} />
-                <span style={{ color: "#00F0FF" }}>
-                  {status === "idle" ? "TRANSMIT" : status === "sending" ? "SENDING..." : "SENT!"}
-                </span>
-                {status === "idle" && message.trim() && (
-                  <motion.div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-300"
-                    style={{
-                      boxShadow: "0 0 30px rgba(0, 240, 255, 0.4)",
-                    }}
-                  />
-                )}
-              </motion.button>
+              {/* Current Question */}
+              {status !== "sent" && status !== "error" && status !== "sending" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-[#D946EF] mt-4"
+                >
+                  <span className="text-white mr-2">&gt;</span>
+                  {step === 'message' && "Enter your inquiry below:"}
+                  {step === 'email' && "Please enter your email frequency:"}
+                  {step === 'name' && "Identify yourself (Name):"}
+                </motion.div>
+              )}
 
-              {/* Status Messages */}
+              {/* Sending Logs */}
               {status === "sending" && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-sm space-y-1"
+                  className="text-sm space-y-1 mt-4"
                 >
                   <div className="text-yellow-400">
                     <span className="text-yellow-500">[INFO]</span> Encrypting message...
                   </div>
-                  <div className="text-yellow-400">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="text-yellow-400"
+                  >
                     <span className="text-yellow-500">[INFO]</span> Establishing quantum channel...
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
+            </div>
 
-              {status === "sent" && (
+            {/* Input Form */}
+            <form onSubmit={handleNextStep} className="relative mt-4">
+              {status === "sent" ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-sm space-y-1"
+                  className="p-4 rounded border border-green-500/30 bg-green-500/10 text-green-400 text-sm"
                 >
-                  <div className="text-green-400">
-                    <span className="text-green-500">[OK]</span> Connection established
-                  </div>
-                  <div className="text-green-400">
-                    <span className="text-green-500">[OK]</span> Message queued
-                  </div>
-                  <div className="text-green-400">
-                    <span className="text-green-500">[SUCCESS]</span> Transmission complete
-                  </div>
+                  <p>[SUCCESS] Transmission complete.</p>
+                  <p className="text-xs opacity-70 mt-1">A confirmation signal has been sent to your frequency.</p>
                 </motion.div>
-              )}
-
-              {status === "error" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm space-y-1"
-                >
-                  <div className="text-red-400">
-                    <span className="text-red-500">[ERROR]</span> Connection failed
+              ) : status === "error" ? (
+                <div className="text-red-400 p-2 text-sm">
+                  [ERROR] Transmission failed. Please reboot (refresh) and retry.
+                </div>
+              ) : status === "sending" ? (
+                null
+              ) : (
+                <div className="flex items-start gap-2">
+                  <span className="text-[#00F0FF] mt-1 animate-pulse">_</span>
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      type={step === 'email' ? 'email' : 'text'}
+                      value={currentInput}
+                      onChange={(e) => setCurrentInput(e.target.value)}
+                      placeholder={
+                        step === 'message' ? "Type message..." :
+                          step === 'email' ? "user@example.com" :
+                            "John Doe"
+                      }
+                      className="w-full bg-transparent border-none outline-none text-white placeholder-gray-700 font-mono text-sm py-1"
+                      autoFocus
+                    />
                   </div>
-                  <div className="text-red-400">
-                    <span className="text-red-500">[CRITICAL]</span> Transmission aborted. Check API Key.
-                  </div>
-                </motion.div>
+                  <button
+                    type="submit"
+                    className="text-[#00F0FF] hover:text-white transition-colors"
+                    disabled={!currentInput.trim()}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </form>
           </div>

@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
-import { Syne, JetBrains_Mono } from "next/font/google";
+import { Syne, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const syne = Syne({
     subsets: ["latin"],
-    variable: "--font-heading",
-    weight: ["400", "500", "600", "700", "800"],
+    variable: "--font-hero",
+    weight: ["700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
     subsets: ["latin"],
-    variable: "--font-body",
-    weight: ["300", "400", "500", "600", "700"],
+    variable: "--font-mono",
+    weight: ["400", "500"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+    subsets: ["latin"],
+    variable: "--font-space",
+    weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -37,7 +43,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={`${syne.variable} ${jetbrainsMono.variable} antialiased bg-[#050505] text-white font-body`}>
+            <body className={`${syne.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} antialiased bg-[#050505] text-white font-body`}>
                 {children}
             </body>
         </html>
