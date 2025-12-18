@@ -249,7 +249,7 @@ export function HeroSection() {
             className="space-y-6"
           >
             <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl tracking-wider font-heading"
+              className="text-5xl md:text-7xl lg:text-8xl tracking-wider font-hero"
               style={{
                 background: "linear-gradient(to right, #ffffff, #00F0FF, #ffffff)",
                 WebkitBackgroundClip: "text",
@@ -284,7 +284,7 @@ export function HeroSection() {
 
             {/* System Status */}
             <motion.div
-              className="inline-flex items-center gap-3 px-6 py-3 rounded-full font-body"
+              className="inline-flex items-center gap-3 px-6 py-3 rounded-full font-mono"
               style={{
                 background: "rgba(0, 240, 255, 0.05)",
                 border: "1px solid rgba(0, 240, 255, 0.2)",
@@ -315,7 +315,7 @@ export function HeroSection() {
             <motion.a
               href="/resume/resume.pdf"
               download="Gaurav_Jadhav_Resume.pdf"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg group cursor-hover relative overflow-hidden font-body"
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg group cursor-hover relative overflow-hidden font-mono"
               style={{
                 border: "1px solid #00F0FF",
                 background: "rgba(0, 240, 255, 0.05)",
@@ -339,7 +339,7 @@ export function HeroSection() {
             transition={{ delay: 1.2, duration: 0.5 }}
           >
             <motion.div
-              className="flex flex-col items-center gap-2 font-body"
+              className="flex flex-col items-center gap-2 font-mono"
               style={{
                 color: "#00F0FF",
               }}

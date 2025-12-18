@@ -61,7 +61,7 @@ export function ExperienceSection() {
           className="mb-16 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60 mb-4 block font-body text-[#00F0FF]"
+            className="text-sm tracking-wider opacity-60 mb-4 block font-mono text-[#00F0FF]"
           >
             {"// CODE LOG TIMELINE"}
           </span>
@@ -162,7 +162,7 @@ function ExperienceCard({ experience, index }: { experience: Experience; index: 
         >
           {/* Period badge */}
           <motion.span
-            className="inline-block px-3 py-1 rounded-full text-xs mb-3 font-body"
+            className="inline-block px-3 py-1 rounded-full text-xs mb-3 font-mono"
             style={{
               background: `${experience.color}20`,
               color: experience.color,

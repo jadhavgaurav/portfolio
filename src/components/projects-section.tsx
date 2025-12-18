@@ -57,7 +57,7 @@ export function ProjectsSection() {
           className="mb-16 text-center"
         >
           <span
-            className="text-sm tracking-wider opacity-60 mb-4 block font-body"
+            className="text-sm tracking-wider opacity-60 mb-4 block font-mono"
             style={{
               color: "#00F0FF",
             }}
@@ -236,7 +236,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
                   </p>
                 </div>
                 <motion.button
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-body"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono"
                   style={{
                     border: `1px solid ${project.color}`,
                     color: project.color,
@@ -260,7 +260,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
                 <div className="mb-4 flex items-start justify-between">
                   <div>
                     <motion.div
-                      className="inline-block px-3 py-1 rounded-full text-xs mb-3 font-body"
+                      className="inline-block px-3 py-1 rounded-full text-xs mb-3 font-mono"
                       style={{
                         background: `${project.color}20`,
                         color: project.color,
@@ -311,7 +311,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
                     {project.tech.map((tech: string) => (
                       <span
                         key={tech}
-                        className="px-3 py-1 rounded-full text-xs font-body"
+                        className="px-3 py-1 rounded-full text-xs font-mono"
                         style={{
                           background: "rgba(255, 255, 255, 0.05)",
                           border: "1px solid rgba(255, 255, 255, 0.1)",

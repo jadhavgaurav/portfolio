@@ -1,42 +1,72 @@
-import { EmailTemplate } from '@/components/email-template';
-import { Resend } from 'resend';
+import { CreativeEmailTemplate } from '@/components/creative-email-template';
 import { NextResponse } from 'next/server';
 import { render } from '@react-email/render';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+    },
+});
 
 export async function POST(request: Request) {
-    console.log("API Route Hit");
-    const apiKey = process.env.RESEND_API_KEY;
-    console.log(`API Key status: ${apiKey ? "Present" : "Missing"} (${apiKey?.slice(0, 5)}...)`);
+    console.log("API Route Hit (Nodemailer)");
 
-    if (!apiKey) {
-        console.error("Missing RESEND_API_KEY");
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+    if (!gmailUser || !gmailPass) {
+        console.error("Missing Gmail configuration");
         return NextResponse.json({ error: "Missing API configuration" }, { status: 500 });
     }
 
     try {
-        const { message, senderEmail } = await request.json();
-        console.log("Payload received:", { message, senderEmail });
+        const { message, email, name } = await request.json();
+        console.log("Payload received:", { message, email, name });
 
-        // Explicitly render the email template to HTML to avoid SDK issues
-        const emailHtml = await render(<EmailTemplate message={message} senderEmail={senderEmail} />);
+        // 1. Send Email to Admin (Gaurav)
+        const adminEmailHtml = await render(
+            <CreativeEmailTemplate
+                type="admin"
+                name={name}
+                email={email}
+                message={message}
+            />
+        );
 
-        const data = await resend.emails.send({
-            from: 'Portfolio Contact <onboarding@resend.dev>',
-            to: ['gaurav.vjadhav01@gmail.com'],
-            subject: 'New Inquiry from Portfolio',
-            html: emailHtml,
-        });
+        const adminMailOptions = {
+            from: `"Portfolio Contact" < ${gmailUser}> `,
+            to: "gaurav.vjadhav01@gmail.com",
+            subject: `[NEW TRANSMISSION] from ${name} `,
+            html: adminEmailHtml,
+        };
 
-        console.log("Resend response:", data);
+        const adminInfo = await transporter.sendMail(adminMailOptions);
+        console.log("Admin email sent:", adminInfo.messageId);
 
-        if (data.error) {
-            console.error("Resend returned error:", data.error);
-            return NextResponse.json({ error: data.error }, { status: 400 });
-        }
+        // 2. Send Confirmation Email to User
+        const userEmailHtml = await render(
+            <CreativeEmailTemplate
+                type="user"
+                name={name}
+                email={email}
+                message={message}
+            />
+        );
 
-        return NextResponse.json({ success: true, data });
+        const userMailOptions = {
+            from: `"Gaurav Jadhav" < ${gmailUser}> `,
+            to: email,
+            subject: "[SYSTEM] Receipt Acknowledged // Protocol Initiated",
+            html: userEmailHtml,
+        };
+
+        const userInfo = await transporter.sendMail(userMailOptions);
+        console.log("User email sent:", userInfo.messageId);
+
+        return NextResponse.json({ success: true, data: { admin: adminInfo.messageId, user: userInfo.messageId } });
     } catch (error) {
         console.error("API Route Exception:", error);
         return NextResponse.json({ error: "Internal Server Error", details: error }, { status: 500 });

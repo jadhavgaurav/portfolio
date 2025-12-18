@@ -40,13 +40,26 @@ export function ProjectCaseStudyModal({
         if (isOpen) {
             document.body.style.overflow = "hidden";
             modalRef.current?.focus();
+
+            // Push state so back button works
+            window.history.pushState({ modalOpen: true }, "", window.location.href);
         } else {
             document.body.style.overflow = "auto";
         }
+
+        const handlePopState = () => {
+            if (isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener("popstate", handlePopState);
+
         return () => {
             document.body.style.overflow = "auto";
+            window.removeEventListener("popstate", handlePopState);
         };
-    }, [isOpen]);
+    }, [isOpen, onClose]);
 
     // Handle keyboard navigation
     useEffect(() => {
@@ -95,7 +108,7 @@ export function ProjectCaseStudyModal({
                         aria-modal="true"
                     >
                         {/* Header */}
-                        <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#ffffff]/10 bg-[#050505]/50 relative overflow-hidden">
+                        <header className="flex-shrink-0 flex items-center justify-between px-6 pt-14 pb-4 md:py-4 border-b border-[#ffffff]/10 bg-[#050505]/50 relative overflow-hidden">
                             {/* Scanline accent */}
                             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#00F0FF]/50 to-transparent opacity-50" />
 
@@ -106,7 +119,7 @@ export function ProjectCaseStudyModal({
                                             {project.title}
                                         </h2>
                                         {project.statusPill && (
-                                            <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest text-black bg-[#00F0FF] rounded-sm font-body">
+                                            <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest text-black bg-[#00F0FF] rounded-sm font-mono">
                                                 {project.statusPill}
                                             </span>
                                         )}

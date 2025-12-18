@@ -11,10 +11,11 @@ const config: Config = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ["var(--font-body)", "monospace"],
-                mono: ["var(--font-body)", "monospace"],
-                heading: ["var(--font-heading)", "sans-serif"],
-                body: ["var(--font-body)", "monospace"]
+                sans: ["var(--font-space)", "sans-serif"],
+                mono: ["var(--font-mono)", "monospace"],
+                heading: ["var(--font-space)", "sans-serif"],
+                hero: ["var(--font-hero)", "sans-serif"],
+                body: ["var(--font-space)", "sans-serif"]
             },
             colors: {
                 background: 'var(--background)',
