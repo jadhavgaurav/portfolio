@@ -11,6 +11,7 @@ import { ExperienceSection } from "@/components/experience-section";
 import { ContactSection } from "@/components/contact-section";
 import { AmbientBackground } from "@/components/ambient-background";
 import { LoadingScreen } from "@/components/loading-screen";
+import { CertificationsSection } from "@/components/certifications-section";
 
 export default function PortfolioPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +63,7 @@ export default function PortfolioPage() {
                 <TechStack />
                 <ProjectsSection />
                 <CapabilitiesSection />
+                <CertificationsSection />
                 <ExperienceSection />
                 <ContactSection />
             </main>

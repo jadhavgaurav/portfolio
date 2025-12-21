@@ -249,7 +249,7 @@ export function HeroSection() {
             className="space-y-6"
           >
             <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl tracking-wider font-hero"
+              className="text-3xl sm:text-4xl md:text-7xl lg:text-8xl tracking-wider font-hero"
               style={{
                 background: "linear-gradient(to right, #ffffff, #00F0FF, #ffffff)",
                 WebkitBackgroundClip: "text",
