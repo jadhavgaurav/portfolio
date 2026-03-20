@@ -261,13 +261,13 @@ function SkillMatrixMobile({ filterLevel }: { filterLevel: FilterLevel }) {
     return (
         <div className="flex flex-col gap-4">
             {capabilitiesData.map((row, idx) => (
-                <MobileAccordionRow key={row.category} data={row} filterLevel={filterLevel} index={idx} />
+                <MobileAccordionRow key={row.category} data={row} filterLevel={filterLevel} />
             ))}
         </div>
     );
 }
 
-function MobileAccordionRow({ data, filterLevel }: { data: CapabilityCategory; filterLevel: FilterLevel; index: number }) {
+function MobileAccordionRow({ data, filterLevel }: { data: CapabilityCategory; filterLevel: FilterLevel }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (

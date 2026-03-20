@@ -24,17 +24,30 @@ export default function PortfolioPage() {
         document.documentElement.style.scrollBehavior = "smooth";
 
         // Apply font family to body
-        // Note: Fonts should ideally be handled by Next.js font optimization in layout/globals, 
-        // but keeping strict fidelity to original logic for now.
         document.body.style.fontFamily = "'Space Grotesk', sans-serif";
+
+        // Prevent body scroll during loading so page doesn't start at bottom
+        document.body.style.overflow = "hidden";
+
+        // Prevent browser from restoring previous scroll position
+        if (typeof window !== "undefined" && "scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
 
         return () => {
             document.body.style.cursor = "auto";
+            document.body.style.overflow = "";
         };
     }, []);
 
+    const handleLoadingComplete = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        document.body.style.overflow = "";
+        setIsLoading(false);
+    };
+
     if (isLoading) {
-        return <LoadingScreen onComplete={() => setIsLoading(false)} />;
+        return <LoadingScreen onComplete={handleLoadingComplete} />;
     }
 
     return (

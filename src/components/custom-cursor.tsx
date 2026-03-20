@@ -1,91 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "motion/react";
 
 export function CustomCursor() {
   const [isHovering, setIsHovering] = useState(false);
-  const [cursorColor, setCursorColor] = useState("#00F0FF");
+  const [cursorColor, setColor] = useState("#00F0FF");
   const [isHidden, setIsHidden] = useState(false);
+
+  // Ref flags to avoid redundant setState calls
+  const hoverRef = useRef(false);
+  const hiddenRef = useRef(false);
 
   // Motion values for raw mouse position
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Optimized springs: Tighter stiffness for less lag, but keeping the smooth "cinematic" feel
-  // Dot: Very fast (stiffness 1500)
+  // Dot: very tight spring (near-instant follow)
   const dotX = useSpring(mouseX, { damping: 40, stiffness: 1500 });
   const dotY = useSpring(mouseY, { damping: 40, stiffness: 1500 });
 
-  // Ring: Fast follow (stiffness 300), slightly behind dot
+  // Ring: slightly lagging spring
   const ringX = useSpring(mouseX, { damping: 25, stiffness: 300 });
   const ringY = useSpring(mouseY, { damping: 25, stiffness: 300 });
 
   useEffect(() => {
-    // Optimization: Use standard loop just to update motion values, 
-    // letting Framer handle the animation frame efficiently only when changed.
     const handleMouseMove = (e: MouseEvent) => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
-    };
 
-    const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Handle Input/Textarea hiding
-      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-        setIsHidden(true);
-        return;
-      } else {
-        setIsHidden(false);
+      // Handle Input/Textarea hiding (use refs to avoid setState on every move)
+      const shouldHide = target.tagName === "TEXTAREA" || target.tagName === "INPUT";
+      if (shouldHide !== hiddenRef.current) {
+        hiddenRef.current = shouldHide;
+        setIsHidden(shouldHide);
       }
 
-      // Handle Hover States
-      if (
+      if (shouldHide) return;
+
+      // Detect hover state from mousemove target (avoid separate mouseover listener)
+      const isInteractive =
         target.tagName === "A" ||
         target.tagName === "BUTTON" ||
-        target.closest("a") ||
-        target.closest("button") ||
-        target.classList.contains("cursor-hover")
-      ) {
-        setIsHovering(true);
-        // Context-aware colors
-        const isPurple = target.classList.contains("purple-context") || target.closest(".purple-context");
-        setCursorColor(isPurple ? "#D946EF" : "#00F0FF");
-      } else {
-        setIsHovering(false);
-        setCursorColor("#00F0FF");
+        !!target.closest("a") ||
+        !!target.closest("button") ||
+        target.classList.contains("cursor-hover") ||
+        !!target.closest(".cursor-hover");
+
+      if (isInteractive !== hoverRef.current) {
+        hoverRef.current = isInteractive;
+        setIsHovering(isInteractive);
+        if (isInteractive) {
+          const isPurple =
+            target.classList.contains("purple-context") ||
+            !!target.closest(".purple-context");
+          setColor(isPurple ? "#D946EF" : "#00F0FF");
+        } else {
+          setColor("#00F0FF");
+        }
       }
     };
 
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") setIsHidden(true);
+      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+        hiddenRef.current = true;
+        setIsHidden(true);
+      }
     };
 
     const handleFocusOut = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") setIsHidden(false);
+      if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+        hiddenRef.current = false;
+        setIsHidden(false);
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    // Using mouseover on window to catch all elements
-    window.addEventListener("mouseover", handleMouseOver, { passive: true });
-    window.addEventListener("focusin", handleFocusIn);
-    window.addEventListener("focusout", handleFocusOut);
+    window.addEventListener("focusin", handleFocusIn, { passive: true });
+    window.addEventListener("focusout", handleFocusOut, { passive: true });
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseover", handleMouseOver);
       window.removeEventListener("focusin", handleFocusIn);
       window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [mouseX, mouseY]); // Dependency array ensures listeners are attached only once (stable values)
+  }, [mouseX, mouseY]);
 
   if (isHidden) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[9999] mix-blend-screen overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[9999] mix-blend-screen overflow-hidden" aria-hidden="true">
       {/* Main cursor dot */}
       <motion.div
         className="absolute top-0 left-0 w-3 h-3 rounded-full"
@@ -99,26 +107,23 @@ export function CustomCursor() {
         }}
       />
 
-      {/* Outer ring */}
+      {/* Outer ring — fixed size 40px, scale transform only (no layout reflow) */}
       <motion.div
-        className="absolute top-0 left-0 rounded-full border border-solid"
+        className="absolute top-0 left-0 w-10 h-10 rounded-full border border-solid"
         style={{
           x: ringX,
           y: ringY,
           translateX: "-50%",
           translateY: "-50%",
           borderColor: cursorColor,
-          width: isHovering ? 48 : 32,
-          height: isHovering ? 48 : 32,
-          boxShadow: isHovering ? `0 0 30px ${cursorColor}` : `0 0 15px ${cursorColor}`,
         }}
         animate={{
-          scale: isHovering ? 1.2 : 1,
+          scale: isHovering ? 1.4 : 1,
         }}
         transition={{
           type: "spring",
           damping: 20,
-          stiffness: 300
+          stiffness: 300,
         }}
       >
         {isHovering && (

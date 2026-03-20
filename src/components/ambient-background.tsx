@@ -1,23 +1,11 @@
 "use client";
 
-
-
-import { motion } from "motion/react";
-
 export function AmbientBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {/* Animated grid */}
-      <motion.div
-        className="absolute inset-0 opacity-10"
-        animate={{
-          backgroundPosition: ["0px 0px", "50px 50px"],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear",
-        }}
+      {/* Animated grid — pure CSS animation, zero JS */}
+      <div
+        className="absolute inset-0 opacity-10 animate-grid-scroll"
         style={{
           backgroundImage: `
             linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
@@ -27,57 +15,29 @@ export function AmbientBackground() {
         }}
       />
 
-      {/* Floating orbs */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px]"
+      {/* Floating orbs — CSS keyframe animations, GPU compositor thread */}
+      <div
+        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[80px] animate-orb-1"
         style={{
           background: "radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, transparent 70%)",
-          willChange: "transform", // Performance optimization
-        }}
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -50, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "easeInOut",
+          willChange: "transform",
         }}
       />
 
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px]"
+      <div
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[80px] animate-orb-2"
         style={{
           background: "radial-gradient(circle, rgba(217, 70, 239, 0.15) 0%, transparent 70%)",
-          willChange: "transform", // Performance optimization
-        }}
-        animate={{
-          x: [0, -100, 0],
-          y: [0, 50, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 2,
+          willChange: "transform",
         }}
       />
 
-      {/* Scan lines */}
-      <motion.div
-        className="absolute inset-0"
+      {/* Scan lines — static, no animation (was barely visible at 0.03 opacity) */}
+      <div
+        className="absolute inset-0 opacity-40"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.03) 2px, rgba(0, 240, 255, 0.03) 4px)",
-        }}
-        animate={{
-          opacity: [0.5, 0.8, 0.5],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.03) 2px, rgba(0, 240, 255, 0.03) 4px)",
         }}
       />
     </div>

@@ -23,29 +23,40 @@ export function ContactSection() {
     e.preventDefault();
     if (!currentInput.trim()) return;
 
-    // Add answer to history
-    setHistory(prev => [...prev, { type: "answer", content: currentInput }]);
-
     if (step === "message") {
       setFormData(prev => ({ ...prev, message: currentInput }));
-      setHistory(prev => [...prev, { type: "question", content: "Please enter your email frequency:" }]);
+      setHistory(prev => [
+        ...prev,
+        { type: "answer", content: currentInput },
+        { type: "question", content: "Please enter your email address:" },
+      ]);
       setStep("email");
       setCurrentInput("");
     } else if (step === "email") {
-      // Basic validation
-      if (!currentInput.includes("@")) {
-        setHistory(prev => [...prev, { type: "question", content: "[ERROR] Invalid frequency format. Retry email:" }]);
+      // Proper email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(currentInput)) {
+        setHistory(prev => [
+          ...prev,
+          { type: "answer", content: currentInput },
+          { type: "question", content: "[ERROR] Invalid email address. Please retry:" },
+        ]);
         setCurrentInput("");
         return;
       }
       setFormData(prev => ({ ...prev, email: currentInput }));
-      setHistory(prev => [...prev, { type: "question", content: "Identify yourself (Name):" }]);
+      setHistory(prev => [
+        ...prev,
+        { type: "answer", content: currentInput },
+        { type: "question", content: "Identify yourself (Name):" },
+      ]);
       setStep("name");
       setCurrentInput("");
     } else if (step === "name") {
       const finalName = currentInput;
       const finalData = { ...formData, name: finalName };
-      setFormData(finalData); // Update state for consistency
+      setFormData(finalData);
+      setHistory(prev => [...prev, { type: "answer", content: currentInput }]);
       setCurrentInput("");
       setStatus("sending");
 
@@ -53,6 +64,7 @@ export function ContactSection() {
       try {
         const response = await fetch('/api/send', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(finalData),
         });
 
@@ -190,7 +202,7 @@ export function ContactSection() {
                 >
                   <span className="text-white mr-2">&gt;</span>
                   {step === 'message' && "Enter your inquiry below:"}
-                  {step === 'email' && "Please enter your email frequency:"}
+                  {step === 'email' && "Please enter your email address:"}
                   {step === 'name' && "Identify yourself (Name):"}
                 </motion.div>
               )}

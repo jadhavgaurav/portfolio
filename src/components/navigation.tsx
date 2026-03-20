@@ -11,11 +11,17 @@ export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    let rafPending = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 50);
+        rafPending = false;
+      });
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 

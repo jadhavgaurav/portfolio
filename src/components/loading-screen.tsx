@@ -1,34 +1,51 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImageWithFallback } from "./image-with-fallback";
 const logo = "/logo/logo-512.png";
 
 export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(onComplete, 500);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 55);
+    let rafId: number;
+    const startTime = performance.now();
+    const duration = 2000; // 2 seconds total
 
-    return () => clearInterval(interval);
-  }, [onComplete]);
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const next = Math.min(Math.round((elapsed / duration) * 100), 100);
+      setProgress(next);
+
+      if (next < 100) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setTimeout(() => onCompleteRef.current(), 400);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  const statusText =
+    progress < 30
+      ? "// Initializing neural interface..."
+      : progress < 60
+      ? "// Loading AI systems..."
+      : progress < 90
+      ? "// Establishing connection..."
+      : "// System ready.";
 
   return (
     <motion.div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#050505]"
       initial={{ opacity: 1 }}
       animate={{ opacity: progress >= 100 ? 0 : 1 }}
-      transition={{ duration: 0.5, delay: progress >= 100 ? 0 : 0 }}
+      transition={{ duration: 0.4, delay: progress >= 100 ? 0 : 0 }}
       style={{ pointerEvents: progress >= 100 ? "none" : "auto" }}
     >
       <div className="text-center space-y-8">
@@ -36,7 +53,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6 }}
           className="flex justify-center"
         >
           <ImageWithFallback
@@ -54,39 +71,33 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
           className="space-y-2 font-body"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
         >
-          <div className="text-[#00F0FF] text-sm">
-            {progress < 30 && "// Initializing neural interface..."}
-            {progress >= 30 && progress < 60 && "// Loading AI systems..."}
-            {progress >= 60 && progress < 90 && "// Establishing connection..."}
-            {progress >= 90 && "// System ready."}
-          </div>
+          <div className="text-[#00F0FF] text-sm">{statusText}</div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar — CSS transition only, no Framer Motion width updates */}
           <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden mx-auto">
-            <motion.div
-              className="h-full bg-gradient-to-r from-[#00F0FF] to-[#D946EF]"
+            <div
+              className="h-full bg-gradient-to-r from-[#00F0FF] to-[#D946EF] rounded-full"
               style={{
                 width: `${progress}%`,
+                transition: "width 0.05s linear",
                 boxShadow: "0 0 20px rgba(0, 240, 255, 0.8)",
               }}
-              initial={{ width: "0%" }}
-              animate={{ width: `${progress}%` }}
             />
           </div>
 
           <div className="text-white/60 text-xs">{progress}%</div>
         </motion.div>
 
-        {/* Animated Particles */}
-        {[...Array(8)].map((_, i) => (
+        {/* 4 Particles (reduced from 8) */}
+        {[0, 1, 2, 3].map((i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 rounded-full bg-[#00F0FF]"
             style={{
-              left: `${50 + Math.cos((i / 8) * Math.PI * 2) * 20}%`,
-              top: `${50 + Math.sin((i / 8) * Math.PI * 2) * 20}%`,
+              left: `${50 + Math.cos((i / 4) * Math.PI * 2) * 20}%`,
+              top: `${50 + Math.sin((i / 4) * Math.PI * 2) * 20}%`,
               boxShadow: "0 0 10px #00F0FF",
             }}
             animate={{
@@ -96,7 +107,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
             transition={{
               duration: 2,
               repeat: Infinity,
-              delay: i * 0.2,
+              delay: i * 0.3,
             }}
           />
         ))}
