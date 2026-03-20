@@ -443,6 +443,314 @@ export const projects: Project[] = [
         }
     },
     {
+        title: "MULTIMODAL SEARCH PLATFORM",
+        subtitle: "Semantic Search with CLIP & Vector DB",
+        description:
+            "A full-stack semantic search engine enabling text-to-image and image-to-image retrieval using CLIP embeddings and ChromaDB, with a React frontend and FastAPI backend.",
+        tech: ["FastAPI", "React", "CLIP", "ChromaDB", "Docker"],
+        gridSpan: "col-span-1",
+        color: "#00F0FF",
+        tag: "MAJOR SYSTEM",
+
+        slug: "#multimodal-search",
+        statusPill: "Major",
+        aim: [
+            "Enable semantic search across text and image modalities",
+            "Build scalable vector search with nearest-neighbour retrieval",
+            "Containerize full stack for reproducible deployment"
+        ],
+        built: [
+            "CLIP embedding pipeline for unified text/image vector space",
+            "ChromaDB vector store for fast similarity search",
+            "FastAPI backend with async search endpoints",
+            "React 18 frontend with Vite for instant search UI",
+            "Docker Compose orchestration for full stack"
+        ],
+        techStackDetailed: [
+            { category: "AI/Embeddings", stack: ["CLIP", "Sentence-Transformers"] },
+            { category: "Vector DB", stack: ["ChromaDB"] },
+            { category: "Backend", stack: ["FastAPI", "Python"] },
+            { category: "Frontend", stack: ["React 18", "Vite", "TypeScript"] },
+            { category: "Infra", stack: ["Docker", "Docker Compose"] }
+        ],
+        architecture: [
+            "React UI", "FastAPI Gateway", "CLIP Encoder", "ChromaDB Store", "Similarity Ranker", "Result Renderer"
+        ],
+        flowData: {
+            nodes: [
+                { id: '1', type: 'custom', position: { x: 250, y: 0 }, data: { title: 'React UI', label: 'Search Interface' } },
+                { id: '2', type: 'custom', position: { x: 250, y: 100 }, data: { title: 'FastAPI', label: 'API Gateway' } },
+                { id: '3', type: 'custom', position: { x: 250, y: 200 }, data: { title: 'CLIP Encoder', label: 'Embedding Model' } },
+                { id: '4', type: 'custom', position: { x: 50, y: 300 }, data: { title: 'ChromaDB', label: 'Vector Store' } },
+                { id: '5', type: 'custom', position: { x: 450, y: 300 }, data: { title: 'Ranker', label: 'Similarity Sort' } },
+            ],
+            edges: [
+                { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e2-3', source: '2', target: '3', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e3-4', source: '3', target: '4', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e3-5', source: '3', target: '5', animated: true, style: { stroke: '#00F0FF' } },
+            ]
+        },
+        engineeringDecisions: [
+            {
+                decision: "CLIP for joint embedding space",
+                why: "CLIP maps both text and images into the same vector space, enabling true cross-modal search without separate models.",
+                impact: "Single embedding pipeline handles both query types, halving infrastructure complexity."
+            },
+            {
+                decision: "ChromaDB over Pinecone",
+                why: "Self-hosted ChromaDB eliminates API costs and latency, suitable for local/private deployments.",
+                impact: "Zero external API dependency, full control over data and query performance."
+            }
+        ],
+        security: [
+            "Input validation on all search endpoints",
+            "Rate limiting on FastAPI routes",
+            "No PII stored in vector metadata"
+        ],
+        results: [
+            "Sub-100ms search latency on local hardware",
+            "Cross-modal retrieval (text→image and image→image)",
+            "Containerized — one-command deployment"
+        ],
+        links: {
+            github: "https://github.com/jadhavgaurav/multimodal-search-platform",
+            allRepos: "https://github.com/jadhavgaurav/multimodal-search-platform"
+        }
+    },
+    {
+        title: "SMART EMAIL ASSISTANT",
+        subtitle: "AI Email Classification & Auto-Response",
+        description:
+            "A local AI-powered email management system achieving 94% classification accuracy with automated response generation using LLaMA3 8B via Ollama, no cloud dependency.",
+        tech: ["Python", "LangChain", "Ollama", "Streamlit", "Docker"],
+        gridSpan: "col-span-1",
+        color: "#D946EF",
+        tag: "AI/ML",
+
+        slug: "#smart-email-assistant",
+        statusPill: "Major",
+        aim: [
+            "Classify incoming emails by type and urgency at high accuracy",
+            "Auto-generate context-aware reply drafts",
+            "Run entirely on local LLM — no data leaves the machine"
+        ],
+        built: [
+            "scikit-learn classification pipeline (94% accuracy)",
+            "LLaMA3 8B integration via Ollama for response generation",
+            "LangChain orchestration for prompt routing",
+            "Escalation mechanism for low-confidence predictions",
+            "Streamlit dashboard for review and approval workflow",
+            "Docker containerization for reproducible deployment"
+        ],
+        techStackDetailed: [
+            { category: "ML", stack: ["scikit-learn", "Python"] },
+            { category: "LLM", stack: ["LLaMA3 8B", "Ollama", "LangChain"] },
+            { category: "UI", stack: ["Streamlit"] },
+            { category: "Infra", stack: ["Docker"] }
+        ],
+        architecture: [
+            "Email Input", "Classifier", "Confidence Router", "LLM Generator", "Escalation Handler", "Streamlit Review"
+        ],
+        flowData: {
+            nodes: [
+                { id: '1', type: 'custom', position: { x: 250, y: 0 }, data: { title: 'Email Input', label: 'Raw Text' } },
+                { id: '2', type: 'custom', position: { x: 250, y: 100 }, data: { title: 'Classifier', label: 'scikit-learn' } },
+                { id: '3', type: 'custom', position: { x: 50, y: 200 }, data: { title: 'High Confidence', label: 'Auto Route' } },
+                { id: '4', type: 'custom', position: { x: 450, y: 200 }, data: { title: 'Low Confidence', label: 'Escalate' } },
+                { id: '5', type: 'custom', position: { x: 50, y: 300 }, data: { title: 'LLM Generator', label: 'LLaMA3 via Ollama' } },
+                { id: '6', type: 'custom', position: { x: 250, y: 400 }, data: { title: 'Streamlit UI', label: 'Review & Approve' } },
+            ],
+            edges: [
+                { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e2-3', source: '2', target: '3', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e2-4', source: '2', target: '4', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e3-5', source: '3', target: '5', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e5-6', source: '5', target: '6', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e4-6', source: '4', target: '6', animated: true, style: { stroke: '#D946EF' } },
+            ]
+        },
+        engineeringDecisions: [
+            {
+                decision: "Local LLM via Ollama instead of OpenAI",
+                why: "Email content is sensitive — running LLaMA3 locally ensures no data leaves the machine.",
+                impact: "Zero API costs, full data privacy, works offline."
+            },
+            {
+                decision: "Confidence-based escalation",
+                why: "Low-confidence predictions are flagged for human review rather than auto-responded to.",
+                impact: "Prevents incorrect automated replies on ambiguous emails."
+            }
+        ],
+        security: [
+            "No email data sent to external APIs",
+            "Local-only LLM inference via Ollama",
+            "Human-in-the-loop for low-confidence cases"
+        ],
+        results: [
+            "94% email classification accuracy",
+            "Automated drafts reduce response time by ~70%",
+            "Fully self-hosted — zero cloud dependency"
+        ],
+        links: {
+            github: "https://github.com/jadhavgaurav/smart-email-assistant-newel",
+            allRepos: "https://github.com/jadhavgaurav/smart-email-assistant-newel"
+        }
+    },
+    {
+        title: "E-VOTING BLOCKCHAIN",
+        subtitle: "Decentralized Voting with Face Recognition Auth",
+        description:
+            "A tamper-proof e-voting platform combining Ethereum smart contracts for immutable vote recording with face recognition biometrics for secure voter authentication.",
+        tech: ["Solidity", "Ethereum", "Python/Flask", "Face Recognition", "PHP"],
+        gridSpan: "col-span-1",
+        color: "#00F0FF",
+        tag: "BLOCKCHAIN",
+
+        slug: "#evoting-blockchain",
+        statusPill: "Major",
+        aim: [
+            "Prevent vote tampering via immutable blockchain ledger",
+            "Replace password auth with biometric face recognition",
+            "Provide real-time transparent vote counting"
+        ],
+        built: [
+            "Solidity smart contracts for vote storage on Ethereum",
+            "Truffle/Ganache local blockchain development environment",
+            "Python/Flask facial recognition authentication service",
+            "PHP/MySQL admin dashboard for election management",
+            "Real-time results display with candidate analytics"
+        ],
+        techStackDetailed: [
+            { category: "Blockchain", stack: ["Solidity 0.8", "Ethereum", "Truffle", "Ganache"] },
+            { category: "Biometrics", stack: ["Python", "Flask", "Face Recognition"] },
+            { category: "Web", stack: ["PHP", "MySQL", "JavaScript", "jQuery"] },
+            { category: "Frontend", stack: ["HTML5", "CSS3"] }
+        ],
+        architecture: [
+            "Voter Auth (Face)", "Smart Contract", "Ethereum Node", "Vote Ledger", "Admin Dashboard", "Results View"
+        ],
+        flowData: {
+            nodes: [
+                { id: '1', type: 'custom', position: { x: 250, y: 0 }, data: { title: 'Voter Portal', label: 'Web UI' } },
+                { id: '2', type: 'custom', position: { x: 50, y: 100 }, data: { title: 'Face Auth', label: 'Python/Flask' } },
+                { id: '3', type: 'custom', position: { x: 450, y: 100 }, data: { title: 'Smart Contract', label: 'Solidity' } },
+                { id: '4', type: 'custom', position: { x: 450, y: 200 }, data: { title: 'Ethereum Node', label: 'Ganache' } },
+                { id: '5', type: 'custom', position: { x: 250, y: 300 }, data: { title: 'Admin Dashboard', label: 'PHP' } },
+            ],
+            edges: [
+                { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e1-3', source: '1', target: '3', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e3-4', source: '3', target: '4', animated: true, style: { stroke: '#00F0FF' } },
+                { id: 'e4-5', source: '4', target: '5', animated: true, style: { stroke: '#00F0FF' } },
+            ]
+        },
+        engineeringDecisions: [
+            {
+                decision: "Ethereum smart contracts for vote storage",
+                why: "Blockchain immutability ensures no vote can be altered after submission.",
+                impact: "Cryptographic proof of each vote, publicly verifiable results."
+            },
+            {
+                decision: "Face recognition over OTP/password",
+                why: "Biometrics prevent identity fraud and voter impersonation more robustly than credentials.",
+                impact: "Each voter uniquely authenticated before ballot access is granted."
+            }
+        ],
+        security: [
+            "Immutable vote records on blockchain",
+            "Biometric identity verification",
+            "Smart contract access control",
+            "No vote modification after submission"
+        ],
+        results: [
+            "End-to-end voting flow on local Ethereum network",
+            "Face recognition authentication working in real-time",
+            "Transparent real-time results dashboard"
+        ],
+        links: {
+            github: "https://github.com/jadhavgaurav/E-Voting-using-Blockchain-and-Face-Recognition",
+            allRepos: "https://github.com/jadhavgaurav/E-Voting-using-Blockchain-and-Face-Recognition"
+        }
+    },
+    {
+        title: "FINANCE DASHBOARD",
+        subtitle: "Flutter Mobile App — Clean Architecture",
+        description:
+            "A production-quality Flutter finance operations app featuring KPI dashboards, cashflow visualization, vendor management, and approval workflows built with Clean Architecture and Riverpod.",
+        tech: ["Flutter", "Dart", "Riverpod", "GoRouter", "fl_chart"],
+        gridSpan: "col-span-1",
+        color: "#D946EF",
+        tag: "MOBILE",
+
+        slug: "#finance-dashboard",
+        statusPill: "Major",
+        aim: [
+            "Build a professional-grade finance ops mobile app",
+            "Implement Feature-First Clean Architecture for scalability",
+            "Visualize cashflow and KPIs with interactive charts"
+        ],
+        built: [
+            "Feature-First Clean Architecture with domain/data/presentation layers",
+            "Riverpod state management for reactive UI",
+            "GoRouter for declarative navigation",
+            "fl_chart integration for cashflow and KPI visualizations",
+            "Vendor management and approval workflow screens",
+            "JSON serialization with code generation"
+        ],
+        techStackDetailed: [
+            { category: "Framework", stack: ["Flutter", "Dart"] },
+            { category: "State", stack: ["Riverpod"] },
+            { category: "Navigation", stack: ["GoRouter"] },
+            { category: "Charts", stack: ["fl_chart"] },
+            { category: "Architecture", stack: ["Clean Architecture", "Feature-First"] }
+        ],
+        architecture: [
+            "Presentation Layer", "Domain Layer", "Data Layer", "Riverpod Providers", "GoRouter Nav", "fl_chart Widgets"
+        ],
+        flowData: {
+            nodes: [
+                { id: '1', type: 'custom', position: { x: 250, y: 0 }, data: { title: 'Flutter UI', label: 'Presentation' } },
+                { id: '2', type: 'custom', position: { x: 250, y: 100 }, data: { title: 'Riverpod', label: 'State Layer' } },
+                { id: '3', type: 'custom', position: { x: 50, y: 200 }, data: { title: 'Domain', label: 'Use Cases' } },
+                { id: '4', type: 'custom', position: { x: 450, y: 200 }, data: { title: 'Data', label: 'Repositories' } },
+                { id: '5', type: 'custom', position: { x: 250, y: 300 }, data: { title: 'GoRouter', label: 'Navigation' } },
+            ],
+            edges: [
+                { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e2-3', source: '2', target: '3', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e2-4', source: '2', target: '4', animated: true, style: { stroke: '#D946EF' } },
+                { id: 'e1-5', source: '1', target: '5', animated: true, style: { stroke: '#D946EF' } },
+            ]
+        },
+        engineeringDecisions: [
+            {
+                decision: "Feature-First Clean Architecture",
+                why: "Organizes code by feature (not layer) making it easy to add/remove features without touching unrelated code.",
+                impact: "Each feature is independently testable and deployable."
+            },
+            {
+                decision: "Riverpod over BLoC",
+                why: "Riverpod offers simpler syntax with full compile-time safety and no boilerplate streams.",
+                impact: "Less code, fewer bugs, easier to onboard contributors."
+            }
+        ],
+        security: [
+            "Input validation on all financial form fields",
+            "Role-based approval workflow for transactions",
+            "No sensitive data persisted in plain text"
+        ],
+        results: [
+            "Professional finance ops UI across iOS and Android",
+            "Fully navigable with deep-link support via GoRouter",
+            "Scalable architecture ready for backend integration"
+        ],
+        links: {
+            github: "https://github.com/jadhavgaurav/finance-dashboard",
+            allRepos: "https://github.com/jadhavgaurav/finance-dashboard"
+        }
+    },
+    {
         title: "FYNIX DIGITAL",
         subtitle: "Creative Agency Platform",
         description:

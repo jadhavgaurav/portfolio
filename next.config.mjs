@@ -2,7 +2,8 @@
 const nextConfig = {
     reactStrictMode: true,
     images: {
-        unoptimized: true, // For static export if needed, or just general ease for now
+        // Enable Next.js image optimization (WebP, responsive sizes, lazy loading)
+        formats: ["image/webp", "image/avif"],
     },
 };
 

@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import Image from "next/image";
 const profileImage = "/images/profile.png";
 
 export function HeroSection() {
@@ -63,6 +64,8 @@ export function HeroSection() {
     const handleScroll = () => {
       if (window.scrollY > 50) {
         setHasScrolled(true);
+        // Remove listener after first trigger — only needs to fire once
+        window.removeEventListener("scroll", handleScroll);
       }
     };
 
@@ -160,13 +163,20 @@ export function HeroSection() {
                 boxShadow: "0 0 60px rgba(0, 240, 255, 0.4), inset 0 0 30px rgba(0, 240, 255, 0.1)",
               }}
             >
-              <motion.img
-                src={profileImage}
-                alt="Gaurav Vijay Jadhav"
-                className="w-full h-full object-cover"
+              <motion.div
+                className="w-full h-full"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
-              />
+              >
+                <Image
+                  src={profileImage}
+                  alt="Gaurav Vijay Jadhav"
+                  width={256}
+                  height={256}
+                  priority
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
 
               {/* Dual-tone gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#00F0FF]/10 via-transparent to-[#D946EF]/10" />

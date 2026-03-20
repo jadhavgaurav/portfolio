@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, ChevronLeft, ChevronRight, Link as LinkIcon, Github, ExternalLink, Activity, Shield, Layers } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Link as LinkIcon, Github, ExternalLink, Activity, Shield } from "lucide-react";
 import { Project } from "@/data/projects";
 import dynamic from "next/dynamic";
 
@@ -179,20 +179,6 @@ export function ProjectCaseStudyModal({
                                     </section>
                                 )}
 
-                                {/* 3. Primary Media Placeholder */}
-                                <section>
-                                    <div className="w-full aspect-video bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-xl border border-white/10 flex items-center justify-center group overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-                                        <div className="text-center z-10 transition-transform duration-700 group-hover:scale-105">
-                                            <Layers className="w-16 h-16 text-[#00F0FF]/30 mx-auto mb-4" />
-                                            <p className="text-gray-500 tracking-widest text-sm font-mono uppercase">Interactive Demo Preview</p>
-                                        </div>
-                                        {/* Hover glow */}
-                                        <div className="absolute inset-0 bg-[#00F0FF]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                    </div>
-                                    {/* Optional thumbnails would go here */}
-                                </section>
-
                                 {/* 4. Tech Stack */}
                                 {project.techStackDetailed && project.techStackDetailed.length > 0 && (
                                     <section>
@@ -226,7 +212,7 @@ export function ProjectCaseStudyModal({
                                                     initialEdges={project.flowData.edges}
                                                 />
                                                 {/* Overlay to indicate interactivity */}
-                                                <div className="absolute top-4 right-4 z-10 pointers-events-none opacity-50 text-[10px] text-[#00F0FF] font-mono border border-[#00F0FF]/30 px-2 py-1 rounded bg-black/50 backdrop-blur">
+                                                <div className="absolute top-4 right-4 z-10 pointer-events-none opacity-50 text-[10px] text-[#00F0FF] font-mono border border-[#00F0FF]/30 px-2 py-1 rounded bg-black/50 backdrop-blur">
                                                     INTERACTIVE DIAGRAM
                                                 </div>
                                             </div>
@@ -255,13 +241,6 @@ export function ProjectCaseStudyModal({
                                             </div>
                                         )}
 
-                                        {!project.flowData && (
-                                            <div className="mt-3 text-right">
-                                                <button className="text-xs text-[#00F0FF] hover:underline font-mono flex items-center justify-end gap-1 ml-auto">
-                                                    View full diagram <ExternalLink className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        )}
                                     </section>
                                 )}
 
@@ -388,7 +367,7 @@ export function ProjectCaseStudyModal({
                     font-size: 0.875rem;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
-                    color: #555;
+                    color: rgba(255,255,255,0.45);
                     margin-bottom: 1.5rem;
                     display: flex;
                     align-items: center;
