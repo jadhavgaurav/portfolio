@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         const userInfo = await transporter.sendMail(userMailOptions);
 
         return NextResponse.json({ success: true, data: { admin: adminInfo.messageId, user: userInfo.messageId } });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

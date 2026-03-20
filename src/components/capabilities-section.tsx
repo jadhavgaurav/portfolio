@@ -155,7 +155,7 @@ function SkillMatrixDesktop({ filterLevel }: { filterLevel: FilterLevel }) {
 
             {/* Data Rows */}
             <div className="divide-y divide-[#00F0FF]/10">
-                {capabilitiesData.map((row, idx) => (
+                {capabilitiesData.map((row) => (
                     <MatrixRow key={row.category} data={row} filterLevel={filterLevel} index={idx} />
                 ))}
             </div>
@@ -260,7 +260,7 @@ function SkillChip({ skill, type }: { skill: Skill; type: "core" | "proficient" 
 function SkillMatrixMobile({ filterLevel }: { filterLevel: FilterLevel }) {
     return (
         <div className="flex flex-col gap-4">
-            {capabilitiesData.map((row, idx) => (
+            {capabilitiesData.map((row) => (
                 <MobileAccordionRow key={row.category} data={row} filterLevel={filterLevel} />
             ))}
         </div>
