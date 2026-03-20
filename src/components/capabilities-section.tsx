@@ -155,7 +155,7 @@ function SkillMatrixDesktop({ filterLevel }: { filterLevel: FilterLevel }) {
 
             {/* Data Rows */}
             <div className="divide-y divide-[#00F0FF]/10">
-                {capabilitiesData.map((row) => (
+                {capabilitiesData.map((row, idx) => (
                     <MatrixRow key={row.category} data={row} filterLevel={filterLevel} index={idx} />
                 ))}
             </div>
