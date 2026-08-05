@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Syne, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const syne = Syne({
@@ -45,6 +46,11 @@ export default function RootLayout({
         <html lang="en">
             <body className={`${syne.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} antialiased bg-[#050505] text-white font-body`}>
                 {children}
+                <Script
+                    src="https://cdn.oyechats.com/oyechats-widget.js"
+                    data-bot-key="bot-11a026a4b8b3"
+                    strategy="lazyOnload"
+                />
             </body>
         </html>
     );
