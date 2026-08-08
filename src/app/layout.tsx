@@ -48,7 +48,7 @@ export default function RootLayout({
                 {children}
                 <Script
                     src="https://cdn.oyechats.com/oyechats-widget.js"
-                    data-bot-key="bot-76f4b050329a"
+                    data-bot-key="bot-2ebd89894575"
                     strategy="lazyOnload"
                 />
             </body>
