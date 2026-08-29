@@ -1,81 +1,20 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Tailwind is used for layout only — flex, grid, spacing, positioning.
+ *
+ * Every design decision (colour, type scale, rules, gutters) lives in
+ * `src/app/globals.css` as CSS custom properties, and is reached through
+ * arbitrary values like `text-[var(--ink)]`. There is deliberately no theme
+ * extension: one source of truth for the design system, and it is not this file.
+ */
 const config: Config = {
-    darkMode: ["class"],
     content: [
-        "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/data/**/*.{js,ts,jsx,tsx,mdx}",
+        "./src/app/**/*.{ts,tsx}",
+        "./src/components/**/*.{ts,tsx}",
+        "./src/data/**/*.{ts,tsx}",
     ],
-    theme: {
-        extend: {
-            fontFamily: {
-                sans: ["var(--font-space)", "sans-serif"],
-                mono: ["var(--font-mono)", "monospace"],
-                heading: ["var(--font-space)", "sans-serif"],
-                hero: ["var(--font-hero)", "sans-serif"],
-                body: ["var(--font-space)", "sans-serif"]
-            },
-            colors: {
-                background: 'var(--background)',
-                foreground: 'var(--foreground)',
-                card: {
-                    DEFAULT: 'var(--card)',
-                    foreground: 'var(--card-foreground)'
-                },
-                popover: {
-                    DEFAULT: 'var(--popover)',
-                    foreground: 'var(--popover-foreground)'
-                },
-                primary: {
-                    DEFAULT: 'var(--primary)',
-                    foreground: 'var(--primary-foreground)'
-                },
-                secondary: {
-                    DEFAULT: 'var(--secondary)',
-                    foreground: 'var(--secondary-foreground)'
-                },
-                muted: {
-                    DEFAULT: 'var(--muted)',
-                    foreground: 'var(--muted-foreground)'
-                },
-                accent: {
-                    DEFAULT: 'var(--accent)',
-                    foreground: 'var(--accent-foreground)'
-                },
-                destructive: {
-                    DEFAULT: 'var(--destructive)',
-                    foreground: 'var(--destructive-foreground)'
-                },
-                border: 'var(--border)',
-                input: 'var(--input)',
-                ring: 'var(--ring)',
-                chart: {
-                    '1': 'var(--chart-1)',
-                    '2': 'var(--chart-2)',
-                    '3': 'var(--chart-3)',
-                    '4': 'var(--chart-4)',
-                    '5': 'var(--chart-5)'
-                },
-                sidebar: {
-                    DEFAULT: 'var(--sidebar)',
-                    foreground: 'var(--sidebar-foreground)',
-                    primary: 'var(--sidebar-primary)',
-                    'primary-foreground': 'var(--sidebar-primary-foreground)',
-                    accent: 'var(--sidebar-accent)',
-                    'accent-foreground': 'var(--sidebar-accent-foreground)',
-                    border: 'var(--sidebar-border)',
-                    ring: 'var(--sidebar-ring)'
-                }
-            },
-            borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)'
-            }
-        }
-    },
+    theme: { extend: {} },
     plugins: [],
 };
 export default config;

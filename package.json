@@ -12,21 +12,20 @@
   "dependencies": {
     "@react-email/components": "^1.0.1",
     "@react-email/render": "^2.0.0",
-    "@types/dagre": "^0.7.53",
-    "@xyflow/react": "^12.10.1",
     "autoprefixer": "^10.4.22",
-    "dagre": "^0.8.5",
-    "lucide-react": "^0.477.0",
     "motion": "^12.23.24",
     "next": "14.2.14",
     "nodemailer": "^7.0.11",
-    "tailwind-merge": "^3.2.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/node": "20.16.5",
     "@types/nodemailer": "^7.0.4",
     "@types/react": "18.3.9",
     "@types/react-dom": "18.3.0",
+    "@types/three": "^0.169.0",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.14",
     "postcss": "8.4.47",

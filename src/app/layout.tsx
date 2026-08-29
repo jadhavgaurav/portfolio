@@ -1,59 +1,55 @@
 import type { Metadata } from "next";
-import { Syne, JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import Script from "next/script";
+import { Newsreader, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
+/** Narration, field observations, specimen prose. Italic carries annotation. */
+const newsreader = Newsreader({
     subsets: ["latin"],
-    variable: "--font-hero",
-    weight: ["700", "800"],
+    variable: "--font-newsreader",
+    weight: ["300", "400", "500"],
+    style: ["normal", "italic"],
+    display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+/** The entire instrument layer: depths, dates, labels, byte counts. */
+const plexMono = IBM_Plex_Mono({
     subsets: ["latin"],
-    variable: "--font-mono",
+    variable: "--font-plex-mono",
     weight: ["400", "500"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-    subsets: ["latin"],
-    variable: "--font-space",
-    weight: ["400", "500", "600", "700"],
+    display: "swap",
 });
 
 export const metadata: Metadata = {
-    title: "Gaurav Jadhav | AI Engineer",
-    description: "Portfolio of Gaurav Vijay Jadhav - AI Engineer, Data Scientist, Full Stack Architect.",
+    title: "Strata — Gaurav Vijay Jadhav",
+    description:
+        "A core sample drilled through 46 public repositories, May 2023 to August 2026. Depth is time; the deeper you go, the older the work.",
     icons: {
         icon: [
             { url: "/favicon/favicon.ico" },
             { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
             { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
         ],
-        apple: [
-            { url: "/favicon/apple-touch-icon.png" },
-        ],
+        apple: [{ url: "/favicon/apple-touch-icon.png" }],
     },
     manifest: "/favicon/site.webmanifest",
+    openGraph: {
+        title: "Strata — Gaurav Vijay Jadhav",
+        description:
+            "A core sample drilled through 46 public repositories. Depth is time.",
+        type: "profile",
+    },
 };
 
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
+export const viewport = {
+    themeColor: "#E7E2D6",
+    width: "device-width",
+    initialScale: 1,
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return (
-        <html lang="en">
-            <body className={`${syne.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} antialiased bg-[#050505] text-white font-body`}>
-                {children}
-                <Script
-                    src="https://cdn.oyechats.com/oyechats-widget.js"
-                    data-bot-key="bot-11a026a4b8b3"
-                    strategy="lazyOnload"
-                />
-            </body>
+        <html lang="en" className={`${newsreader.variable} ${plexMono.variable}`}>
+            <body className="grain">{children}</body>
         </html>
     );
 }
-
-
