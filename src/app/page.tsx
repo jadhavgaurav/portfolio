@@ -1,113 +1,33 @@
-"use client";
+import { Arrival } from "@/components/arrival";
+import { Colophon } from "@/components/colophon";
+import { Exhibits } from "@/components/exhibits";
+import { Finding } from "@/components/finding";
+import { IndexNav } from "@/components/index-nav";
+import { Ledger } from "@/components/ledger";
+import { Recursion } from "@/components/recursion";
+import { Unclaimed } from "@/components/unclaimed";
 
-import { useEffect, useState } from "react";
-import { AnimatePresence } from "motion/react";
-import { CustomCursor } from "@/components/custom-cursor";
-import { Navigation } from "@/components/navigation";
-import { HeroSection } from "@/components/hero-section";
-import { TechStack } from "@/components/tech-stack";
-import { ProjectsSection } from "@/components/projects-section";
-import { CapabilitiesSection } from "@/components/capabilities-section";
-import { ExperienceSection } from "@/components/experience-section";
-import { ContactSection } from "@/components/contact-section";
-import { AmbientBackground } from "@/components/ambient-background";
-import { LoadingScreen } from "@/components/loading-screen";
-import { CertificationsSection } from "@/components/certifications-section";
-
-export default function PortfolioPage() {
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        // Hide default cursor
-        document.body.style.cursor = "none";
-
-        // Add smooth scrolling
-        document.documentElement.style.scrollBehavior = "smooth";
-
-        // Apply font family to body
-        document.body.style.fontFamily = "'Space Grotesk', sans-serif";
-
-        // Prevent body scroll during loading so page doesn't start at bottom
-        document.body.style.overflow = "hidden";
-
-        // Prevent browser from restoring previous scroll position
-        if (typeof window !== "undefined" && "scrollRestoration" in history) {
-            history.scrollRestoration = "manual";
-        }
-
-        // Ensure page starts at the very top
-        window.scrollTo(0, 0);
-
-        return () => {
-            document.body.style.cursor = "auto";
-            document.body.style.overflow = "";
-        };
-    }, []);
-
-    const handleLoadingComplete = () => {
-        // Unlock scrolling now that the page content is already mounted and at top
-        document.body.style.overflow = "";
-        setIsLoading(false);
-    };
-
-    return (
-        <>
-            {/* Loading screen renders as a fixed overlay — main content is always mounted */}
-            <AnimatePresence>
-                {isLoading && <LoadingScreen onComplete={handleLoadingComplete} />}
-            </AnimatePresence>
-
-            <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
-                {/* Custom Cursor */}
-                <CustomCursor />
-
-                {/* Ambient Background Effects */}
-                <AmbientBackground />
-                <div className="fixed inset-0 pointer-events-none">
-                    {/* Animated noise texture */}
-                    <div
-                        className="absolute inset-0 opacity-[0.02]"
-                        style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                        }}
-                    />
-                </div>
-
-                {/* Navigation */}
-                <Navigation />
-
-                {/* Main Content */}
-                <main className="relative z-10">
-                    <HeroSection />
-                    <TechStack />
-                    <ProjectsSection />
-                    <CapabilitiesSection />
-                    <CertificationsSection />
-                    <ExperienceSection />
-                    <ContactSection />
-                </main>
-
-                {/* Footer */}
-                <footer className="relative z-10 py-12 px-6 border-t border-[#00F0FF]/20">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div
-                                className="text-sm opacity-60"
-                                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                            >
-                                © 2024 Gaurav Vijay Jadhav. All systems operational.
-                            </div>
-                            <div
-                                className="text-sm opacity-60"
-                                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                            >
-                                Designed & Engineered with{" "}
-                                <span className="text-[#00F0FF]">◆</span> Neural Intelligence
-                            </div>
-                        </div>
-                    </div>
-                </footer>
-            </div>
-        </>
-    );
+/**
+ * The document, in reading order.
+ *
+ * Arrival states the finding and the rules. The finding argues it. The
+ * chronology shows the shape of the whole record at once — the one inverted
+ * section. The exhibits go deep on six pieces of work. The recursion shows
+ * how he actually works. Not-claimed names the limits. The colophon closes.
+ */
+export default function Page() {
+  return (
+    <>
+      <IndexNav />
+      <main>
+        <Arrival />
+        <Finding />
+        <Ledger />
+        <Exhibits />
+        <Recursion />
+        <Unclaimed />
+        <Colophon />
+      </main>
+    </>
+  );
 }

@@ -2,274 +2,318 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: #050505;
-    --foreground: #ffffff;
-    --card: #050505;
-    --card-foreground: #ffffff;
-    --popover: #0a0a0a;
-    --popover-foreground: #ffffff;
-    --primary: #00F0FF;
-    --primary-foreground: #050505;
-    --secondary: #D946EF;
-    --secondary-foreground: #050505;
-    --muted: #1a1a1a;
-    --muted-foreground: #a0a0a0;
-    --accent: #00F0FF;
-    --accent-foreground: #050505;
-    --destructive: #d4183d;
-    --destructive-foreground: #ffffff;
-    --border: rgba(0, 240, 255, 0.2);
-    --input: rgba(255, 255, 255, 0.1);
-    --ring: #00F0FF;
-    --radius: 0.625rem;
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: #0a0a0a;
-    --sidebar-foreground: #ffffff;
-    --sidebar-primary: #00F0FF;
-    --sidebar-primary-foreground: #050505;
-    --sidebar-accent: #1a1a1a;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: rgba(0, 240, 255, 0.2);
-    --sidebar-ring: #00F0FF;
-  }
+/* ─────────────────────────────────────────────────────────────────────────
+   THE RECORD — visual system
 
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
-  }
+   Ground is paper, not screen. The palette is drawn from archival printing:
+   a warm bone stock, warm black ink, and two pigments that carry meaning
+   rather than decoration —
+
+     oxide   iron-oxide red. Attested. The colour of a stamped verdict.
+     ochre   Interpretation. Argued, not proven.
+     (none)  Not claimed. Rendered hollow: outline, no fill.
+
+   One inversion exists in the whole document — the ledger — because a dense
+   time series reads better as light marks on dark, the way an instrument
+   trace does. It is used once so that it means something.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --paper: #f1ece2;
+  --paper-sunk: #e8e2d5;
+  --paper-raised: #f7f4ed;
+
+  --ink: #191710;
+  --ink-2: #4c463a;
+  --ink-3: #67604f;
+
+  --rule: rgba(25, 23, 16, 0.16);
+  --rule-strong: rgba(25, 23, 16, 0.42);
+  --rule-faint: rgba(25, 23, 16, 0.08);
+
+  --oxide: #9c2f16;
+  --oxide-soft: rgba(156, 47, 22, 0.1);
+  --ochre: #8a6410;
+  --ochre-soft: rgba(138, 100, 16, 0.1);
+
+  --void: #16140e;
+  --void-ink: #ded7c8;
+  --void-ink-2: #9d9686;
+  --void-rule: rgba(222, 215, 200, 0.16);
+
+  --measure: 34rem;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+  --shell: 96rem;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 620ms;
+
+  color-scheme: light;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-/* Global Neural Interface Styles */
 * {
-  cursor: none !important;
+  border-color: var(--rule);
 }
 
 html {
-  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text), Georgia, "Times New Roman", serif;
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Faint paper tooth. Static, one small gradient — no animated noise layer. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(
+      circle at 18% 12%,
+      rgba(156, 47, 22, 0.035),
+      transparent 55%
+    ),
+    radial-gradient(circle at 88% 82%, rgba(138, 100, 16, 0.035), transparent 55%);
 }
 
-::-webkit-scrollbar-track {
-  background: #050505;
-  border-left: 1px solid rgba(0, 240, 255, 0.1);
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #00F0FF, #D946EF);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #00F0FF, #D946EF);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-}
-
-/* Selection color */
 ::selection {
-  background: rgba(0, 240, 255, 0.3);
-  color: #ffffff;
+  background: var(--oxide);
+  color: var(--paper);
 }
 
-::-moz-selection {
-  background: rgba(0, 240, 255, 0.3);
-  color: #ffffff;
+/* ── Typography ─────────────────────────────────────────────────────────── */
+
+.u-display {
+  font-family: var(--font-text), Georgia, serif;
+  font-weight: 300;
+  letter-spacing: -0.022em;
+  line-height: 0.94;
+  text-wrap: balance;
 }
 
-/* Respect user preference for reduced motion */
+.u-serif-italic {
+  font-style: italic;
+}
+
+.u-mono {
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+  font-feature-settings: "kern" 1;
+}
+
+/* The label voice: small, spaced, uppercase mono. Used for data and
+   apparatus only — never for prose, so it never reads as terminal cosplay. */
+.u-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+.u-label-ink {
+  color: var(--ink-2);
+}
+
+.u-prose {
+  max-width: var(--measure);
+}
+
+.u-prose p + p {
+  margin-top: 1.15em;
+}
+
+.u-lede {
+  font-size: clamp(1.1rem, 1.15vw + 0.85rem, 1.4rem);
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* ── Rules ──────────────────────────────────────────────────────────────── */
+
+.u-rule {
+  height: 1px;
+  background: var(--rule);
+  border: 0;
+  transform-origin: left;
+}
+
+.u-rule-strong {
+  background: var(--rule-strong);
+}
+
+/* Registration marks — the corner crosses of a printed plate. Purely
+   structural: they mark the trim of the composition, nothing else. */
+.u-reg {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  color: var(--oxide);
+  opacity: 0.55;
+}
+
+/* ── Evidence markers ───────────────────────────────────────────────────── */
+
+.ev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ev::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.ev-attested {
+  color: var(--oxide);
+}
+.ev-attested::before {
+  background: var(--oxide);
+}
+
+.ev-read {
+  color: var(--ochre);
+}
+.ev-read::before {
+  background: var(--ochre);
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.ev-unclaimed {
+  color: var(--ink-3);
+}
+.ev-unclaimed::before {
+  background: transparent;
+  border: 1px solid var(--ink-3);
+}
+
+/* ── The one inversion ──────────────────────────────────────────────────── */
+
+.u-void {
+  background: var(--void);
+  color: var(--void-ink);
+  --rule: var(--void-rule);
+  --rule-faint: rgba(222, 215, 200, 0.08);
+  --ink: var(--void-ink);
+  --ink-2: var(--void-ink-2);
+  --ink-3: #878071;
+  --oxide: #d8613c;
+  --ochre: #c39a3a;
+  color-scheme: dark;
+}
+
+/* ── Focus & links ──────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--oxide);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+.u-link {
+  color: inherit;
+  text-decoration: none;
+  background-image: linear-gradient(var(--oxide), var(--oxide));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 340ms var(--ease), color 340ms var(--ease);
+}
+
+.u-link:hover,
+.u-link:focus-visible {
+  background-size: 100% 1px;
+  color: var(--oxide);
+}
+
+.u-cite {
+  color: var(--ink-3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  transition: color 220ms var(--ease), border-color 220ms var(--ease);
+}
+
+.u-cite:hover,
+.u-cite:focus-visible {
+  color: var(--oxide);
+  border-color: var(--oxide);
+}
+
+/* ── Reveal ─────────────────────────────────────────────────────────────── */
+
+.u-rise {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.u-rise[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+.u-draw {
+  transform: scaleX(0);
+  transition: transform 900ms var(--ease);
+}
+
+.u-draw[data-shown="true"] {
+  transform: scaleX(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .animate-orb-1, .animate-orb-2, .animate-grid-scroll {
-    animation: none !important;
-  }
-}
-
-/* Ambient background CSS keyframe animations (GPU compositor thread) */
-@keyframes orb-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(80px, -40px) scale(1.15); }
-  66% { transform: translate(40px, 30px) scale(0.95); }
-}
-
-@keyframes orb-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-80px, 40px) scale(1.1); }
-  66% { transform: translate(-20px, -30px) scale(1.05); }
-}
-
-@keyframes grid-scroll {
-  0% { background-position: 0px 0px; }
-  100% { background-position: 50px 50px; }
-}
-
-.animate-orb-1 { animation: orb-1 15s ease-in-out infinite; }
-.animate-orb-2 { animation: orb-2 18s ease-in-out infinite 2s; }
-.animate-grid-scroll { animation: grid-scroll 20s linear infinite; }
-
-/* Glassmorphism utility */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Glow text utility */
-.glow-text {
-  text-shadow: 0 0 20px currentColor;
-}
-
-/* Noise animation */
-@keyframes noise {
-
-  0%,
-  100% {
-    transform: translate(0, 0);
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 
-  10% {
-    transform: translate(-5%, -5%);
+  .u-rise {
+    opacity: 1;
+    transform: none;
   }
 
-  20% {
-    transform: translate(-10%, 5%);
-  }
-
-  30% {
-    transform: translate(5%, -10%);
-  }
-
-  40% {
-    transform: translate(-5%, 15%);
-  }
-
-  50% {
-    transform: translate(-10%, 5%);
-  }
-
-  60% {
-    transform: translate(15%, 0);
-  }
-
-  70% {
-    transform: translate(0, 10%);
-  }
-
-  80% {
-    transform: translate(-15%, 0);
-  }
-
-  90% {
-    transform: translate(10%, 5%);
+  .u-draw {
+    transform: scaleX(1);
   }
 }
 
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
+/* Print: the record should survive being printed, because that is what it is. */
+@media print {
+  body::before,
+  .u-noprint {
+    display: none !important;
   }
-
-  to {
-    transform: rotate(360deg);
+  .u-void {
+    background: #fff;
+    color: #000;
   }
-}
-
-@keyframes spin-reverse-slow {
-  from {
-    transform: rotate(360deg);
-  }
-
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes glitch-pass {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-33.333%);
-  }
-}
-
-@keyframes float-particle {
-
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.2;
-  }
-
-  50% {
-    transform: translateY(-30px);
-    opacity: 0.8;
+  .u-rise {
+    opacity: 1;
+    transform: none;
   }
 }

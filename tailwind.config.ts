@@ -1,81 +1,41 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Tailwind is used for layout and spacing only. Colour, type and the
+ * evidence markers live in globals.css as tokens, so the visual system has a
+ * single source of truth that a designer can read without knowing Tailwind.
+ */
 const config: Config = {
-    darkMode: ["class"],
-    content: [
-        "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/data/**/*.{js,ts,jsx,tsx,mdx}",
-    ],
-    theme: {
-        extend: {
-            fontFamily: {
-                sans: ["var(--font-space)", "sans-serif"],
-                mono: ["var(--font-mono)", "monospace"],
-                heading: ["var(--font-space)", "sans-serif"],
-                hero: ["var(--font-hero)", "sans-serif"],
-                body: ["var(--font-space)", "sans-serif"]
-            },
-            colors: {
-                background: 'var(--background)',
-                foreground: 'var(--foreground)',
-                card: {
-                    DEFAULT: 'var(--card)',
-                    foreground: 'var(--card-foreground)'
-                },
-                popover: {
-                    DEFAULT: 'var(--popover)',
-                    foreground: 'var(--popover-foreground)'
-                },
-                primary: {
-                    DEFAULT: 'var(--primary)',
-                    foreground: 'var(--primary-foreground)'
-                },
-                secondary: {
-                    DEFAULT: 'var(--secondary)',
-                    foreground: 'var(--secondary-foreground)'
-                },
-                muted: {
-                    DEFAULT: 'var(--muted)',
-                    foreground: 'var(--muted-foreground)'
-                },
-                accent: {
-                    DEFAULT: 'var(--accent)',
-                    foreground: 'var(--accent-foreground)'
-                },
-                destructive: {
-                    DEFAULT: 'var(--destructive)',
-                    foreground: 'var(--destructive-foreground)'
-                },
-                border: 'var(--border)',
-                input: 'var(--input)',
-                ring: 'var(--ring)',
-                chart: {
-                    '1': 'var(--chart-1)',
-                    '2': 'var(--chart-2)',
-                    '3': 'var(--chart-3)',
-                    '4': 'var(--chart-4)',
-                    '5': 'var(--chart-5)'
-                },
-                sidebar: {
-                    DEFAULT: 'var(--sidebar)',
-                    foreground: 'var(--sidebar-foreground)',
-                    primary: 'var(--sidebar-primary)',
-                    'primary-foreground': 'var(--sidebar-primary-foreground)',
-                    accent: 'var(--sidebar-accent)',
-                    'accent-foreground': 'var(--sidebar-accent-foreground)',
-                    border: 'var(--sidebar-border)',
-                    ring: 'var(--sidebar-ring)'
-                }
-            },
-            borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)'
-            }
-        }
+  content: ["./src/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        paper: "var(--paper)",
+        "paper-sunk": "var(--paper-sunk)",
+        "paper-raised": "var(--paper-raised)",
+        ink: "var(--ink)",
+        "ink-2": "var(--ink-2)",
+        "ink-3": "var(--ink-3)",
+        rule: "var(--rule)",
+        "rule-faint": "var(--rule-faint)",
+        oxide: "var(--oxide)",
+        ochre: "var(--ochre)",
+        void: "var(--void)",
+      },
+      fontFamily: {
+        text: ["var(--font-text)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      maxWidth: {
+        shell: "var(--shell)",
+        measure: "var(--measure)",
+      },
+      transitionTimingFunction: {
+        record: "cubic-bezier(0.16, 1, 0.3, 1)",
+      },
     },
-    plugins: [],
+  },
+  plugins: [],
 };
+
 export default config;

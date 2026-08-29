@@ -1,59 +1,65 @@
 import type { Metadata } from "next";
-import { Syne, JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import Script from "next/script";
+import { Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
-    subsets: ["latin"],
-    variable: "--font-hero",
-    weight: ["700", "800"],
+/**
+ * Two families. Newsreader is a reading face with an optical-size axis, which
+ * lets one family carry both the display and the prose without a second
+ * download. JetBrains Mono carries data only — SHAs, paths, dates, counts.
+ */
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-text",
+  display: "swap",
+  adjustFontFallback: false,
+  style: ["normal", "italic"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-    subsets: ["latin"],
-    variable: "--font-mono",
-    weight: ["400", "500"],
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500"],
 });
 
-const spaceGrotesk = Space_Grotesk({
-    subsets: ["latin"],
-    variable: "--font-space",
-    weight: ["400", "500", "600", "700"],
-});
+const description =
+  "An audited record of the engineering work of Gaurav Vijay Jadhav. Every claim carries its source; the claims the record cannot support are named and left unclaimed.";
 
 export const metadata: Metadata = {
-    title: "Gaurav Jadhav | AI Engineer",
-    description: "Portfolio of Gaurav Vijay Jadhav - AI Engineer, Data Scientist, Full Stack Architect.",
-    icons: {
-        icon: [
-            { url: "/favicon/favicon.ico" },
-            { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-            { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-        ],
-        apple: [
-            { url: "/favicon/apple-touch-icon.png" },
-        ],
-    },
-    manifest: "/favicon/site.webmanifest",
+  metadataBase: new URL("https://iamgaurav.online"),
+  title: "The Record — Gaurav Vijay Jadhav",
+  description,
+  authors: [{ name: "Gaurav Vijay Jadhav", url: "https://github.com/jadhavgaurav" }],
+  openGraph: {
+    title: "The Record — Gaurav Vijay Jadhav",
+    description,
+    type: "profile",
+    locale: "en_IN",
+  },
+  twitter: { card: "summary_large_image", title: "The Record — Gaurav Vijay Jadhav", description },
+  icons: {
+    icon: [
+      { url: "/favicon/favicon.ico" },
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/favicon/apple-touch-icon.png" }],
+  },
+  manifest: "/favicon/site.webmanifest",
 };
 
-export default function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
-    return (
-        <html lang="en">
-            <body className={`${syne.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} antialiased bg-[#050505] text-white font-body`}>
-                {children}
-                <Script
-                    src="https://cdn.oyechats.com/oyechats-widget.js"
-                    data-bot-key="bot-11a026a4b8b3"
-                    strategy="lazyOnload"
-                />
-            </body>
-        </html>
-    );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className={`${newsreader.variable} ${mono.variable}`}>
+        <a
+          href="#finding"
+          className="u-label sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-paper focus:px-4 focus:py-3 focus:text-ink"
+        >
+          Skip to the finding
+        </a>
+        {children}
+      </body>
+    </html>
+  );
 }
-
-
