@@ -5,6 +5,8 @@ export const subject = {
   name: "Gaurav Vijay Jadhav",
   filedAs: "JADHAV, GAURAV VIJAY",
   located: "Mumbai, Maharashtra",
+  role: "Full Stack AI Engineer, Alsonotify",
+  employer: "Alsonotify — a Digibranders brand",
   email: "gaurav.vjadhav01@gmail.com",
   github: "https://github.com/jadhavgaurav",
   linkedin: "https://www.linkedin.com/in/gauravjadhav007",
@@ -132,10 +134,14 @@ export const facts: Fact[] = [
     sources: [{ kind: "document", label: "Curriculum vitae (on file)" }],
   },
   {
-    period: "Present",
-    title: "Building at Digibranders",
-    detail: "Listed as current affiliation on the GitHub profile. The commercial work is not public and is not described here.",
-    sources: [link("github.com/jadhavgaurav", "https://github.com/jadhavgaurav")],
+    period: "Apr 2026 – present",
+    title: "Full Stack AI Engineer — Alsonotify, a Digibranders brand",
+    detail:
+      "The current role. Digibranders is the parent company and the organisation on the GitHub profile; Alsonotify is the brand the work ships under. It is commercial and not public, so it is counted in the chronology where the commits are attributable and described nowhere on this page.",
+    sources: [
+      { kind: "document", label: "Stated by the subject, Aug 2026" },
+      link("github.com/jadhavgaurav", "https://github.com/jadhavgaurav"),
+    ],
   },
 ];
 

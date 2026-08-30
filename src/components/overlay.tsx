@@ -1,0 +1,368 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { exhibits } from "@/data/exhibits";
+import { lineage } from "@/data/lineage";
+import { finding, subject, unclaimed } from "@/data/record";
+import { EMISSIVE, UI } from "@/world/palette";
+import type { Entity } from "@/world/telemetry";
+import type { Phase } from "@/world/sequence";
+
+/**
+ * The interface layer.
+ *
+ * NULL's UI direction has a forbidden list and a rule: the world is the
+ * primary interface, text is the fallback. So this is an information ladder,
+ * not a dashboard — a minimal persistent HUD, and passages that resolve as
+ * the visitor reaches the part of the world they describe. No cards, no
+ * tiles, no panels floating for their own sake.
+ */
+
+/** Beats along the traverse. `at` is scroll progress; each holds for `hold`. */
+interface Passage {
+  at: number;
+  hold: number;
+  kicker: string;
+  title: string;
+  body: string;
+  meta?: string;
+  align?: "left" | "right";
+}
+
+const PASSAGES: Passage[] = [
+  {
+    at: 0.0,
+    hold: 0.085,
+    kicker: "Origin · May 2023",
+    title: finding.headline,
+    body: "Everything here was generated from a real commit history — forty repositories, four hundred and thirty-three commits. Walk forward and you walk through it, first commit to last.",
+    meta: "Scroll to move",
+  },
+  {
+    at: 0.1,
+    hold: 0.085,
+    kicker: "The earliest trace",
+    title: "A blockchain Twitter clone, and a habit that starts here.",
+    body: "The first thing in the record is a semester project. The second is a thesis on making voting auditable — published, with a DOI. The instinct to build systems that can be inspected shows up before anything else does.",
+    meta: "twitter-blockchain-web3 · E-Voting · IJREAM, April 2024",
+    align: "right",
+  },
+  {
+    at: 0.22,
+    hold: 0.085,
+    kicker: "Stratum · late 2024",
+    title: "Before building the models, he built the thing that makes models reproducible.",
+    body: "A project template with logging, exception handling and a pipeline — committed weeks before the five machine-learning repositories that used it. The apparatus arrives first. That ordering is the whole argument of this world.",
+    meta: "machine-learning-project-template",
+  },
+  {
+    at: 0.34,
+    hold: 0.09,
+    kicker: "The relic · 112 commits",
+    title: "A classifier that has to explain itself.",
+    body: "Phishing detection, taken from an 11,430-row dataset to a deployed application. Eighty-nine features cut to twenty-eight by four independent methods. SHAP and LIME attached, so a flagged URL can be argued with rather than merely trusted. 95.83% accuracy, 0.990 ROC-AUC.",
+    meta: "CodeB_Internship_Project · the largest structure in this world",
+    align: "right",
+  },
+  {
+    at: 0.46,
+    hold: 0.085,
+    kicker: "The crush · May 2025",
+    title: "126 commits in a single month.",
+    body: "The internship, a kidney-CT classifier on MLflow and DVC, YOLO, an email agent, VisionX, and the first attempt at Victus. Six months in which most of what he now knows was acquired at speed. The density of this stretch is not decoration — it is the commit record, plotted.",
+    meta: "Kidney_disease_classification_cnn · Vision-X · smart-email-assistant",
+  },
+  {
+    at: 0.58,
+    hold: 0.09,
+    kicker: "Landmark · governance",
+    title: "An agent that will not act without asking.",
+    body: "Every tool call in PROJECT-VICTUS passes a policy engine that can return REQUIRE_APPROVAL. A high-risk call does not run: it becomes a pending action and waits for a human. Every step — tool, arguments, decision, duration — is written to a trace the client renders beside the conversation.",
+    meta: "backend/src/policy/engine.py · backend/src/models/trace.py",
+    align: "right",
+  },
+  {
+    at: 0.7,
+    hold: 0.085,
+    kicker: "The recursion",
+    title: "He started the same project eight times.",
+    body: "assistant, Jarvis, JarvisAI-pro, a local-first build, victus-AI, Victus-AI-Assistant, PROJECT-VICTUS, then the split into a backend and a frontend. Six went nowhere. What finally made the eighth different was not a better model — it was deciding who is allowed to authorise an action.",
+    meta: `${lineage.length} attempts · 2024-09 to 2026-01`,
+  },
+  {
+    at: 0.8,
+    hold: 0.085,
+    kicker: "August 2026 · 124 commits in eight days",
+    title: "The world you are standing in was designed here, and never built.",
+    body: "NULL is his: a browser game that reconstructs a developer's history as a place. Twenty-one design documents, four architecture decisions, fourteen visual studies each gated behind binding rules and a recorded verdict. The rule reads: no implementation is approved solely because it technically works. This site is that design, executed.",
+    meta: "Null · private repository · gate recorded CLOSED, 26 Aug 2026",
+    align: "right",
+  },
+  {
+    at: 0.89,
+    hold: 0.06,
+    kicker: "Not claimed",
+    title: "What this record does not show.",
+    body: "No adoption, no traffic, no revenue — the public repositories carry four stars between them. Open-source contribution is intent, not history: twenty-six forks in three days and no merged pull request yet. Two of the four busiest repositories are private and are counted here but not described.",
+    meta: `${unclaimed.length} claims a portfolio would make, and does not`,
+  },
+];
+
+function passageState(scroll: number, p: Passage) {
+  const fadeIn = 0.022;
+  const start = p.at;
+  const end = p.at + p.hold;
+  if (scroll < start - fadeIn || scroll > end + fadeIn) return 0;
+  if (scroll < start) return (scroll - (start - fadeIn)) / fadeIn;
+  if (scroll > end) return 1 - (scroll - end) / fadeIn;
+  return 1;
+}
+
+export function Overlay({
+  phase,
+  scroll,
+  passing,
+  dateLabel,
+  scrollVh,
+  fallback,
+}: {
+  phase: Phase;
+  scroll: number;
+  passing: Entity | null;
+  dateLabel: string;
+  scrollVh: number;
+  fallback: ReactNode;
+}) {
+  const arrived = phase === "PLAYER";
+  const atCore = scroll > 0.945;
+
+  return (
+    <>
+      {/* Scroll length. The document itself is off-screen but still in the
+          accessibility tree, so the whole record is reachable without WebGL
+          and by a screen reader. */}
+      <div style={{ height: `${scrollVh}vh` }} aria-hidden="true" />
+      <div className="sr-only">{fallback}</div>
+
+      {/* Opening: nothing at all. No logo, no spinner. Emptiness reads as a
+          place; a loading state would read as a browser tab. */}
+      {!arrived && (
+        <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-center pb-12">
+          <p
+            className="u-mono text-[0.625rem] uppercase tracking-[0.24em] transition-opacity duration-1000"
+            style={{ color: UI.textMuted, opacity: phase === "VOID" ? 0 : 0.65 }}
+          >
+            {phase === "SIGNAL"
+              ? "Something exists"
+              : phase === "EMERGENCE"
+                ? "The world resolves"
+                : "Arriving"}
+          </p>
+        </div>
+      )}
+
+      {/* Persistent HUD. Two readings and a route indicator — the minimum
+          that answers where am I and what am I looking at. */}
+      {arrived && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7">
+          <div className="flex items-start justify-between">
+            <div>
+              <div
+                className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
+                style={{ color: UI.textMuted }}
+              >
+                {subject.filedAs}
+              </div>
+              <div
+                className="u-mono mt-1 text-[0.7rem] tracking-[0.08em]"
+                style={{ color: UI.textSecondary }}
+              >
+                {dateLabel}
+              </div>
+            </div>
+            <div className="text-right">
+              <div
+                className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
+                style={{ color: UI.textMuted }}
+              >
+                {passing ? passing.type : "Traverse"}
+              </div>
+              <div
+                className="u-mono mt-1 max-w-[52vw] truncate text-[0.7rem] tracking-[0.04em]"
+                style={{ color: passing ? UI.textHighlight : UI.textMuted }}
+              >
+                {passing ? passing.name : "—"}
+              </div>
+              {passing && (
+                <div
+                  className="u-mono mt-0.5 text-[0.625rem] tracking-[0.08em]"
+                  style={{ color: UI.textMuted }}
+                >
+                  {passing.commits} commit{passing.commits === 1 ? "" : "s"}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Route progress. */}
+          <div className="mt-4 h-px w-full" style={{ background: UI.border }}>
+            <div
+              className="h-px origin-left"
+              style={{
+                background: UI.borderActive,
+                transform: `scaleX(${scroll})`,
+                transition: "transform 120ms linear",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Passages. They resolve where the world they describe is. */}
+      {arrived &&
+        !atCore &&
+        PASSAGES.map((p) => {
+          const o = passageState(scroll, p);
+          if (o <= 0) return null;
+          return (
+            <div
+              key={p.at}
+              className={`pointer-events-none fixed inset-x-0 z-20 px-5 sm:px-10 ${
+                p.align === "right" ? "flex justify-end" : ""
+              }`}
+              style={{
+                bottom: "13vh",
+                opacity: o,
+                transform: `translateY(${(1 - o) * 18}px)`,
+              }}
+            >
+              <div
+                className="max-w-[34rem] p-6 sm:p-8"
+                style={{
+                  background: `radial-gradient(120% 130% at ${
+                    p.align === "right" ? "80%" : "20%"
+                  } 60%, rgba(6,8,9,0.86) 0%, rgba(6,8,9,0.66) 45%, rgba(6,8,9,0) 100%)`,
+                }}
+              >
+                <div
+                  className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
+                  style={{ color: UI.textMuted }}
+                >
+                  {p.kicker}
+                </div>
+                <h2
+                  className="u-display mt-3 text-[clamp(1.6rem,3.4vw,2.9rem)] leading-[1.04]"
+                  style={{ color: UI.textPrimary }}
+                >
+                  {p.title}
+                </h2>
+                <p
+                  className="mt-4 text-[0.95rem] leading-[1.6]"
+                  style={{ color: UI.textSecondary }}
+                >
+                  {p.body}
+                </p>
+                {p.meta && (
+                  <div
+                    className="u-mono mt-4 text-[0.6875rem] tracking-[0.04em]"
+                    style={{ color: UI.textMuted }}
+                  >
+                    {p.meta}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+      {/* The CORE. Only here does the identity become explicit, and only here
+          is there anything to click. */}
+      {atCore && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center px-6 transition-opacity duration-700"
+          style={{
+            opacity: Math.min(1, (scroll - 0.945) / 0.03),
+            background:
+              "radial-gradient(70% 60% at 50% 46%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.72) 55%, rgba(6,8,9,0.25) 100%)",
+          }}
+        >
+          <div className="max-w-[36rem] text-center">
+            {/* Only at the CORE does the identity become explicit — Bible §16.
+                The portrait is graded into the world's own colour so it reads
+                as part of the place rather than as a pasted avatar. */}
+            <div className="relative mx-auto mb-7 h-[132px] w-[132px]">
+              <span
+                aria-hidden="true"
+                className="absolute -inset-[6px] rounded-full"
+                style={{
+                  background: `radial-gradient(circle, ${EMISSIVE.reward}55, transparent 68%)`,
+                }}
+              />
+              {/* Already sized and encoded at build time; the optimiser has
+                  nothing left to do here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/portrait.webp"
+                width={132}
+                height={132}
+                alt="Gaurav Vijay Jadhav"
+                className="relative h-full w-full rounded-full object-cover"
+                style={{
+                  filter: "saturate(0.3) contrast(1.1) brightness(0.95)",
+                  border: `1px solid ${UI.borderActive}`,
+                }}
+              />
+            </div>
+            <div
+              className="u-mono text-[0.625rem] uppercase tracking-[0.24em]"
+              style={{ color: UI.textMuted }}
+            >
+              The core
+            </div>
+            <h2
+              className="u-display mt-5 text-[clamp(2rem,5vw,3.4rem)] leading-[1.02]"
+              style={{ color: UI.textPrimary }}
+            >
+              {subject.name}
+            </h2>
+            <p
+              className="mt-5 text-[1rem] leading-[1.6]"
+              style={{ color: UI.textSecondary }}
+            >
+              Full Stack AI Engineer at Alsonotify, a Digibranders brand,
+              in Mumbai. Everything you passed is verifiable:
+              every structure is a repository, its mass is its commit count, its
+              decay is the time since it was last touched.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
+              {[
+                { label: "Email", href: `mailto:${subject.email}` },
+                { label: "GitHub", href: subject.github },
+                { label: "LinkedIn", href: subject.linkedin },
+                { label: "Curriculum vitae", href: "/resume/resume.pdf" },
+                { label: "Read the full record", href: "/record" },
+              ].map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  target={l.href.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer noopener"
+                  className="u-mono border-b pb-1 text-[0.6875rem] uppercase tracking-[0.16em] transition-colors duration-200"
+                  style={{ color: UI.textHighlight, borderColor: UI.border }}
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+            <p
+              className="u-mono mt-10 text-[0.625rem] leading-[1.7] tracking-[0.04em]"
+              style={{ color: UI.textMuted }}
+            >
+              {exhibits.length} projects documented in full, with sources, in the
+              written record.
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

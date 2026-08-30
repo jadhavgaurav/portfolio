@@ -1,33 +1,14 @@
-import { Arrival } from "@/components/arrival";
-import { Colophon } from "@/components/colophon";
-import { Exhibits } from "@/components/exhibits";
-import { Finding } from "@/components/finding";
-import { IndexNav } from "@/components/index-nav";
-import { Ledger } from "@/components/ledger";
-import { Recursion } from "@/components/recursion";
-import { Unclaimed } from "@/components/unclaimed";
+import { Experience } from "@/components/experience";
+import { TheRecord } from "@/components/the-record";
 
 /**
- * The document, in reading order.
+ * NULL.
  *
- * Arrival states the finding and the rules. The finding argues it. The
- * chronology shows the shape of the whole record at once — the one inverted
- * section. The exhibits go deep on six pieces of work. The recursion shows
- * how he actually works. Not-claimed names the limits. The colophon closes.
+ * "Your code left a world behind." The world is generated from the subject's
+ * own commit history and traversed from the first commit to the last. Where
+ * WebGL is unavailable the written record is served instead — the same
+ * evidence, in text.
  */
 export default function Page() {
-  return (
-    <>
-      <IndexNav />
-      <main>
-        <Arrival />
-        <Finding />
-        <Ledger />
-        <Exhibits />
-        <Recursion />
-        <Unclaimed />
-        <Colophon />
-      </main>
-    </>
-  );
+  return <Experience fallback={<TheRecord />} />;
 }

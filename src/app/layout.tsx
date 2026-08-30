@@ -3,9 +3,9 @@ import { Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 /**
- * Two families. Newsreader is a reading face with an optical-size axis, which
- * lets one family carry both the display and the prose without a second
- * download. JetBrains Mono carries data only — SHAs, paths, dates, counts.
+ * Two families. Newsreader carries both the display and the prose; its
+ * optical-size axis is deliberately not requested, which halves the font
+ * payload. JetBrains Mono carries data only — SHAs, paths, dates, counts.
  */
 const newsreader = Newsreader({
   subsets: ["latin"],

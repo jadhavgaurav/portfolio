@@ -182,13 +182,14 @@ export function Colophon() {
                 </p>
                 <p className="mt-4 text-[0.95rem] leading-[1.65] text-ink-2">
                   Built with Next.js and Tailwind. Two typefaces: Newsreader,
-                  whose optical-size axis lets one family carry both the display
-                  and the reading text, and JetBrains Mono, restricted to data —
-                  paths, counts, dates, enum values — so it never becomes
-                  decoration. The palette is two pigments on a bone ground:
-                  iron-oxide red for what is attested, ochre for what is
-                  interpreted, and an outline with nothing inside it for what is
-                  not claimed.
+                  a reading face carrying both the display and the text sizes,
+                  and JetBrains Mono, restricted to data — paths, counts, dates,
+                  enum values — so it never becomes decoration. Newsreader ships
+                  without its optical-size axis, which costs a little refinement
+                  at display sizes and halves the font payload to 300 KB. The
+                  palette is two pigments on a bone ground: iron-oxide red for
+                  what is attested, ochre for what is interpreted, and an outline
+                  with nothing inside it for what is not claimed.
                 </p>
                 <p className="mt-4 text-[0.95rem] leading-[1.65] text-ink-2">
                   There is no 3D on this page. A WebGL scene was considered for

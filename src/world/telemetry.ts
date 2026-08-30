@@ -1,0 +1,237 @@
+import { EPOCH, SPAN_DAYS, lanes } from "@/data/ledger";
+
+/**
+ * Telemetry → WorldBlueprint.
+ *
+ * A pure, deterministic expansion of the commit record into world entities,
+ * following the mapping rules NULL already specifies:
+ *
+ *   M1  Every mapping is monotonic in its source. More commits can never
+ *       produce a smaller structure.
+ *   M2  No mapping uses raw counts linearly. Everything goes through log1p
+ *       and per-subject normalisation, or the world is one skyscraper and
+ *       thirty-nine pebbles.
+ *
+ * Percentiles are computed within this subject's own history. Nothing here
+ * ranks him against anyone.
+ *
+ * Same input, same output, always — no Math.random anywhere in this file.
+ */
+
+export type EntityType =
+  | "RELIC"
+  | "MONOLITH"
+  | "LANDMARK"
+  | "FRAGMENT"
+  | "DORMANT"
+  | "ORIGIN"
+  | "CORE";
+
+/** Material families, selected by role and state — never by language. */
+export type MaterialFamily =
+  | "FOUNDATION"
+  | "CONSTRUCTED"
+  | "ACTIVE"
+  | "ORGANIC"
+  | "RUINED";
+
+export interface Entity {
+  id: string;
+  name: string;
+  type: EntityType;
+  material: MaterialFamily;
+  /** World position. Z is time: 0 is the first commit, -SPAN is the last. */
+  x: number;
+  y: number;
+  z: number;
+  /** Footprint, from log1p(commits). */
+  mass: number;
+  /** Height band, from significance. */
+  height: number;
+  /** How far the foundation sinks, from lifespan. */
+  depth: number;
+  /** 0 → live, 1 → three years dormant. Drives weathering and light. */
+  erosion: number;
+  /** 0..1 within this subject's own history. */
+  significance: number;
+  commits: number;
+  firstDay: number;
+  lastDay: number;
+  /** Rotation, deterministic per entity. */
+  rot: number;
+  /** Number of stacked construction phases — reads as layered history. */
+  phases: number;
+}
+
+/* ── deterministic hash, so layout never shifts between renders ─────────── */
+
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (!sorted.length) return 0;
+  const i = (sorted.length - 1) * p;
+  const lo = Math.floor(i);
+  const hi = Math.ceil(i);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+
+/* ── world constants. Every threshold is a tuning constant, not inlined. ── */
+
+export const WORLD = {
+  /** Length of the time axis in world units. Walking -Z is walking forward. */
+  depth: 520,
+  /** Lateral spread either side of the spine. */
+  spread: 33,
+  /** Nearest an entity may sit to the spine, so the corridor stays walkable. */
+  corridor: 7,
+  eyeHeight: 1.7,
+  /** Erosion saturates three years after the last commit. */
+  erosionCapDays: 1095,
+} as const;
+
+const HEIGHT_BAND: Record<EntityType, [number, number]> = {
+  RELIC: [86, 132],
+  MONOLITH: [62, 104],
+  ORIGIN: [26, 40],
+  LANDMARK: [26, 62],
+  DORMANT: [13, 34],
+  FRAGMENT: [6, 15],
+  CORE: [70, 70],
+};
+
+/* ── the expansion ───────────────────────────────────────────────────────── */
+
+function buildEntities(): Entity[] {
+  const works = lanes.map((l) => ({
+    name: l.r,
+    commits: l.d.length,
+    firstDay: l.d[0],
+    lastDay: l.d[l.d.length - 1],
+    lifespan: Math.max(1, l.d[l.d.length - 1] - l.d[0]),
+  }));
+
+  const commitsSorted = [...works.map((w) => w.commits)].sort((a, b) => a - b);
+  const lifeSorted = [...works.map((w) => w.lifespan)].sort((a, b) => a - b);
+  const maxLogCommits = Math.log1p(Math.max(...commitsSorted));
+  const p25c = percentile(commitsSorted, 0.25);
+  const p60c = percentile(commitsSorted, 0.6);
+  const p80l = percentile(lifeSorted, 0.8);
+
+  // The record ends at the most recent commit anywhere.
+  const latest = Math.max(...works.map((w) => w.lastDay));
+  // ORIGIN is the earliest trace — everything else traces back to it.
+  const earliestFirst = Math.min(...works.map((w) => w.firstDay));
+
+  const scored = works.map((w) => {
+    // Significance blends volume, endurance and recency. Monotonic in each.
+    const volume = Math.log1p(w.commits) / maxLogCommits;
+    const endurance = Math.min(1, w.lifespan / SPAN_DAYS);
+    const recency = 1 - Math.min(1, (latest - w.lastDay) / WORLD.erosionCapDays);
+    return { ...w, significance: volume * 0.62 + endurance * 0.24 + recency * 0.14 };
+  });
+
+  const topSignificance = Math.max(...scored.map((s) => s.significance));
+
+  // Layout along the spine. A purely linear time axis leaves 2023 and 2024
+  // almost empty, because that is genuinely how the record is shaped — but it
+  // makes half the traverse a walk through nothing. Blending the date with the
+  // work's rank in date order compresses the quiet stretches while keeping the
+  // ordering strictly monotonic, so earlier work is always further back.
+  const order = [...scored].sort((a, b) => a.firstDay - b.firstDay);
+  const rankOf = new Map(order.map((w, i) => [w.name, i / (order.length - 1)]));
+
+  return scored.map((w): Entity => {
+    const idleDays = latest - w.lastDay;
+    const erosion = Math.min(1, idleDays / WORLD.erosionCapDays);
+    const isDormant = idleDays > 420;
+
+    // Entity type, by the mapping table's precedence.
+    let type: EntityType;
+    if (w.firstDay === earliestFirst) {
+      type = "ORIGIN";
+    } else if (w.significance === topSignificance) {
+      type = "RELIC";
+    } else if (w.lifespan >= p80l && w.commits >= p60c) {
+      type = "MONOLITH"; // dormancy never overrides a monolith
+    } else if (isDormant) {
+      type = "DORMANT";
+    } else if (w.commits >= p60c) {
+      type = "LANDMARK";
+    } else if (w.lifespan < 45 && w.commits < p25c) {
+      type = "FRAGMENT";
+    } else {
+      type = "LANDMARK";
+    }
+
+    // Material follows role and state, in a fixed precedence.
+    const material: MaterialFamily =
+      type === "ORIGIN"
+        ? "FOUNDATION"
+        : type === "DORMANT" || erosion > 0.72
+          ? "RUINED"
+          : erosion < 0.12
+            ? "ACTIVE"
+            : type === "RELIC" || type === "MONOLITH"
+              ? "CONSTRUCTED"
+              : w.lifespan > 300
+                ? "ORGANIC"
+                : "CONSTRUCTED";
+
+    const [hLo, hHi] = HEIGHT_BAND[type];
+    const sNorm = w.significance / topSignificance;
+    const height = hLo + (hHi - hLo) * sNorm;
+
+    const h1 = hash(w.name);
+    const h2 = hash(w.name + "§");
+    const side = h1 < 0.5 ? -1 : 1;
+
+    return {
+      id: w.name,
+      name: w.name,
+      type,
+      material,
+      // Time is the spine, eased toward even spacing. Monotonic either way.
+      z: -(0.34 * (w.firstDay / SPAN_DAYS) + 0.66 * (rankOf.get(w.name) ?? 0)) * WORLD.depth,
+      x: side * (WORLD.corridor + h2 * (WORLD.spread - WORLD.corridor)),
+      y: 0,
+      mass: 2.4 + (Math.log1p(w.commits) / maxLogCommits) * 9.6,
+      height,
+      depth: 1.5 + (w.lifespan / SPAN_DAYS) * 8,
+      erosion,
+      significance: sNorm,
+      commits: w.commits,
+      firstDay: w.firstDay,
+      lastDay: w.lastDay,
+      rot: (h1 - 0.5) * 0.5,
+      phases: Math.max(1, Math.min(6, Math.round(1 + Math.log1p(w.commits) * 1.15))),
+    };
+  });
+}
+
+export const entities: Entity[] = buildEntities();
+
+export const origin = entities.find((e) => e.type === "ORIGIN")!;
+export const relic = entities.find((e) => e.type === "RELIC")!;
+
+/** The CORE: the synthesis, placed beyond the last work. A consequence of the world. */
+export const core = {
+  x: 0,
+  y: 16,
+  z: -WORLD.depth - 46,
+} as const;
+
+/** Day offset → calendar label, for the readout. */
+export function dayToLabel(day: number): string {
+  const d = new Date(Date.parse(EPOCH) + day * 86_400_000);
+  return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+/** Where along the spine a given scroll progress sits. */
+export const zAt = (t: number) => -t * (WORLD.depth + 60);

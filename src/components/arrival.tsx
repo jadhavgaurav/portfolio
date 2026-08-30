@@ -27,7 +27,7 @@ export function Arrival() {
         <Reveal className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 pt-4">
           <span className="u-label u-label-ink">Record of work · 01</span>
           <span className="u-label">
-            {subject.filedAs} · {subject.located}
+            {subject.filedAs} · {subject.role}
           </span>
           <span className="u-label">Filed {FILED}</span>
         </Reveal>
