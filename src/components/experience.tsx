@@ -302,7 +302,13 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
       {/* The canvas carries no accessible content of its own — everything it
           shows is stated in the text layer below, which is what a screen
           reader is actually given. */}
-      <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" aria-hidden="true">
+      <div
+        className="world-root fixed inset-0 z-0 bg-[#0d0f10]"
+        aria-hidden="true"
+        /* The sequence's current beat, so the opening can be measured from
+           outside rather than inferred from what happens to be on screen. */
+        data-phase={phase}
+      >
         <World
           phase={phase}
           t={t}
