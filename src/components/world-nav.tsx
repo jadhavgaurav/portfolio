@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { EXHIBIT_BY_ENTITY } from "@/data/exhibits";
 import { DISCOVERIES, LENS_ORDER, discoveryFor } from "@/world/discovery";
 import { UI } from "@/world/palette";
@@ -31,12 +31,16 @@ export function WorldNav({
   discovered,
   onTravel,
   onFocus,
+  open,
+  setOpen,
 }: {
   discovered: string[];
   onTravel: (scroll: number) => void;
   onFocus: (entity: Entity) => void;
+  /** Owned by the experience, so the core and the index are never both up. */
+  open: boolean;
+  setOpen: (v: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -44,7 +48,7 @@ export function WorldNav({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setOpen]);
 
   /* Only structures worth travelling to: fragments are scenery. */
   const grouped = useMemo(() => {
@@ -62,7 +66,7 @@ export function WorldNav({
   return (
     <>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label={open ? "Close world index" : "Open world index"}
         className="u-mono pointer-events-auto fixed left-5 top-5 z-40 border px-3 py-2 text-[0.6rem] uppercase tracking-[0.18em] transition-colors sm:left-8 sm:top-7"

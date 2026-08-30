@@ -66,6 +66,8 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
 
   /* FOCUS: the record for a structure, opened where the visitor stands. */
   const [focused, setFocused] = useState<Entity | null>(null);
+  const [indexOpen, setIndexOpen] = useState(false);
+  const openIndex = useCallback((v: boolean) => setIndexOpen(v), []);
   const startedAt = useRef<number | null>(null);
   const skipped = useRef(false);
 
@@ -269,10 +271,17 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         record={passing ? (EXHIBIT_BY_ENTITY[passing.name] ?? null) : null}
         onFocus={() => passing && setFocused(passing)}
         focusing={Boolean(focused)}
+        indexOpen={indexOpen}
       />
 
       {phase === "PLAYER" && !focused && (
-        <WorldNav discovered={discovered} onTravel={travel} onFocus={setFocused} />
+        <WorldNav
+          discovered={discovered}
+          onTravel={travel}
+          onFocus={setFocused}
+          open={indexOpen}
+          setOpen={openIndex}
+        />
       )}
 
       {focused && EXHIBIT_BY_ENTITY[focused.name] && (

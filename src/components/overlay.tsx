@@ -140,6 +140,7 @@ export function Overlay({
   record,
   onFocus,
   focusing,
+  indexOpen,
 }: {
   phase: Phase;
   scroll: number;
@@ -156,9 +157,11 @@ export function Overlay({
   onFocus: () => void;
   /** True while a record is open. Everything transient stands down. */
   focusing: boolean;
+  /** True while the index is open — the core stands down with the rest. */
+  indexOpen: boolean;
 }) {
-  const arrived = phase === "PLAYER" && !focusing;
-  const atCore = scroll > 0.956;
+  const arrived = phase === "PLAYER" && !focusing && !indexOpen;
+  const atCore = scroll > 0.956 && !focusing && !indexOpen;
 
   /* Anchors can sit close together where the record itself is dense, so more
      than one passage can be in range at once. Only the strongest is shown —
@@ -401,7 +404,7 @@ export function Overlay({
           style={{
             opacity: Math.min(1, (scroll - 0.956) / 0.025),
             background:
-              "radial-gradient(70% 60% at 50% 46%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.72) 55%, rgba(6,8,9,0.25) 100%)",
+              "linear-gradient(180deg, rgba(6,8,9,0.97) 0%, rgba(6,8,9,0.99) 45%, rgba(6,8,9,0.97) 100%)",
           }}
         >
           <div className="max-w-[36rem] text-center">
