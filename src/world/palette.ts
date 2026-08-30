@@ -19,7 +19,7 @@ export const LIGHT = {
   key: "#d5d0c5",
   keyPos: [-46, 34, -58] as const,
   keyTarget: [6, 8, -150] as const,
-  keyIntensity: 14.5,
+  keyIntensity: 21.0,
   fill: "#9aa4a5",
   sky: "#9ca6ae",
   /* Aerial perspective. Distance must fall away into the dark, not bleach
@@ -27,8 +27,8 @@ export const LIGHT = {
   /* Aerial perspective only reads as air if the haze is lighter than the
      shadowed faces it sits in front of. Near-black fog does the opposite —
      it subtracts light with distance and the midground turns to mud. */
-  aerial: "#2b343a",
-  aerialFar: "#191f23",
+  aerial: "#3b464d",
+  aerialFar: "#242d33",
 } as const;
 
 /** Motivated emissives only — Rule L1. Every glow has a source in the world. */
@@ -45,7 +45,7 @@ export const SURFACE = {
   active: "#6d7476",
   organic: "#4a5750",
   ruined: "#2e2d26",
-  ground: "#191d1f",
+  ground: "#242a2c",
 } as const;
 
 /** Interface layer. Reads over the world without becoming a dashboard. */

@@ -237,7 +237,7 @@ export function Overlay({
             className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[13rem]"
             style={{
               background:
-                "linear-gradient(180deg, rgba(6,8,9,0.88) 0%, rgba(6,8,9,0.62) 42%, rgba(6,8,9,0) 100%)",
+                "linear-gradient(180deg, rgba(6,8,9,0.94) 0%, rgba(6,8,9,0.78) 34%, rgba(6,8,9,0.34) 68%, rgba(6,8,9,0) 100%)",
             }}
           />
           <div className="flex items-start justify-between gap-4 pl-[4.5rem] sm:pl-[5.5rem]">
@@ -378,7 +378,7 @@ export function Overlay({
           className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center px-6"
           style={{
             background:
-              "radial-gradient(62% 52% at 50% 48%, rgba(6,8,9,0.97) 0%, rgba(6,8,9,0.9) 34%, rgba(6,8,9,0.55) 64%, rgba(6,8,9,0) 100%)",
+              "radial-gradient(46% 34% at 50% 48%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.74) 40%, rgba(6,8,9,0.34) 70%, rgba(6,8,9,0) 100%)",
           }}
         >
           <div className="max-w-[30rem] text-center">
@@ -428,7 +428,7 @@ export function Overlay({
                   className="pointer-events-none absolute -inset-x-[45%] -inset-y-[70%] -z-10"
                   style={{
                     background:
-                      "radial-gradient(closest-side, rgba(6,8,9,0.92) 0%, rgba(6,8,9,0.75) 38%, rgba(6,8,9,0.4) 62%, rgba(6,8,9,0) 100%)",
+                      "radial-gradient(closest-side, rgba(6,8,9,0.95) 0%, rgba(6,8,9,0.84) 38%, rgba(6,8,9,0.48) 66%, rgba(6,8,9,0) 100%)",
                   }}
                 />
                 <div

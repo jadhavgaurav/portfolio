@@ -30,7 +30,7 @@ export function Post({ quality }: { quality: "high" | "low" }) {
     return (
       <EffectComposer multisampling={0} enableNormalPass={false}>
         <Bloom intensity={0.9} luminanceThreshold={0.62} luminanceSmoothing={0.3} mipmapBlur />
-        <Vignette offset={0.28} darkness={0.62} eskil={false} />
+        <Vignette offset={0.42} darkness={0.4} eskil={false} />
       </EffectComposer>
     );
   }
@@ -52,7 +52,7 @@ export function Post({ quality }: { quality: "high" | "low" }) {
         mipmapBlur
         radius={0.72}
       />
-      <Vignette offset={0.4} darkness={0.32} blendFunction={BlendFunction.NORMAL} />
+      <Vignette offset={0.5} darkness={0.22} blendFunction={BlendFunction.NORMAL} />
       <SMAA />
     </EffectComposer>
   );

@@ -14,23 +14,30 @@ import type { Phase } from "./sequence";
  * structures read as silhouettes against air rather than against a void. The
  * horizon value is tied to the same aerial colour the fog uses, which is what
  * makes distant geometry dissolve into the sky instead of ending at it.
+ *
+ * It was not drawing. Measured: raising both its colours to near-white moved
+ * the top third of every captured frame by zero, so the sky the traverse was
+ * actually running against was the clear colour. It now rides the camera the
+ * way a skybox is supposed to, at BackSide with depth testing off and culling
+ * disabled, rather than sitting at the world origin as an inside-out sphere
+ * the traverse eventually leaves behind.
  */
 export function Sky({ phase }: { phase: Phase }) {
   const mat = useRef<THREE.ShaderMaterial>(null);
+  const mesh = useRef<THREE.Mesh>(null);
 
   const uniforms = useMemo(
     () => ({
-      uHorizon: { value: new THREE.Color("#38444b") },
-      uZenith: { value: new THREE.Color("#12171a") },
-      uKeyDir: {
-        value: new THREE.Vector3(...LIGHT.keyPos).normalize(),
-      },
+      uHorizon: { value: new THREE.Color("#7c8992") },
+      uZenith: { value: new THREE.Color("#333e46") },
+      uKeyDir: { value: new THREE.Vector3(...LIGHT.keyPos).normalize() },
       uOpacity: { value: 0 },
     }),
     [],
   );
 
-  useFrame(() => {
+  useFrame((state) => {
+    if (mesh.current) mesh.current.position.copy(state.camera.position);
     if (!mat.current) return;
     const want = phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.25 : 1;
     const u = mat.current.uniforms.uOpacity;
@@ -38,13 +45,16 @@ export function Sky({ phase }: { phase: Phase }) {
   });
 
   return (
-    <mesh scale={[-1, 1, 1]} renderOrder={-1}>
-      <sphereGeometry args={[900, 24, 16]} />
+    <mesh ref={mesh} renderOrder={-1000} frustumCulled={false}>
+      <sphereGeometry args={[600, 32, 20]} />
       <shaderMaterial
         ref={mat}
         uniforms={uniforms}
+        side={THREE.BackSide}
         depthWrite={false}
+        depthTest={false}
         fog={false}
+        toneMapped={false}
         vertexShader={`
           varying vec3 vDir;
           void main() {
@@ -68,6 +78,7 @@ export function Sky({ phase }: { phase: Phase }) {
             float toKey = max(dot(d, normalize(uKeyDir)), 0.0);
             col += vec3(0.055, 0.05, 0.042) * pow(toKey, 3.0);
             gl_FragColor = vec4(col * uOpacity, 1.0);
+            #include <colorspace_fragment>
           }
         `}
       />

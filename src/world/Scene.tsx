@@ -104,10 +104,10 @@ export function Scene({
 
       {/* Lighting, per the approved Study 12: one dominant raking key,
           a cool hemisphere fill, nothing else. */}
-      <hemisphereLight args={["#93a7b1", "#20262a", has("TIME") ? 2.6 : 2.0]} />
+      <hemisphereLight args={["#93a7b1", "#2b3236", has("TIME") ? 3.9 : 3.1]} />
       {/* A low, cool counter-light so silhouettes separate from the aerial
           haze without softening the key. */}
-      <directionalLight color={LIGHT.fill} intensity={1.35} position={[52, 16, 70]} />
+      <directionalLight color={LIGHT.fill} intensity={2.1} position={[52, 16, 70]} />
       <primitive object={target} />
       <directionalLight
         ref={keyRef}

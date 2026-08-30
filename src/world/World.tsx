@@ -60,7 +60,7 @@ export default function World({
       onCreated={({ gl }) => {
         // One exposure knob for the whole grade.
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 2.7;
+        gl.toneMappingExposure = 3.3;
       }}
       camera={{ fov: 55, near: 0.4, far: 1400, position: [0, 96, 200] }}
       frameloop="always"
