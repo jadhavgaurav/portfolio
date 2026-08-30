@@ -19,7 +19,7 @@ export const LIGHT = {
   key: "#d5d0c5",
   keyPos: [-46, 34, -58] as const,
   keyTarget: [6, 8, -150] as const,
-  keyIntensity: 21.0,
+  keyIntensity: 6.5,
   fill: "#9aa4a5",
   sky: "#9ca6ae",
   /* Aerial perspective. Distance must fall away into the dark, not bleach

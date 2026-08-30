@@ -5,6 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, PerformanceMonitor, Preload } from "@react-three/drei";
 import { useState } from "react";
 import { Avatar } from "./Avatar";
+import { Markers } from "./Markers";
 import { PlayerRig, makeInput, type Input, type PlayerState } from "./Player";
 import { Post } from "./Post";
 import { Scene } from "./Scene";
@@ -23,11 +24,16 @@ export default function GameCanvas({
   state,
   quality,
   enabled,
+  activeId,
+  visited,
 }: {
   input: React.MutableRefObject<Input>;
   state: React.MutableRefObject<PlayerState>;
   quality: "high" | "low";
   enabled: boolean;
+  /** The interactable currently in reach. */
+  activeId: string | null;
+  visited: string[];
 }) {
   const [tier, setTier] = useState<"high" | "low">(quality);
 
@@ -59,6 +65,7 @@ export default function GameCanvas({
       <Scene phase="PLAYER" t={1} scroll={0} quality={tier} lenses={LENS_ORDER} noticing={null} />
       <PlayerRig input={input} state={state} enabled={enabled} />
       <Avatar state={state} />
+      <Markers activeId={activeId} visited={visited} />
       <Post quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />

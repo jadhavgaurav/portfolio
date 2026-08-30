@@ -51,14 +51,15 @@ function Atmosphere({ phase, t }: { phase: Phase; t: number }) {
 export function Scene({
   phase,
   t,
-  scroll,
   quality,
   lenses,
   noticing,
 }: {
   phase: Phase;
   t: number;
-  scroll: number;
+  /** Retained for the type the canvas passes; the world is no longer a
+   *  function of scroll position. */
+  scroll?: number;
   quality: "high" | "low";
   lenses: Lens[];
   noticing: { id: string; progress: number } | null;
@@ -101,10 +102,10 @@ export function Scene({
 
       {/* Lighting, per the approved Study 12: one dominant raking key,
           a cool hemisphere fill, nothing else. */}
-      <hemisphereLight args={["#93a7b1", "#2b3236", has("TIME") ? 3.9 : 3.1]} />
+      <hemisphereLight args={["#93a7b1", "#2b3236", 2.0]} />
       {/* A low, cool counter-light so silhouettes separate from the aerial
           haze without softening the key. */}
-      <directionalLight color={LIGHT.fill} intensity={2.1} position={[52, 16, 70]} />
+      <directionalLight color={LIGHT.fill} intensity={1.1} position={[52, 16, 70]} />
       <primitive object={target} />
       <directionalLight
         ref={keyRef}
@@ -119,11 +120,13 @@ export function Scene({
           onto the ground around it. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -WORLD.depth / 2]}>
         <planeGeometry args={[900, WORLD.depth + 700]} />
-        <meshStandardMaterial
-          color={SURFACE.ground}
-          roughness={has("IMPACT") ? 0.74 : 0.92}
-          metalness={has("IMPACT") ? 0.16 : 0.05}
-        />
+        {/* Matte, and not negotiable.
+            The IMPACT lens used to make the ground glossy as a reward, and
+            every lens is granted from the first frame now — so a 900-unit
+            plane sat permanently at roughness 0.74 and mirrored the key light
+            into a blown specular lobe the size of a district. A ground plane
+            this large cannot be shiny. */}
+        <meshStandardMaterial color={SURFACE.ground} roughness={0.96} metalness={0.02} />
       </mesh>
 
       {/* District ground.
@@ -161,27 +164,33 @@ export function Scene({
                 roughness={0.4}
               />
             </mesh>
-            {/* A path back to the hub. Wayfinding, and the only thing that
-                makes the gaps between districts legible as distance rather
-                than as emptiness. */}
-            <mesh
-              rotation={[-Math.PI / 2, 0, -Math.atan2(cx, -cz)]}
-              position={[cx / 2, 0.06, cz / 2]}
-            >
-              <planeGeometry args={[3.4, len]} />
-              <meshStandardMaterial
-                color={style.surface}
-                emissive={style.emissive}
-                emissiveIntensity={0.42}
-                roughness={0.7}
-              />
-            </mesh>
+            {/* A path back to the hub.
+                The bearing has to be applied about Y and the flat-to-ground
+                flip about X, in that order and in separate frames. Doing both
+                on one mesh as [-PI/2, 0, bearing] applies the bearing after
+                the flip, which tilts the plane up out of the ground: each
+                path was rendering as an enormous coloured wedge standing in
+                the air rather than as a road. */}
+            <group rotation={[0, -Math.atan2(cx, -cz), 0]} position={[cx / 2, 0.06, cz / 2]}>
+              <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[4.2, len]} />
+                <meshStandardMaterial
+                  color={style.surface}
+                  emissive={style.emissive}
+                  emissiveIntensity={0.42}
+                  roughness={0.7}
+                />
+              </mesh>
+            </group>
             {/* One lamp per district, so each has its own colour of light. */}
+            {/* Raised and dimmed. At 26 units up and 210 candela the pool
+                directly beneath each lamp blew past the bloom threshold and
+                burned a white hole in the ground. */}
             <pointLight
-              position={[cx, 26, cz]}
+              position={[cx, 44, cz]}
               color={style.emissive}
-              intensity={210}
-              distance={d.spread + 92}
+              intensity={62}
+              distance={d.spread + 96}
               decay={2}
             />
           </group>
@@ -296,7 +305,11 @@ export function Scene({
         <meshStandardMaterial
           color={SURFACE.constructed}
           emissive={EMISSIVE.reward}
-          emissiveIntensity={has("DNA") ? 3.2 : scroll > 0.9 ? 1.6 : 0.5}
+          /* Every lens is granted from the first frame now, so this was
+             permanently at 3.2 — an eighteen-unit emissive object standing at
+             the hub the player spawns beside, bloomed into a white field
+             across a third of the screen. It is a landmark, not a lamp. */
+          emissiveIntensity={0.55}
           roughness={0.3}
           metalness={0.6}
           flatShading
@@ -309,10 +322,10 @@ export function Scene({
           washed the whole frame to white. Lifted, dimmed, and pulled in so it
           lights the hub rather than the world. */}
       <pointLight
-        position={[core.x, core.y + 18, core.z]}
+        position={[core.x, core.y + 30, core.z]}
         color={EMISSIVE.reward}
-        intensity={46}
-        distance={78}
+        intensity={24}
+        distance={62}
         decay={2}
       />
     </>

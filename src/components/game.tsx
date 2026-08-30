@@ -10,6 +10,8 @@ import { Joystick } from "./joystick";
 import { Minimap } from "./minimap";
 import { WorldMap } from "./world-map";
 import { TitleScreen } from "./title-screen";
+import { InteractPanel } from "./interact-panel";
+import { nearestInteractable, type Interactable } from "@/world/interactables";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -64,6 +66,10 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [mode, setMode] = useState<"TITLE" | "PLAYING">("TITLE");
   const [mapOpen, setMapOpen] = useState(false);
   const [reading, setReading] = useState(false);
+  /* What is in reach, what is open, and what has been opened before. */
+  const [near, setNear] = useState<Interactable | null>(null);
+  const [open, setOpen] = useState<Interactable | null>(null);
+  const [visited, setVisited] = useState<string[]>([]);
 
   const input = useRef<Input>(makeInput());
   const state = useRef<PlayerState>({
@@ -95,7 +101,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
   /* Input is live only while the player has the world. With the title, the
      map or the document up, keys belong to those. */
-  const playing = mode === "PLAYING" && !mapOpen && !reading;
+  const playing = mode === "PLAYING" && !mapOpen && !reading && !open;
   useKeyboardAndPointer(input, supported === true && playing);
 
   /* M opens the map, Escape hands the world back to the title. */
@@ -113,6 +119,38 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [supported, mode, mapOpen]);
+
+  /* Proximity. Polled on its own frame rather than in the render loop: the
+     panel and the prompt are React, and re-rendering them sixty times a
+     second to move a diamond would cost more than the world does. State is
+     only written when the answer changes. */
+  useEffect(() => {
+    if (supported !== true || mode !== "PLAYING") return;
+    let raf = 0;
+    const tick = () => {
+      const s = state.current;
+      const hx = -Math.sin(s.yaw);
+      const hz = -Math.cos(s.yaw);
+      const hit = nearestInteractable(s.position.x, s.position.z, hx, hz);
+      setNear((prev) => (prev?.id === hit?.id ? prev : hit));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [supported, mode]);
+
+  /* E opens what is in reach. */
+  useEffect(() => {
+    if (!playing || !near) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "KeyE") return;
+      e.preventDefault();
+      setOpen(near);
+      setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [playing, near]);
 
   /* Fast travel. Placed just short of the destination and turned to face it,
      so arriving reads as walking up to a thing rather than being inside it. */
@@ -136,10 +174,29 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   return (
     <>
       <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" aria-hidden="true">
-        <GameCanvas input={input} state={state} quality={quality} enabled={playing} />
+        <GameCanvas
+          input={input}
+          state={state}
+          quality={quality}
+          enabled={playing}
+          activeId={near?.id ?? null}
+          visited={visited}
+        />
       </div>
 
       <div className="sr-only">{fallback}</div>
+
+      {/* What is in reach, in the DOM. Announced to a screen reader, and
+          measurable from outside — the interaction loop is otherwise only
+          observable as pixels. */}
+      <div
+        className="sr-only"
+        aria-live="polite"
+        data-near={near?.id ?? ""}
+        data-near-title={near?.title ?? ""}
+      >
+        {near ? `${near.title}. ${near.kicker}. Press E to open.` : ""}
+      </div>
 
       {mode === "TITLE" && !reading && (
         <TitleScreen
@@ -173,6 +230,47 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
       {mapOpen && (
         <WorldMap state={state} onClose={() => setMapOpen(false)} onTravel={travelTo} />
+      )}
+
+      {open && <InteractPanel target={open} onClose={() => setOpen(null)} />}
+
+      {/* The prompt. Doubles as the tap target on touch, where there is no E
+          key to press and a prompt you cannot act on is just a label. */}
+      {playing && near && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-5 sm:bottom-20">
+          <button
+            onClick={() => {
+              setOpen(near);
+              setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
+            }}
+            className="u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
+            style={{
+              borderColor: "rgba(226,232,240,0.34)",
+              background: "rgba(6,8,9,0.82)",
+            }}
+          >
+            <span
+              className="u-mono shrink-0 border px-2 py-1 text-[0.58rem] uppercase tracking-[0.14em]"
+              style={{ borderColor: "rgba(226,232,240,0.3)", color: "#cfd6d3" }}
+            >
+              {touch ? "Open" : "E"}
+            </span>
+            <span className="min-w-0">
+              <span
+                className="block truncate text-[0.82rem]"
+                style={{ color: "#f2f6f7" }}
+              >
+                {near.title}
+              </span>
+              <span
+                className="block truncate text-[0.66rem]"
+                style={{ color: "#8b979c" }}
+              >
+                {near.kicker}
+              </span>
+            </span>
+          </button>
+        </div>
       )}
 
       {/* A reminder, not an instruction sheet — the title screen already gave
