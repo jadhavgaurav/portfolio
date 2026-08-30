@@ -320,8 +320,11 @@ body::before {
 
 /* ── The world route ────────────────────────────────────────────────────── */
 
-/* The world owns the full viewport and paints its own ground. */
-body:has(.world-root) {
+/* The world owns the full viewport and paints its own ground. The written
+   record does the same when it is served in the world's place — without this
+   the document sits in a 46rem band of the deleted paper stock. */
+body:has(.world-root),
+body:has(main#record) {
   background: #0d0f10;
 }
 

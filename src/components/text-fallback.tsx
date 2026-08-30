@@ -32,10 +32,18 @@ export function TextFallback({ interactive = true }: { interactive?: boolean }) 
     );
 
   return (
+    /* The ground is painted here rather than left to the stylesheet. When
+       there is no WebGL there is no .world-root for the stylesheet to hang
+       the dark ground off, so this document was rendering in the pale greys
+       of the world's palette on the paper stock left over from the written
+       record: fifty serious contrast failures and, in practice, an invisible
+       page — served to exactly the browsers least able to cope with it. */
     <main
       id="record"
       tabIndex={-1}
       style={{
+        minHeight: "100vh",
+        background: "#0d0f10",
         maxWidth: "46rem",
         margin: "0 auto",
         padding: "3rem 1.5rem 5rem",
