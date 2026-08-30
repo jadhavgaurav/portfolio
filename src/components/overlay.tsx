@@ -137,6 +137,9 @@ export function Overlay({
   noticing,
   reward,
   total,
+  record,
+  onFocus,
+  focusing,
 }: {
   phase: Phase;
   scroll: number;
@@ -148,8 +151,13 @@ export function Overlay({
   noticing: { id: string; progress: number } | null;
   reward: { lens: Lens; grants: string; entity: string } | null;
   total: number;
+  /** The record for the structure being passed, if it has one. */
+  record: { title: string } | null;
+  onFocus: () => void;
+  /** True while a record is open. Everything transient stands down. */
+  focusing: boolean;
 }) {
-  const arrived = phase === "PLAYER";
+  const arrived = phase === "PLAYER" && !focusing;
   const atCore = scroll > 0.956;
 
   /* Anchors can sit close together where the record itself is dense, so more
@@ -188,7 +196,7 @@ export function Overlay({
           that answers where am I and what am I looking at. */}
       {arrived && !atCore && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4 pl-[4.5rem] sm:pl-[5.5rem]">
             <div>
               <div
                 className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
@@ -262,10 +270,28 @@ export function Overlay({
         </div>
       )}
 
+      {/* FOCUS is offered only where there is something to focus on, and only
+          while the visitor is actually standing at it. */}
+      {arrived && !atCore && !reward && record && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5">
+          <button
+            onClick={onFocus}
+            className="u-mono pointer-events-auto border px-5 py-2.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
+            style={{
+              borderColor: UI.borderActive,
+              color: UI.textHighlight,
+              background: "rgba(6,8,9,0.7)",
+            }}
+          >
+            Open the record for {record.title}
+          </button>
+        </div>
+      )}
+
       {/* INVESTIGATE. The entity resolves in the world; this is the only
           interface acknowledgement, and it carries no name or icon. */}
       {arrived && noticing && !reward && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-8 z-20 flex justify-center">
+        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-20 flex justify-center">
           <span
             className="block h-px transition-none"
             style={{

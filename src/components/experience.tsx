@@ -13,6 +13,10 @@ import {
   type Lens,
 } from "@/world/discovery";
 import { Overlay } from "./overlay";
+import { Dossier } from "./dossier";
+import { WorldNav } from "./world-nav";
+import { EXHIBIT_BY_ENTITY } from "@/data/exhibits";
+import type { Entity } from "@/world/telemetry";
 
 const World = dynamic(() => import("@/world/World"), { ssr: false });
 
@@ -59,6 +63,9 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   const [noticing, setNoticing] = useState<{ id: string; progress: number } | null>(null);
   const [reward, setReward] = useState<{ lens: Lens; grants: string; entity: string } | null>(null);
   const investigation = useRef<{ id: string; t: number } | null>(null);
+
+  /* FOCUS: the record for a structure, opened where the visitor stands. */
+  const [focused, setFocused] = useState<Entity | null>(null);
   const startedAt = useRef<number | null>(null);
   const skipped = useRef(false);
 
@@ -221,6 +228,13 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   if (supported === false) return <>{fallback}</>;
   if (supported === null) return <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" />;
 
+  /* Travel: move along the same spine rather than teleporting, so position
+     keeps meaning what it means. */
+  const travel = (target: number) => {
+    const max = document.body.scrollHeight - window.innerHeight;
+    window.scrollTo({ top: max * target, behavior: "smooth" });
+  };
+
   const z = traversalPose(scroll).position[2];
   const passing = phase === "PLAYER" ? nearest(z) : null;
   // Prefer the date of the structure being passed; fall back to the
@@ -252,7 +266,22 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         noticing={noticing}
         reward={reward}
         total={DISCOVERY_TARGETS.length}
+        record={passing ? (EXHIBIT_BY_ENTITY[passing.name] ?? null) : null}
+        onFocus={() => passing && setFocused(passing)}
+        focusing={Boolean(focused)}
       />
+
+      {phase === "PLAYER" && !focused && (
+        <WorldNav discovered={discovered} onTravel={travel} onFocus={setFocused} />
+      )}
+
+      {focused && EXHIBIT_BY_ENTITY[focused.name] && (
+        <Dossier
+          exhibit={EXHIBIT_BY_ENTITY[focused.name]}
+          entity={focused}
+          onClose={() => setFocused(null)}
+        />
+      )}
     </>
   );
 }

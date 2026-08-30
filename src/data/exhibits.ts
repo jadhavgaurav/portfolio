@@ -13,6 +13,9 @@ export type ExhibitKind = "policy" | "gate" | "attribution" | "pipeline" | "syst
 export interface Exhibit {
   id: string;
   index: string;
+  /** The structures in the world this record belongs to. FOCUS on one of
+   *  these and the record opens where the visitor is standing. */
+  entities: string[];
   kind: ExhibitKind;
   title: string;
   /** What it is, in one line a non-engineer can read. */
@@ -30,6 +33,7 @@ export interface Exhibit {
 export const exhibits: Exhibit[] = [
   {
     id: "victus",
+    entities: ["PROJECT-VICTUS", "victus-backend", "victus-frontend"],
     index: "01",
     kind: "policy",
     title: "PROJECT VICTUS",
@@ -73,6 +77,7 @@ export const exhibits: Exhibit[] = [
   },
   {
     id: "null",
+    entities: ["Null"],
     index: "02",
     kind: "gate",
     title: "NULL",
@@ -113,6 +118,7 @@ export const exhibits: Exhibit[] = [
   },
   {
     id: "phishing",
+    entities: ["CodeB_Internship_Project"],
     index: "03",
     kind: "attribution",
     title: "PHISHING DETECTION",
@@ -153,6 +159,7 @@ export const exhibits: Exhibit[] = [
   },
   {
     id: "kidney",
+    entities: ["Kidney_disease_classification_cnn"],
     index: "04",
     kind: "pipeline",
     title: "KIDNEY CT CLASSIFICATION",
@@ -185,6 +192,7 @@ export const exhibits: Exhibit[] = [
   },
   {
     id: "evoting",
+    entities: ["E-Voting-using-Blockchain-and-Face-Recognition"],
     index: "05",
     kind: "system",
     title: "TRANSPARENT VOTING",
@@ -220,6 +228,7 @@ export const exhibits: Exhibit[] = [
   },
   {
     id: "breadth",
+    entities: ["inneed", "Vision-X", "multimodal-search-platform", "github-mirror", "finance-dashboard", "shaharnama-news24", "shree-ganesh-billing"],
     index: "06",
     kind: "system",
     title: "THE REST OF THE RECORD",
@@ -301,6 +310,11 @@ export const limeExample = {
     { feature: "page_rank", value: "1", weight: 0.18, reading: "Effectively no inbound authority" },
   ],
 };
+
+/** Structure → record. Built once; used by FOCUS and by the index. */
+export const EXHIBIT_BY_ENTITY: Record<string, Exhibit> = Object.fromEntries(
+  exhibits.flatMap((e) => e.entities.map((n) => [n, e])),
+);
 
 export const metrics = [
   { k: "Accuracy", v: "95.83%" },
