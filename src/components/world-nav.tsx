@@ -67,6 +67,10 @@ export function WorldNav({
   }, []);
 
   const found = discovered.length;
+  /* The world holds forty structures; the fragments are scenery and are not
+     travel targets, so the count says how many of them this list actually
+     offers rather than implying it lists them all. */
+  const listedCount = grouped.reduce((n, g) => n + g.items.length, 0);
 
   if (hidden && !open) return null;
 
@@ -102,7 +106,7 @@ export function WorldNav({
                 Where you can go
               </h2>
               <span className="u-mono text-[0.65rem]" style={{ color: UI.textMuted }}>
-                {found} of {LENS_ORDER.length} lenses · {entities.length} structures
+                {found} of {LENS_ORDER.length} lenses · {listedCount} of {entities.length} structures
               </span>
             </div>
 
@@ -131,7 +135,7 @@ export function WorldNav({
                     return (
                       <li
                         key={e.id}
-                        className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5"
+                        className="flex flex-col items-stretch gap-x-4 sm:flex-row sm:flex-wrap sm:items-center"
                         style={{ borderBottom: `1px solid ${UI.border}` }}
                       >
                         <button
@@ -139,38 +143,44 @@ export function WorldNav({
                             onTravel(scrollAtEntity(e.id));
                             setOpen(false);
                           }}
-                          className="u-mono min-h-[44px] flex-1 text-left text-[0.8rem] underline-offset-4 hover:underline"
+                          className="u-mono flex min-h-[44px] flex-1 items-center break-all pt-1 text-left text-[0.8rem] underline-offset-4 hover:underline sm:break-normal sm:pt-0"
                           style={{ color: UI.textHighlight }}
                         >
                           {e.name}
                         </button>
-                        <span
-                          className="u-mono text-[0.6rem] uppercase tracking-[0.14em]"
-                          style={{ color: UI.textMuted }}
-                        >
-                          {e.type} · {e.commits} · {dayToLabel(e.firstDay)}
-                        </span>
-                        {lens && (
+                        {/* Stacked under the name on a phone: the aligned
+                            columns that keep the list readable on a wide
+                            screen were forcing the names to hyphenate over
+                            three lines at 390px. */}
+                        <span className="flex items-center gap-4 pb-2 sm:contents sm:pb-0">
                           <span
-                            className="u-mono text-[0.6rem] tracking-[0.14em]"
+                            className="u-mono flex-1 text-[0.6rem] uppercase tracking-[0.14em] sm:w-[13rem] sm:flex-none sm:shrink-0 sm:text-right"
+                            style={{ color: UI.textMuted }}
+                          >
+                            {e.type} · {e.commits} · {dayToLabel(e.firstDay)}
+                          </span>
+                          <span
+                            className="u-mono text-[0.6rem] tracking-[0.14em] sm:w-[6.5rem] sm:shrink-0"
                             style={{ color: got ? "#8cbcae" : UI.textMuted }}
                           >
-                            {lens}
+                            {lens ?? ""}
                           </span>
-                        )}
-                        {record && (
-                          <button
-                            onClick={() => {
-                              onTravel(scrollAtEntity(e.id));
-                              onFocus(e);
-                              setOpen(false);
-                            }}
-                            className="u-mono inline-flex min-h-[44px] items-center border px-3 text-[0.55rem] uppercase tracking-[0.16em]"
-                            style={{ borderColor: UI.border, color: UI.textSecondary }}
-                          >
-                            Record
-                          </button>
-                        )}
+                          <span className="sm:w-[5.5rem] sm:shrink-0">
+                            {record && (
+                              <button
+                                onClick={() => {
+                                  onTravel(scrollAtEntity(e.id));
+                                  onFocus(e);
+                                  setOpen(false);
+                                }}
+                                className="u-mono inline-flex min-h-[44px] items-center border px-3 text-[0.55rem] uppercase tracking-[0.16em]"
+                                style={{ borderColor: UI.border, color: UI.textSecondary }}
+                              >
+                                Record
+                              </button>
+                            )}
+                          </span>
+                        </span>
                       </li>
                     );
                   })}

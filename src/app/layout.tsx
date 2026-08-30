@@ -22,21 +22,22 @@ const mono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
+/* This described the written record that no longer exists. What is at this
+   address now is a 3D world generated from the commit history, so that is
+   what the link says when someone shares it. */
+const title = "NULL — Gaurav Vijay Jadhav";
 const description =
-  "An audited record of the engineering work of Gaurav Vijay Jadhav. Every claim carries its source; the claims the record cannot support are named and left unclaimed.";
+  "A world generated from a real commit history: forty repositories, four hundred and thirty-three commits, walked first commit to last. Every structure is a repository, its mass is its commit count, its decay is the time since it was last touched.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://iamgaurav.online"),
-  title: "The Record — Gaurav Vijay Jadhav",
+  title,
   description,
   authors: [{ name: "Gaurav Vijay Jadhav", url: "https://github.com/jadhavgaurav" }],
-  openGraph: {
-    title: "The Record — Gaurav Vijay Jadhav",
-    description,
-    type: "profile",
-    locale: "en_IN",
-  },
-  twitter: { card: "summary_large_image", title: "The Record — Gaurav Vijay Jadhav", description },
+  openGraph: { title, description, type: "profile", locale: "en_IN" },
+  /* summary_large_image was declared with no image, which renders as a blank
+     card rather than as no card. The image is generated in opengraph-image. */
+  twitter: { card: "summary_large_image", title, description },
   icons: {
     icon: [
       { url: "/favicon/favicon.ico" },
