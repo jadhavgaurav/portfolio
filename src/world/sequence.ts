@@ -101,7 +101,8 @@ export function traversalPose(scroll: number) {
   // Yaw toward the nearest significant structure ahead. Approach and pass —
   // never orbit.
   const near = nearest(z);
-  const lateral = near ? near.x * 0.16 : 0;
+  // The weave has to stay inside the corridor the layout reserves.
+  const lateral = near ? near.x * 0.1 : 0;
   const x = lateral * (1 - lift);
 
   const lookZ = z - 46;

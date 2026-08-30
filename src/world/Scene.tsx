@@ -8,6 +8,7 @@ import {
   EMISSIVE,
   FAMILY_METALNESS,
   FAMILY_ROUGHNESS,
+  FAMILY_LENS_SURFACE,
   FAMILY_SURFACE,
   LIGHT,
   SURFACE,
@@ -15,6 +16,8 @@ import {
 import { WORLD, core, entities } from "./telemetry";
 import { BEATS, type Phase } from "./sequence";
 import { Dust, Sky } from "./Atmosphere";
+import { entityById } from "./telemetry";
+import type { Lens } from "./discovery";
 
 /**
  * The world.
@@ -38,7 +41,7 @@ function Atmosphere({ phase, t }: { phase: Phase; t: number }) {
   useFrame(() => {
     // VOID and SIGNAL are opaque. EMERGENCE clears to the working density.
     const target =
-      phase === "VOID" ? 0.32 : phase === "SIGNAL" ? 0.19 : phase === "EMERGENCE" ? 0.19 - t * 0.1815 : 0.0085;
+      phase === "VOID" ? 0.32 : phase === "SIGNAL" ? 0.19 : phase === "EMERGENCE" ? 0.19 - t * 0.184 : 0.006;
     fog.density += (target - fog.density) * 0.045;
     // The ground colour lifts a little as the medium clears, never to sky.
     const target2 = new THREE.Color(phase === "VOID" ? "#08090a" : LIGHT.aerialFar);
@@ -53,12 +56,17 @@ export function Scene({
   t,
   scroll,
   quality,
+  lenses,
+  noticing,
 }: {
   phase: Phase;
   t: number;
   scroll: number;
   quality: "high" | "low";
+  lenses: Lens[];
+  noticing: { id: string; progress: number } | null;
 }) {
+  const has = (l: Lens) => lenses.includes(l);
   const world = useMemo(() => buildWorld(), []);
   const seamRef = useRef<THREE.MeshStandardMaterial>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
@@ -72,6 +80,7 @@ export function Scene({
    *  opening is the spine of the sequence — Bible constraint, §3. */
   const signal = useMemo(() => entities.find((e) => e.type === "ORIGIN")!, []);
   const relicEntity = useMemo(() => entities.find((e) => e.type === "RELIC")!, []);
+  const noticed = noticing ? entityById(noticing.id) : null;
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
@@ -95,10 +104,10 @@ export function Scene({
 
       {/* Lighting, per the approved Study 12: one dominant raking key,
           a cool hemisphere fill, nothing else. */}
-      <hemisphereLight args={["#93a7b1", "#20262a", 1.5]} />
+      <hemisphereLight args={["#93a7b1", "#20262a", has("TIME") ? 2.6 : 2.0]} />
       {/* A low, cool counter-light so silhouettes separate from the aerial
           haze without softening the key. */}
-      <directionalLight color={LIGHT.fill} intensity={1.9} position={[40, 12, -60]} />
+      <directionalLight color={LIGHT.fill} intensity={1.35} position={[52, 16, 70]} />
       <primitive object={target} />
       <directionalLight
         ref={keyRef}
@@ -108,10 +117,16 @@ export function Scene({
         target={target}
       />
 
-      {/* Ground. Dark, matte, so structures read by silhouette first. */}
+      {/* Ground. Dark and matte, so structures read by silhouette first.
+          IMPACT gives it a sheen, which is how shipped work starts casting
+          onto the ground around it. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -WORLD.depth / 2]}>
         <planeGeometry args={[900, WORLD.depth + 700]} />
-        <meshStandardMaterial color={SURFACE.ground} roughness={0.92} metalness={0.05} />
+        <meshStandardMaterial
+          color={SURFACE.ground}
+          roughness={has("IMPACT") ? 0.74 : 0.92}
+          metalness={has("IMPACT") ? 0.16 : 0.05}
+        />
       </mesh>
 
       {/* The route. It is the time axis, so it earns its light. */}
@@ -128,7 +143,7 @@ export function Scene({
       {world.families.map(({ family, geometry }) => (
         <mesh key={family} geometry={geometry} castShadow={false} receiveShadow={false}>
           <meshStandardMaterial
-            color={FAMILY_SURFACE[family]}
+            color={has("LANGUAGE") ? FAMILY_LENS_SURFACE[family] : FAMILY_SURFACE[family]}
             roughness={FAMILY_ROUGHNESS[family]}
             metalness={FAMILY_METALNESS[family]}
             vertexColors
@@ -136,18 +151,57 @@ export function Scene({
         </mesh>
       ))}
 
-      {/* Emissive joints on running systems. */}
+      {/* NOTICE. World-side, as the loop requires: the entity being attended
+          to takes light differently. No outline, no marker, no icon — it
+          simply starts to resolve. */}
+      {noticing && noticed && (
+        <pointLight
+          position={[noticed.x, noticed.height * 0.5, noticed.z]}
+          color={EMISSIVE.interaction}
+          intensity={30 + noticing.progress * 240}
+          distance={60 + noticing.progress * 60}
+          decay={2}
+        />
+      )}
+
+      {/* CRAFT: works built with their apparatus first light along their
+          joints. The seams already exist; the lens is what reveals them. */}
       {world.seams && (
         <mesh geometry={world.seams}>
           <meshStandardMaterial
             ref={seamRef}
             color={EMISSIVE.phaseJoint}
             emissive={EMISSIVE.interaction}
-            emissiveIntensity={1.5}
+            emissiveIntensity={has("CRAFT") ? 2.6 : 0.35}
             roughness={0.4}
           />
         </mesh>
       )}
+
+      {/* COLLABORATION: the line through eight attempts at one idea, drawn
+          across the world. Visible from wherever the visitor is standing. */}
+      {has("COLLABORATION") && (
+        <mesh geometry={world.conduits}>
+          <meshStandardMaterial
+            color={EMISSIVE.phaseJoint}
+            emissive={EMISSIVE.reward}
+            emissiveIntensity={2.2}
+            roughness={0.3}
+            metalness={0.4}
+          />
+        </mesh>
+      )}
+
+      {/* VOID: the trajectory breaks stop being ground and become events. */}
+      <mesh geometry={world.rifts}>
+        <meshStandardMaterial
+          color={SURFACE.ruined}
+          emissive={EMISSIVE.reward}
+          emissiveIntensity={has("VOID") ? 0.55 : 0}
+          roughness={0.95}
+          vertexColors
+        />
+      </mesh>
 
       {/* SIGNAL: the earliest trace, lit before anything else exists.
           The same object the visitor later stands in front of as ORIGIN. */}
@@ -164,7 +218,7 @@ export function Scene({
       <pointLight
         position={[relicEntity.x, relicEntity.height * 0.62, relicEntity.z]}
         color={EMISSIVE.reward}
-        intensity={phase === "PLAYER" ? 260 : 0}
+        intensity={phase === "PLAYER" ? 150 : 0}
         distance={150}
         decay={2}
       />
@@ -175,7 +229,7 @@ export function Scene({
         <meshStandardMaterial
           color={SURFACE.constructed}
           emissive={EMISSIVE.reward}
-          emissiveIntensity={scroll > 0.9 ? 1.6 : 0.5}
+          emissiveIntensity={has("DNA") ? 3.2 : scroll > 0.9 ? 1.6 : 0.5}
           roughness={0.3}
           metalness={0.6}
           flatShading
@@ -184,7 +238,7 @@ export function Scene({
       <pointLight
         position={[core.x, core.y, core.z]}
         color={EMISSIVE.reward}
-        intensity={scroll > 0.85 ? 180 : 40}
+        intensity={has("DNA") ? 320 : scroll > 0.85 ? 180 : 40}
         distance={200}
         decay={2}
       />

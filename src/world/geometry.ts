@@ -1,33 +1,36 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD, entities, type Entity, type MaterialFamily } from "./telemetry";
+import { lineage } from "@/data/lineage";
+import { branch, conduit, crystal, fissure, limb, obelisk, ring, shard, slab, type Part } from "./shapes";
 
 /**
  * World geometry.
  *
- * Each material family gets its own shape language — Bible §07 is explicit
- * that every structure must not be a variation of the same sci-fi building.
- * All of a family's entities are merged into one BufferGeometry, so the whole
- * world costs five draw calls and nothing is rebuilt per frame.
+ * Shape is chosen by what a work IS — Bible §07, identifiable by silhouette
+ * before detail resolves. Material is chosen by role and state, and only
+ * affects the surface. The two are deliberately separate: a dormant crystal
+ * and a dormant obelisk are both weathered, and still tell you apart at
+ * distance.
  *
- * Every box placed here is a function of the entity's telemetry. No random
- * decoration: mass, height, phase count and erosion all come from commits,
- * lifespan and idle time.
+ *   ORIGIN     stepped plinth inside a broken ring — age, and a beginning
+ *   RELIC      faceted crystal — singular, not merely large
+ *   MONOLITH   turned obelisk with construction courses — endurance
+ *   LANDMARK   cantilevered slabs — engineered, deliberate
+ *   ORGANIC    recursive branching — relationships and ecosystems
+ *   DORMANT    half-buried arc and a leaning mass — something that stopped
+ *   FRAGMENT   angular shards — an experiment, abandoned early
+ *
+ * Everything merges per material family, so the world stays a handful of
+ * draw calls no matter how much vocabulary it uses.
  */
 
-/**
- * Bake a vertical darkening into vertex colours. Real-time shadows across a
- * 620-unit world cost more than they return here; a gradient that darkens
- * geometry toward the ground gives the contact and the mass reading for free,
- * and it costs nothing per frame.
- */
 function shade(g: THREE.BufferGeometry, floor: number, ceiling: number, tint = 1) {
   const pos = g.attributes.position;
   const colors = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
     const k = Math.min(1, Math.max(0, (y - floor) / Math.max(0.001, ceiling - floor)));
-    // Dark at the base, full value at the top.
     const v = (0.66 + Math.pow(k, 0.7) * 0.34) * tint;
     colors[i * 3] = v;
     colors[i * 3 + 1] = v;
@@ -37,140 +40,149 @@ function shade(g: THREE.BufferGeometry, floor: number, ceiling: number, tint = 1
   return g;
 }
 
-const box = (
-  w: number,
-  h: number,
-  d: number,
-  x: number,
-  y: number,
-  z: number,
-  ry = 0,
-  rz = 0,
-): THREE.BufferGeometry => {
-  const g = new THREE.BoxGeometry(w, h, d);
-  const m = new THREE.Matrix4()
-    .makeRotationY(ry)
-    .multiply(new THREE.Matrix4().makeRotationZ(rz));
-  m.setPosition(x, y, z);
-  g.applyMatrix4(m);
-  return g;
-};
-
-/** Deterministic per-entity jitter. Same name, same shape, always. */
-function noise(seed: string, i: number): number {
-  let h = 2166136261 ^ i;
-  for (let k = 0; k < seed.length; k++) {
-    h ^= seed.charCodeAt(k);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) / 4294967295) * 2 - 1;
+/** Deterministic per-entity noise. Same repository, same shape, always. */
+function noiser(seed: string) {
+  return (i: number) => {
+    let h = 2166136261 ^ i;
+    for (let k = 0; k < seed.length; k++) {
+      h ^= seed.charCodeAt(k);
+      h = Math.imul(h, 16777619);
+    }
+    return ((h >>> 0) / 4294967295) * 2 - 1;
+  };
 }
 
-/* ── shape languages ─────────────────────────────────────────────────────── */
+/* ── shape languages, by what the work is ────────────────────────────────── */
 
-/** ORIGIN. Low, wide, stepped stone. Asymmetric accretion reads as chronology. */
-function foundation(e: Entity): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
+function originShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
   const steps = 4;
   for (let i = 0; i < steps; i++) {
     const t = i / steps;
-    const w = e.mass * (2.5 - t * 1.5);
+    const w = e.mass * (2.6 - t * 1.6);
     const h = e.height / steps;
-    // Each course shifts, so the mass leans the way it grew.
-    const ox = noise(e.id, i) * e.mass * 0.42;
-    const oz = noise(e.id, i + 40) * e.mass * 0.34;
-    out.push(box(w, h, w * 0.82, ox, h * i + h / 2 - e.depth * 0.4, oz, e.rot + t * 0.16));
+    out.push(slab(w, h, w * 0.82, n(i) * e.mass * 0.4, h * i + h / 2, n(i + 40) * e.mass * 0.3, e.rot + t * 0.16));
   }
+  // A ring around it, broken and partly buried: everything traces back here.
+  out.push(ring(e.mass * 2.4, 0.5, 0, 0.4, 0, Math.PI * 1.45, Math.PI / 2, e.rot));
   return out;
 }
 
-/** CONSTRUCTED. Machined slabs, stacked in phases, joints recessed. */
-function constructed(e: Entity): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  const ph = e.phases;
-  const unit = e.height / ph;
-  for (let i = 0; i < ph; i++) {
-    const t = i / ph;
-    const w = e.mass * (1.15 - t * 0.42);
+function relicShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const cells = 7;
+  for (let i = 0; i < cells; i++) {
+    const t = i / cells;
+    const r = e.mass * (1.15 - t * 0.72);
     out.push(
-      box(w, unit * 0.86, w * 0.74, 0, unit * i + unit * 0.43 - e.depth * 0.3, 0, e.rot),
-    );
-    // Recessed joint between phases — the construction-phase separation.
-    if (i < ph - 1) {
-      out.push(
-        box(w * 0.82, unit * 0.14, w * 0.6, 0, unit * (i + 1) - e.depth * 0.3, 0, e.rot),
-      );
-    }
-  }
-  return out;
-}
-
-/** ORGANIC. Branching verticals — relationships and long ecosystems. */
-function organic(e: Entity): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  const stems = 5 + Math.round(e.significance * 4);
-  for (let i = 0; i < stems; i++) {
-    const a = (i / stems) * Math.PI * 2 + e.rot;
-    const r = e.mass * (0.3 + Math.abs(noise(e.id, i)) * 0.55);
-    const h = e.height * (0.45 + Math.abs(noise(e.id, i + 11)) * 0.75);
-    const lean = noise(e.id, i + 23) * 0.13;
-    out.push(
-      box(
-        e.mass * 0.19,
-        h,
-        e.mass * 0.19,
-        Math.cos(a) * r,
-        h / 2 - e.depth * 0.25,
-        Math.sin(a) * r,
-        a,
-        lean,
+      crystal(
+        r,
+        n(i) * e.mass * 0.3,
+        e.height * t + r * 0.7,
+        n(i + 9) * e.mass * 0.3,
+        e.rot + t * 2.1,
+        t * 0.5,
       ),
     );
   }
-  // A shared base binds the cluster into one entity rather than a thicket.
-  out.push(box(e.mass * 1.5, e.height * 0.1, e.mass * 1.5, 0, e.height * 0.05, 0, e.rot));
+  // A shallow plinth so the crystal is set into the ground, not resting on it.
+  out.push(slab(e.mass * 2.5, 1.6, e.mass * 2.5, 0, 0.8, 0, e.rot));
   return out;
 }
 
-/** RUINED. Sunk, sheared, unmaintained — never rubble, never collapse. */
-function ruined(e: Entity): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  // Deeper burial the longer it has been idle.
-  const sink = e.height * (0.22 + e.erosion * 0.3);
-  const main = e.height - sink;
-  out.push(box(e.mass * 1.05, main, e.mass * 0.8, 0, main / 2 - sink * 0.15, 0, e.rot, noise(e.id, 3) * 0.06));
-  // One shear plane: the structure stopped mid-course.
-  const sh = main * 0.42;
+function monolithShape(e: Entity, n: (i: number) => number): Part[] {
+  const g = obelisk(e.mass * 0.92, e.mass * 0.3, e.height, Math.max(4, e.phases));
+  g.rotateY(e.rot);
+  const out: Part[] = [g];
+  // One buttress, so it is not radially symmetric from every approach.
   out.push(
-    box(
-      e.mass * 0.72,
-      sh,
-      e.mass * 0.55,
-      noise(e.id, 7) * e.mass * 0.5,
-      main - sh * 0.2,
-      noise(e.id, 9) * e.mass * 0.4,
-      e.rot + noise(e.id, 12) * 0.5,
-      noise(e.id, 15) * 0.18,
-    ),
+    slab(e.mass * 0.5, e.height * 0.42, e.mass * 1.5, e.mass * 0.8 * Math.sign(n(1) || 1), e.height * 0.21, 0, e.rot),
   );
   return out;
 }
 
-/** ACTIVE. Constructed precision, plus running systems. Seams handled separately. */
-const active = constructed;
+function landmarkShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const ph = e.phases;
+  const unit = e.height / ph;
+  for (let i = 0; i < ph; i++) {
+    const t = i / ph;
+    const w = e.mass * (1.2 - t * 0.4);
+    // Alternating cantilever: each course overhangs the one below.
+    const off = n(i) * e.mass * 0.5;
+    out.push(slab(w, unit * 0.84, w * 0.7, off, unit * i + unit * 0.42, 0, e.rot + t * 0.1));
+    if (i < ph - 1) out.push(slab(w * 0.78, unit * 0.12, w * 0.55, off, unit * (i + 1), 0, e.rot));
+  }
+  return out;
+}
 
-const SHAPE: Record<MaterialFamily, (e: Entity) => THREE.BufferGeometry[]> = {
-  FOUNDATION: foundation,
-  CONSTRUCTED: constructed,
-  ACTIVE: active,
-  ORGANIC: organic,
-  RUINED: ruined,
-};
+function organicShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const trunks = 3;
+  for (let i = 0; i < trunks; i++) {
+    const a = (i / trunks) * Math.PI * 2 + e.rot;
+    const r = e.mass * 0.42;
+    branch(
+      out,
+      Math.cos(a) * r,
+      0,
+      Math.sin(a) * r,
+      { ry: a, rz: n(i) * 0.12 },
+      e.height * 0.42,
+      e.mass * 0.2,
+      4,
+      n,
+    );
+  }
+  out.push(ring(e.mass * 1.1, 0.4, 0, 0.35, 0, Math.PI * 2, Math.PI / 2, 0));
+  return out;
+}
+
+function dormantShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const sink = e.height * (0.24 + e.erosion * 0.3);
+  const main = e.height - sink;
+  // A leaning mass, cut off where the work stopped.
+  out.push(
+    limb(e.mass * 0.78, e.mass * 0.5, main, 0, -sink * 0.2, 0, e.rot, n(3) * 0.14),
+  );
+  // The arc of something that was once complete, now partly in the ground.
+  out.push(ring(e.mass * 1.6, 0.45, 0, 0.3, 0, Math.PI * (0.7 + Math.abs(n(5)) * 0.5), Math.PI / 2, e.rot + 0.4));
+  out.push(shard(e.mass * 0.55, n(7) * e.mass, main * 0.3, n(9) * e.mass, e.rot, n(11) * 0.6));
+  return out;
+}
+
+function fragmentShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const count = 3;
+  for (let i = 0; i < count; i++) {
+    out.push(
+      shard(
+        e.mass * (0.5 - i * 0.1),
+        n(i) * e.mass * 1.1,
+        e.height * (0.3 + i * 0.24),
+        n(i + 5) * e.mass * 1.1,
+        e.rot + i,
+        n(i + 12) * 0.9,
+      ),
+    );
+  }
+  return out;
+}
+
+const SHAPE_BY_TYPE = {
+  ORIGIN: originShape,
+  RELIC: relicShape,
+  MONOLITH: monolithShape,
+  LANDMARK: landmarkShape,
+  DORMANT: dormantShape,
+  FRAGMENT: fragmentShape,
+  CORE: landmarkShape,
+} as const;
 
 /* ── assembly ────────────────────────────────────────────────────────────── */
 
 function place(g: THREE.BufferGeometry, e: Entity) {
-  // Weathering darkens an unmaintained structure further.
   shade(g, -e.depth * 0.4, e.height, 1 - e.erosion * 0.34);
   g.translate(e.x, e.y, e.z);
   return g;
@@ -178,18 +190,24 @@ function place(g: THREE.BufferGeometry, e: Entity) {
 
 export interface WorldGeometry {
   families: { family: MaterialFamily; geometry: THREE.BufferGeometry }[];
-  /** Emissive joints on ACTIVE entities. Motivated light only — Rule L1. */
   seams: THREE.BufferGeometry | null;
-  /** The route: the time spine the player walks along. */
   route: THREE.BufferGeometry;
+  /** Trajectory breaks, at the boundaries between eras. */
+  rifts: THREE.BufferGeometry;
+  /** Relationships between works. Drawn only under the COLLABORATION lens. */
+  conduits: THREE.BufferGeometry;
 }
 
 export function buildWorld(): WorldGeometry {
-  const byFamily = new Map<MaterialFamily, THREE.BufferGeometry[]>();
-  const seams: THREE.BufferGeometry[] = [];
+  const byFamily = new Map<MaterialFamily, Part[]>();
+  const seams: Part[] = [];
 
   for (const e of entities) {
-    const parts = SHAPE[e.material](e).map((g) => place(g, e));
+    const n = noiser(e.id);
+    // ORGANIC is chosen by material rather than type: it is a statement about
+    // how a work grew, not about how significant it became.
+    const shaper = e.material === "ORGANIC" ? organicShape : SHAPE_BY_TYPE[e.type];
+    const parts = shaper(e, n).map((g) => place(g, e));
     const list = byFamily.get(e.material) ?? [];
     list.push(...parts);
     byFamily.set(e.material, list);
@@ -197,10 +215,8 @@ export function buildWorld(): WorldGeometry {
     if (e.material === "ACTIVE") {
       const unit = e.height / e.phases;
       for (let i = 1; i < e.phases; i++) {
-        const w = e.mass * (1.15 - (i / e.phases) * 0.42);
-        seams.push(
-          place(box(w * 0.86, unit * 0.05, w * 0.63, 0, unit * i - e.depth * 0.3, 0, e.rot), e),
-        );
+        const w = e.mass * (1.2 - (i / e.phases) * 0.4);
+        seams.push(place(slab(w * 0.9, unit * 0.06, w * 0.66, n(i) * e.mass * 0.5, unit * i, 0, e.rot), e));
       }
     }
   }
@@ -209,8 +225,6 @@ export function buildWorld(): WorldGeometry {
     .map(([family, parts]) => ({ family, geometry: mergeGeometries(parts, false)! }))
     .filter((f) => f.geometry);
 
-  // Route: two thin edge strips, not a carpet. They mark the time axis and
-  // give the eye a vanishing point without becoming the subject.
   const len = WORLD.depth + 200;
   const strip = (x: number) => {
     const g = new THREE.PlaneGeometry(0.22, len);
@@ -220,9 +234,37 @@ export function buildWorld(): WorldGeometry {
   };
   const route = mergeGeometries([strip(-3.1), strip(3.1)], false)!;
 
-  return {
-    families,
-    seams: seams.length ? mergeGeometries(seams, false) : null,
-    route,
-  };
+  /* Rifts: placed where the record actually breaks, between the clusters of
+     works, not on a work. */
+  const sorted = [...entities].sort((a, b) => b.z - a.z);
+  const riftParts: Part[] = [];
+  const gaps: { z: number; size: number }[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    gaps.push({ z: (sorted[i].z + sorted[i + 1].z) / 2, size: sorted[i].z - sorted[i + 1].z });
+  }
+  gaps
+    .sort((a, b) => b.size - a.size)
+    .slice(0, 3)
+    .forEach((g, i) => {
+      riftParts.push(...fissure(g.z, WORLD.spread * 2.6, noiser(`rift${i}`)));
+    });
+  const rifts = mergeGeometries(riftParts.map((g) => shade(g, -3, 4)), false)!;
+
+  /* Conduits: the eight attempts at one assistant, drawn as one line through
+     the world. This is the relationship the record most clearly supports. */
+  const byId = new Map(entities.map((e) => [e.id, e]));
+  const chain = lineage
+    .map((a) => byId.get(a.name.split(" · ")[0]))
+    .filter((e): e is Entity => Boolean(e))
+    .sort((a, b) => b.z - a.z);
+  const conduitParts: Part[] = [];
+  if (chain.length > 1) {
+    const pts = chain.map((e) => new THREE.Vector3(e.x, e.height * 0.55 + 2, e.z));
+    conduitParts.push(conduit(pts, 0.42));
+  }
+  const conduits = conduitParts.length
+    ? mergeGeometries(conduitParts, false)!
+    : new THREE.BufferGeometry();
+
+  return { families, seams: seams.length ? mergeGeometries(seams, false) : null, route, rifts, conduits };
 }

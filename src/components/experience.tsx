@@ -5,6 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { OPENING_SECONDS, beatAt, nearest, type Phase } from "@/world/sequence";
 import { traversalPose } from "@/world/sequence";
 import { dayAtZ, dayToLabel } from "@/world/telemetry";
+import {
+  DISCOVERY_TARGETS,
+  TUNING,
+  discoveryFor,
+  mostSalient,
+  type Lens,
+} from "@/world/discovery";
 import { Overlay } from "./overlay";
 
 const World = dynamic(() => import("@/world/World"), { ssr: false });
@@ -42,7 +49,16 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>("VOID");
   const [t, setT] = useState(0);
   const [scroll, setScroll] = useState(0);
+  const scrollRef = useRef(0);
+  const discoveredRef = useRef<string[]>([]);
   const raf = useRef<number | null>(null);
+
+  /* Discovery state. `discovered` is irreversible once written, per the
+     design: DISCOVER is the only stage that cannot be undone. */
+  const [discovered, setDiscovered] = useState<string[]>([]);
+  const [noticing, setNoticing] = useState<{ id: string; progress: number } | null>(null);
+  const [reward, setReward] = useState<{ lens: Lens; grants: string; entity: string } | null>(null);
+  const investigation = useRef<{ id: string; t: number } | null>(null);
   const startedAt = useRef<number | null>(null);
   const skipped = useRef(false);
 
@@ -116,6 +132,67 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
     };
   }, [supported, reduced, skip]);
 
+  /* The discovery loop. Salience is evaluated against the camera each frame
+     while the visitor has authority; sustained attention resolves an entity
+     and grants its lens. */
+  useEffect(() => {
+    if (supported !== true || phase !== "PLAYER") return;
+    let raf2 = 0;
+    let last = performance.now();
+
+    const step = (now: number) => {
+      // Clamped so a stalled tab cannot jump the investigation, but loose
+      // enough that a slow device does not demand four times the attention.
+      const dt = Math.min(0.2, (now - last) / 1000);
+      last = now;
+
+      const pose = traversalPose(scrollRef.current);
+      const [cx, , cz] = pose.position;
+      const hx = pose.lookAt[0] - cx;
+      const hz = pose.lookAt[2] - cz;
+      const hl = Math.hypot(hx, hz) || 1;
+
+      const seen = new Set(discoveredRef.current);
+      const hit = mostSalient(cx, cz, hx / hl, hz / hl, seen);
+
+      if (hit && discoveryFor(hit.entity.id) && !seen.has(hit.entity.id)) {
+        const cur = investigation.current;
+        const inv =
+          cur && cur.id === hit.entity.id ? cur : { id: hit.entity.id, t: 0 };
+        inv.t += dt;
+        investigation.current = inv;
+        const p = Math.min(1, inv.t / TUNING.investigateSeconds);
+        setNoticing({ id: hit.entity.id, progress: p });
+
+        if (p >= 1) {
+          const d = discoveryFor(hit.entity.id)!;
+          discoveredRef.current = [...discoveredRef.current, hit.entity.id];
+          setDiscovered(discoveredRef.current);
+          setReward({ lens: d.lens, grants: d.grants, entity: hit.entity.name });
+          investigation.current = null;
+          setNoticing(null);
+        }
+      } else {
+        // Attention decays rather than snapping — the entity relaxes.
+        if (investigation.current) {
+          investigation.current.t -= dt * (TUNING.investigateSeconds / TUNING.relaxSeconds);
+          if (investigation.current.t <= 0) investigation.current = null;
+        }
+        setNoticing(null);
+      }
+      raf2 = requestAnimationFrame(step);
+    };
+    raf2 = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf2);
+  }, [supported, phase]);
+
+  /* The reward beat holds briefly, then the world keeps the change. */
+  useEffect(() => {
+    if (!reward) return;
+    const id = setTimeout(() => setReward(null), 4200);
+    return () => clearTimeout(id);
+  }, [reward]);
+
   /* Scroll drives the traverse once the visitor has authority. */
   useEffect(() => {
     if (supported !== true) return;
@@ -125,7 +202,9 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
       frame = requestAnimationFrame(() => {
         frame = 0;
         const max = document.body.scrollHeight - window.innerHeight;
-        setScroll(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0);
+        const v = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+        scrollRef.current = v;
+        setScroll(v);
       });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -151,7 +230,15 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   return (
     <>
       <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]">
-        <World phase={phase} t={t} scroll={scroll} reduced={reduced} quality={quality} />
+        <World
+          phase={phase}
+          t={t}
+          scroll={scroll}
+          reduced={reduced}
+          quality={quality}
+          lenses={discovered.map((id) => discoveryFor(id)!.lens)}
+          noticing={noticing}
+        />
       </div>
 
       <Overlay
@@ -161,6 +248,10 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         dateLabel={dayToLabel(day)}
         scrollVh={SCROLL_VH}
         fallback={fallback}
+        discovered={discovered}
+        noticing={noticing}
+        reward={reward}
+        total={DISCOVERY_TARGETS.length}
       />
     </>
   );

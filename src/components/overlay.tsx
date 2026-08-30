@@ -7,6 +7,7 @@ import { finding, subject, unclaimed } from "@/data/record";
 import { EMISSIVE, UI } from "@/world/palette";
 import type { Entity } from "@/world/telemetry";
 import { scrollAtEntity, type Phase } from "@/world/sequence";
+import { DISCOVERIES, LENS_ORDER, discoveryFor, type Lens } from "@/world/discovery";
 
 /**
  * The interface layer.
@@ -132,6 +133,10 @@ export function Overlay({
   dateLabel,
   scrollVh,
   fallback,
+  discovered,
+  noticing,
+  reward,
+  total,
 }: {
   phase: Phase;
   scroll: number;
@@ -139,9 +144,20 @@ export function Overlay({
   dateLabel: string;
   scrollVh: number;
   fallback: ReactNode;
+  discovered: string[];
+  noticing: { id: string; progress: number } | null;
+  reward: { lens: Lens; grants: string; entity: string } | null;
+  total: number;
 }) {
   const arrived = phase === "PLAYER";
   const atCore = scroll > 0.956;
+
+  /* Anchors can sit close together where the record itself is dense, so more
+     than one passage can be in range at once. Only the strongest is shown —
+     two columns of prose over a moving world is unreadable. */
+  const activePassage = PASSAGES.map((p) => ({ p, o: passageState(scroll, p, anchorOf(p)) }))
+    .filter((x) => x.o > 0)
+    .sort((a, b) => b.o - a.o)[0];
 
   return (
     <>
@@ -210,6 +226,28 @@ export function Overlay({
               )}
             </div>
           </div>
+          {/* The lenses earned so far. Marks, not a meter — a lens is a way of
+              seeing, and the world is where the progress actually shows. */}
+          <div className="mt-4 flex items-center gap-2">
+            {LENS_ORDER.map((l) => {
+              const got = discovered.some((id) => discoveryFor(id)?.lens === l);
+              return (
+                <span
+                  key={l}
+                  title={l}
+                  className="block h-px transition-all duration-700"
+                  style={{
+                    width: got ? 26 : 10,
+                    background: got ? UI.textHighlight : UI.border,
+                  }}
+                />
+              );
+            })}
+            <span className="u-mono ml-2 text-[0.625rem] tracking-[0.16em]" style={{ color: UI.textMuted }}>
+              {discovered.length}/{total} lenses
+            </span>
+          </div>
+
           <div className="mt-3 flex justify-end">
             <a
               href="/record"
@@ -234,13 +272,57 @@ export function Overlay({
         </div>
       )}
 
+      {/* INVESTIGATE. The entity resolves in the world; this is the only
+          interface acknowledgement, and it carries no name or icon. */}
+      {arrived && noticing && !reward && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-8 z-20 flex justify-center">
+          <span
+            className="block h-px transition-none"
+            style={{
+              width: `${28 + noticing.progress * 92}px`,
+              background: UI.textSecondary,
+              opacity: 0.25 + noticing.progress * 0.65,
+            }}
+          />
+        </div>
+      )}
+
+      {/* REWARD. A short beat: the lens is named once, and what changed in the
+          world is stated. Then it goes away and the change stays. */}
+      {reward && (
+        <div
+          className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center px-6"
+          style={{
+            background:
+              "radial-gradient(58% 46% at 50% 48%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.66) 38%, rgba(6,8,9,0.28) 68%, rgba(6,8,9,0) 100%)",
+          }}
+        >
+          <div className="max-w-[30rem] text-center">
+            <div
+              className="u-mono text-[0.625rem] uppercase tracking-[0.28em]"
+              style={{ color: UI.textMuted }}
+            >
+              Resolved · {reward.entity}
+            </div>
+            <div
+              className="u-mono mt-4 text-[clamp(1.5rem,3.4vw,2.3rem)] tracking-[0.14em]"
+              style={{ color: "#8cbcae" }}
+            >
+              {reward.lens}
+            </div>
+            <p className="mt-4 text-[0.95rem] leading-[1.55]" style={{ color: UI.textSecondary }}>
+              {reward.grants}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Passages. They resolve where the world they describe is. */}
       {arrived &&
         !atCore &&
-        PASSAGES.map((p) => {
-          const start = anchorOf(p);
-          const o = passageState(scroll, p, start);
-          if (o <= 0) return null;
+        !reward &&
+        activePassage &&
+        [activePassage].map(({ p, o }) => {
           return (
             <div
               key={p.kicker}
@@ -253,14 +335,17 @@ export function Overlay({
                 transform: `translateY(${(1 - o) * 18}px)`,
               }}
             >
-              <div
-                className="max-w-[34rem] p-6 sm:p-8"
-                style={{
-                  background: `radial-gradient(120% 130% at ${
-                    p.align === "right" ? "80%" : "20%"
-                  } 60%, rgba(6,8,9,0.86) 0%, rgba(6,8,9,0.66) 45%, rgba(6,8,9,0) 100%)`,
-                }}
-              >
+              <div className="relative max-w-[34rem]">
+                {/* The scrim extends well past the text so its falloff happens
+                    off the edge of the copy rather than at it. */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-x-[45%] -inset-y-[70%] -z-10"
+                  style={{
+                    background:
+                      "radial-gradient(closest-side, rgba(6,8,9,0.92) 0%, rgba(6,8,9,0.75) 38%, rgba(6,8,9,0.4) 62%, rgba(6,8,9,0) 100%)",
+                  }}
+                />
                 <div
                   className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
                   style={{ color: UI.textMuted }}
@@ -371,13 +456,41 @@ export function Overlay({
                 </a>
               ))}
             </div>
-            <p
-              className="u-mono mt-10 text-[0.625rem] leading-[1.7] tracking-[0.04em]"
-              style={{ color: UI.textMuted }}
-            >
-              {exhibits.length} projects documented in full, with sources, in the
-              written record.
-            </p>
+            <div className="mt-10 border-t pt-6" style={{ borderColor: UI.border }}>
+              <div
+                className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
+                style={{ color: UI.textMuted }}
+              >
+                Lenses resolved · {discovered.length} of {total}
+              </div>
+              <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+                {DISCOVERIES.map((d) => {
+                  const got = discovered.includes(d.entity);
+                  return (
+                    <span
+                      key={d.lens}
+                      className="u-mono text-[0.625rem] tracking-[0.16em]"
+                      style={{ color: got ? UI.textHighlight : UI.border }}
+                    >
+                      {d.lens}
+                    </span>
+                  );
+                })}
+              </div>
+              {discovered.length < total && (
+                <p className="u-mono mt-4 text-[0.625rem] leading-[1.7]" style={{ color: UI.textMuted }}>
+                  The rest are still out there. Attention is the only mechanic —
+                  approach a structure and stay with it.
+                </p>
+              )}
+              <p
+                className="u-mono mt-4 text-[0.625rem] leading-[1.7] tracking-[0.04em]"
+                style={{ color: UI.textMuted }}
+              >
+                {exhibits.length} projects documented in full, with sources, in
+                the written record.
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -6,17 +6,29 @@
  */
 
 export const LIGHT = {
-  /** Dominant raking key. */
+  /**
+   * Dominant raking key.
+   *
+   * Study 12 fixes the colour, the intensity and the raking quality, and those
+   * carry over unchanged. Its literal coordinates do not: they were authored
+   * for a static study with a fixed camera, and applied to a camera that
+   * travels 520 units down -Z they put the light behind the visitor for the
+   * whole traverse, so every face they see is a shadowed one. The direction is
+   * re-aimed to rake across the line of travel instead.
+   */
   key: "#d5d0c5",
-  keyPos: [-24, 30, 18] as const,
-  keyTarget: [8.771, 6.5, -28.689] as const,
-  keyIntensity: 11.5,
+  keyPos: [-46, 34, -58] as const,
+  keyTarget: [6, 8, -150] as const,
+  keyIntensity: 14.5,
   fill: "#9aa4a5",
   sky: "#9ca6ae",
   /* Aerial perspective. Distance must fall away into the dark, not bleach
      into the sky colour — the sky value is a light source, not a fog value. */
-  aerial: "#171b1e",
-  aerialFar: "#0d0f10",
+  /* Aerial perspective only reads as air if the haze is lighter than the
+     shadowed faces it sits in front of. Near-black fog does the opposite —
+     it subtracts light with distance and the midground turns to mud. */
+  aerial: "#2b343a",
+  aerialFar: "#191f23",
 } as const;
 
 /** Motivated emissives only — Rule L1. Every glow has a source in the world. */
@@ -56,6 +68,19 @@ export const FAMILY_SURFACE: Record<MaterialFamily, string> = {
   ACTIVE: SURFACE.active,
   ORGANIC: SURFACE.organic,
   RUINED: SURFACE.ruined,
+};
+
+/**
+ * Under the LANGUAGE lens the families separate by ecosystem. The shift stays
+ * inside the approved palette — these are the same greys pushed toward the
+ * warm or cool end, not new hues introduced for coding.
+ */
+export const FAMILY_LENS_SURFACE: Record<MaterialFamily, string> = {
+  FOUNDATION: "#5c5346",
+  CONSTRUCTED: "#5b6a70",
+  ACTIVE: "#5f7370",
+  ORGANIC: "#4e6154",
+  RUINED: "#332f28",
 };
 
 export const FAMILY_ROUGHNESS: Record<MaterialFamily, number> = {

@@ -88,9 +88,10 @@ export const WORLD = {
   /** Length of the time axis in world units. Walking -Z is walking forward. */
   depth: 520,
   /** Lateral spread either side of the spine. */
-  spread: 33,
+  spread: 26,
   /** Nearest an entity may sit to the spine, so the corridor stays walkable. */
-  corridor: 7,
+  /** Clear space either side of the route, measured to a structure's edge. */
+  corridor: 9,
   eyeHeight: 1.7,
   /** Erosion saturates three years after the last commit. */
   erosionCapDays: 1095,
@@ -170,19 +171,29 @@ function buildEntities(): Entity[] {
       type = "LANDMARK";
     }
 
-    // Material follows role and state, in a fixed precedence.
+    /*
+     * Material follows role and state, in a fixed precedence.
+     *
+     * ORGANIC is tested before the constructed families rather than after
+     * them. Placed last it was unreachable — every long-lived work had
+     * already been claimed as a monolith or a relic — so the branching
+     * geometry it selects never rendered at all. It means something specific:
+     * a work that accumulated slowly over a long period rather than being
+     * built in a burst, which is growth rather than construction.
+     */
+    const daysPerCommit = w.lifespan / Math.max(1, w.commits);
+    const grewSlowly = daysPerCommit > 22 && w.lifespan > 90;
+
     const material: MaterialFamily =
       type === "ORIGIN"
         ? "FOUNDATION"
         : type === "DORMANT" || erosion > 0.72
           ? "RUINED"
-          : erosion < 0.12
-            ? "ACTIVE"
-            : type === "RELIC" || type === "MONOLITH"
-              ? "CONSTRUCTED"
-              : w.lifespan > 300
-                ? "ORGANIC"
-                : "CONSTRUCTED";
+          : grewSlowly
+            ? "ORGANIC"
+            : erosion < 0.12
+              ? "ACTIVE"
+              : "CONSTRUCTED";
 
     const [hLo, hHi] = HEIGHT_BAND[type];
     const sNorm = w.significance / topSignificance;
@@ -191,6 +202,7 @@ function buildEntities(): Entity[] {
     const h1 = hash(w.name);
     const h2 = hash(w.name + "§");
     const side = h1 < 0.5 ? -1 : 1;
+    const mass = 2.4 + (Math.log1p(w.commits) / maxLogCommits) * 9.6;
 
     return {
       id: w.name,
@@ -199,9 +211,12 @@ function buildEntities(): Entity[] {
       material,
       // Time is the spine, eased toward even spacing. Monotonic either way.
       z: -(0.34 * (w.firstDay / SPAN_DAYS) + 0.66 * (rankOf.get(w.name) ?? 0)) * WORLD.depth,
-      x: side * (WORLD.corridor + h2 * (WORLD.spread - WORLD.corridor)),
+      /* Offset from the spine measured to the structure's near EDGE, not its
+         centre. Using the centre let wide masses overlap the route and the
+         camera walked through them. */
+      x: side * (WORLD.corridor + mass * 1.35 + h2 * WORLD.spread),
       y: 0,
-      mass: 2.4 + (Math.log1p(w.commits) / maxLogCommits) * 9.6,
+      mass,
       height,
       depth: 1.5 + (w.lifespan / SPAN_DAYS) * 8,
       erosion,
@@ -216,6 +231,9 @@ function buildEntities(): Entity[] {
 }
 
 export const entities: Entity[] = buildEntities();
+
+const ENTITY_INDEX = new Map(entities.map((e) => [e.id, e]));
+export const entityById = (id: string) => ENTITY_INDEX.get(id) ?? null;
 
 export const origin = entities.find((e) => e.type === "ORIGIN")!;
 export const relic = entities.find((e) => e.type === "RELIC")!;

@@ -20,8 +20,8 @@ export function Sky({ phase }: { phase: Phase }) {
 
   const uniforms = useMemo(
     () => ({
-      uHorizon: { value: new THREE.Color("#252d31") },
-      uZenith: { value: new THREE.Color("#0a0c0d") },
+      uHorizon: { value: new THREE.Color("#38444b") },
+      uZenith: { value: new THREE.Color("#12171a") },
       uKeyDir: {
         value: new THREE.Vector3(...LIGHT.keyPos).normalize(),
       },

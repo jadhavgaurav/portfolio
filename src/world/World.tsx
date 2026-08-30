@@ -8,6 +8,7 @@ import { CameraRig } from "./CameraRig";
 import { Post } from "./Post";
 import { Scene } from "./Scene";
 import type { Phase } from "./sequence";
+import type { Lens } from "./discovery";
 
 /**
  * The canvas. Quality adapts to the device rather than assuming a desktop
@@ -21,12 +22,18 @@ export default function World({
   scroll,
   reduced,
   quality,
+  lenses,
+  noticing,
 }: {
   phase: Phase;
   t: number;
   scroll: number;
   reduced: boolean;
   quality: "high" | "low";
+  /** Lenses granted so far. Each one changes how the world renders. */
+  lenses: Lens[];
+  /** The entity currently resolving under sustained attention, if any. */
+  noticing: { id: string; progress: number } | null;
 }) {
   /* The declared tier is a starting guess from the device. The measured tier
      is what the machine can actually sustain: if frames start slipping the
@@ -47,7 +54,7 @@ export default function World({
       onCreated={({ gl }) => {
         // One exposure knob for the whole grade.
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.75;
+        gl.toneMappingExposure = 2.7;
       }}
       camera={{ fov: 55, near: 0.4, far: 1400, position: [0, 96, 200] }}
       frameloop={reduced ? "demand" : "always"}
@@ -58,7 +65,14 @@ export default function World({
         onIncline={() => quality === "high" && setTier("high")}
       />
       <CameraRig phase={phase} t={t} scroll={scroll} reduced={reduced} />
-      <Scene phase={phase} t={t} scroll={scroll} quality={tier} />
+      <Scene
+        phase={phase}
+        t={t}
+        scroll={scroll}
+        quality={tier}
+        lenses={lenses}
+        noticing={noticing}
+      />
       <Post phase={phase} scroll={scroll} quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />

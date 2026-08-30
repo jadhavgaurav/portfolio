@@ -53,7 +53,7 @@ export function Post({ quality }: { phase: Phase; scroll: number; quality: "high
         mipmapBlur
         radius={0.72}
       />
-      <Vignette offset={0.36} darkness={0.42} blendFunction={BlendFunction.NORMAL} />
+      <Vignette offset={0.4} darkness={0.32} blendFunction={BlendFunction.NORMAL} />
       <SMAA />
     </EffectComposer>
   );
