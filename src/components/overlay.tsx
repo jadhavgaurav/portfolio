@@ -141,6 +141,9 @@ export function Overlay({
   onFocus,
   focusing,
   indexOpen,
+  canSkip,
+  onSkip,
+  taught,
 }: {
   phase: Phase;
   scroll: number;
@@ -159,6 +162,11 @@ export function Overlay({
   focusing: boolean;
   /** True while the index is open — the core stands down with the rest. */
   indexOpen: boolean;
+  /** The opening is past the point where handing control back is allowed. */
+  canSkip: boolean;
+  onSkip: () => void;
+  /** First time the world offers the mechanic, and only until it is used. */
+  taught: boolean;
 }) {
   const arrived = phase === "PLAYER" && !focusing && !indexOpen;
   const atCore = scroll > 0.956 && !focusing && !indexOpen;
@@ -178,10 +186,14 @@ export function Overlay({
       <div style={{ height: `${scrollVh}vh` }} aria-hidden="true" />
       <div className="sr-only">{fallback}</div>
 
-      {/* Opening: nothing at all. No logo, no spinner. Emptiness reads as a
-          place; a loading state would read as a browser tab. */}
+      {/* Opening: no logo, no spinner. Emptiness reads as a place. The one
+          concession is the skip — control rule C2 always allowed the opening
+          to be interrupted, and an affordance nobody can see is not one. */}
       {!arrived && (
-        <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-center pb-12">
+        <aside
+          aria-label="Opening"
+          className="pointer-events-none fixed inset-0 z-20 flex flex-col items-center justify-end gap-5 pb-12"
+        >
           <p
             className="u-mono text-[0.625rem] uppercase tracking-[0.24em] transition-opacity duration-1000"
             style={{ color: UI.textMuted, opacity: phase === "VOID" ? 0 : 0.65 }}
@@ -192,23 +204,55 @@ export function Overlay({
                 ? "The world resolves"
                 : "Arriving"}
           </p>
-        </div>
+          <button
+            onClick={onSkip}
+            className="u-mono pointer-events-auto border px-4 py-2 text-[0.55rem] uppercase tracking-[0.2em] transition-opacity duration-700"
+            style={{
+              borderColor: UI.border,
+              color: UI.textMuted,
+              opacity: canSkip ? 1 : 0,
+              pointerEvents: canSkip ? "auto" : "none",
+            }}
+            tabIndex={canSkip ? 0 : -1}
+          >
+            Skip the arrival
+          </button>
+        </aside>
       )}
 
       {/* Persistent HUD. Two readings and a route indicator — the minimum
-          that answers where am I and what am I looking at. */}
+          that answers where am I and what am I looking at.
+
+          The scrim is not decoration: the readout sits over whatever the world
+          happens to put behind it, and a pale structure passing under it made
+          the type unreadable. It is a gradient of the ground colour, so it
+          darkens the world rather than introducing a surface. */}
       {arrived && !atCore && (
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7">
+        <aside
+          aria-label="Position readout"
+          className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7"
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[13rem]"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(6,8,9,0.88) 0%, rgba(6,8,9,0.62) 42%, rgba(6,8,9,0) 100%)",
+            }}
+          />
           <div className="flex items-start justify-between gap-4 pl-[4.5rem] sm:pl-[5.5rem]">
             <div>
+              {/* The name is the one thing the core says in full, and at 360px
+                  it wrapped onto two lines and ran into the structure readout.
+                  The date is what the left column is actually for. */}
               <div
-                className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
+                className="u-mono hidden text-[0.625rem] uppercase tracking-[0.2em] sm:block"
                 style={{ color: UI.textMuted }}
               >
                 {subject.filedAs}
               </div>
               <div
-                className="u-mono mt-1 text-[0.7rem] tracking-[0.08em]"
+                className="u-mono text-[0.7rem] tracking-[0.08em] sm:mt-1"
                 style={{ color: UI.textSecondary }}
               >
                 {dateLabel}
@@ -222,7 +266,7 @@ export function Overlay({
                 {passing ? passing.type : "Traverse"}
               </div>
               <div
-                className="u-mono mt-1 max-w-[52vw] truncate text-[0.7rem] tracking-[0.04em]"
+                className="u-mono mt-1 max-w-[46vw] truncate text-[0.7rem] tracking-[0.04em] sm:max-w-[52vw]"
                 style={{ color: passing ? UI.textHighlight : UI.textMuted }}
               >
                 {passing ? passing.name : "—"}
@@ -254,7 +298,10 @@ export function Overlay({
                 />
               );
             })}
-            <span className="u-mono ml-2 text-[0.625rem] tracking-[0.16em]" style={{ color: UI.textMuted }}>
+            <span
+              className="u-mono ml-2 whitespace-nowrap text-[0.625rem] tracking-[0.16em]"
+              style={{ color: UI.textMuted }}
+            >
               {discovered.length}/{total} lenses
             </span>
           </div>
@@ -270,13 +317,16 @@ export function Overlay({
               }}
             />
           </div>
-        </div>
+        </aside>
       )}
 
       {/* FOCUS is offered only where there is something to focus on, and only
           while the visitor is actually standing at it. */}
       {arrived && !atCore && !reward && record && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5">
+        <aside
+          aria-label="Record"
+          className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5"
+        >
           <button
             onClick={onFocus}
             className="u-mono pointer-events-auto border px-5 py-2.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
@@ -288,13 +338,19 @@ export function Overlay({
           >
             Open the record for {record.title}
           </button>
-        </div>
+        </aside>
       )}
 
       {/* INVESTIGATE. The entity resolves in the world; this is the only
-          interface acknowledgement, and it carries no name or icon. */}
+          interface acknowledgement, and it carries no name or icon. The one
+          line of instruction appears the first time the world offers the
+          mechanic and never again — a rule stated before it can be used is a
+          rule nobody reads. */}
       {arrived && noticing && !reward && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-20 flex justify-center">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 bottom-20 z-20 flex flex-col items-center gap-3"
+        >
           <span
             className="block h-px transition-none"
             style={{
@@ -303,22 +359,31 @@ export function Overlay({
               opacity: 0.25 + noticing.progress * 0.65,
             }}
           />
+          {taught && (
+            <span
+              className="u-mono text-[0.55rem] uppercase tracking-[0.22em]"
+              style={{ color: UI.textMuted, opacity: 0.8 }}
+            >
+              Something here rewards attention — slow down
+            </span>
+          )}
         </div>
       )}
 
       {/* REWARD. A short beat: the lens is named once, and what changed in the
           world is stated. Then it goes away and the change stays. */}
       {reward && !atCore && (
-        <div
+        <aside
+          aria-label="Lens resolved"
           className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center px-6"
           style={{
             background:
-              "radial-gradient(58% 46% at 50% 48%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.66) 38%, rgba(6,8,9,0.28) 68%, rgba(6,8,9,0) 100%)",
+              "radial-gradient(62% 52% at 50% 48%, rgba(6,8,9,0.97) 0%, rgba(6,8,9,0.9) 34%, rgba(6,8,9,0.55) 64%, rgba(6,8,9,0) 100%)",
           }}
         >
           <div className="max-w-[30rem] text-center">
             <div
-              className="u-mono text-[0.625rem] uppercase tracking-[0.28em]"
+              className="u-mono break-words text-[0.625rem] uppercase tracking-[0.16em] sm:tracking-[0.28em]"
               style={{ color: UI.textMuted }}
             >
               Resolved · {reward.entity}
@@ -333,7 +398,7 @@ export function Overlay({
               {reward.grants}
             </p>
           </div>
-        </div>
+        </aside>
       )}
 
       {/* Passages. They resolve where the world they describe is. */}
@@ -343,8 +408,9 @@ export function Overlay({
         activePassage &&
         [activePassage].map(({ p, o }) => {
           return (
-            <div
+            <aside
               key={p.kicker}
+              aria-label="Passage"
               className={`pointer-events-none fixed inset-x-0 z-20 px-5 sm:px-10 ${
                 p.align === "right" ? "flex justify-end" : ""
               }`}
@@ -392,19 +458,19 @@ export function Overlay({
                   </div>
                 )}
               </div>
-            </div>
+            </aside>
           );
         })}
 
       {/* The CORE. Only here does the identity become explicit, and only here
           is there anything to click. */}
       {atCore && (
-        <div
+        <section
+          aria-label="The core"
           className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto overscroll-contain px-5 py-10 transition-opacity duration-700"
           style={{
             opacity: Math.min(1, (scroll - 0.956) / 0.025),
-            background:
-              "linear-gradient(180deg, rgba(6,8,9,0.97) 0%, rgba(6,8,9,0.99) 45%, rgba(6,8,9,0.97) 100%)",
+            background: "#060809",
           }}
         >
           <div className="max-w-[36rem] text-center">
@@ -489,7 +555,7 @@ export function Overlay({
                     <span
                       key={d.lens}
                       className="u-mono text-[0.625rem] tracking-[0.16em]"
-                      style={{ color: got ? UI.textHighlight : UI.border }}
+                      style={{ color: got ? "#8cbcae" : UI.textMuted }}
                     >
                       {d.lens}
                     </span>
@@ -511,7 +577,7 @@ export function Overlay({
               </p>
             </div>
           </div>
-        </div>
+        </section>
       )}
     </>
   );

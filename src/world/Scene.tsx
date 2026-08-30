@@ -185,7 +185,7 @@ export function Scene({
           <meshStandardMaterial
             color={EMISSIVE.phaseJoint}
             emissive={EMISSIVE.reward}
-            emissiveIntensity={2.2}
+            emissiveIntensity={1.5}
             roughness={0.3}
             metalness={0.4}
           />

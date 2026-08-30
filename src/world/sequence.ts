@@ -5,19 +5,30 @@ import { WORLD, core, entities, origin } from "./telemetry";
  *
  * Structure is NULL's own: VOID → SIGNAL → EMERGENCE → ARRIVAL, then player
  * authority. Durations are compressed from the twenty seconds the design doc
- * specifies to ten, because this runs in a browser tab rather than a game
- * launcher — the beats and their order are unchanged, and any input after
- * SIGNAL hands control straight back, per control rule C2.
+ * specifies, because this runs in a browser tab rather than a game launcher —
+ * the beats and their order are unchanged, and any input after SIGNAL hands
+ * control straight back, per control rule C2.
  */
 
 export type Phase = "VOID" | "SIGNAL" | "EMERGENCE" | "ARRIVAL" | "PLAYER";
 
+/**
+ * Beat durations.
+ *
+ * The design specifies twenty seconds. Ten was tried here and measured: the
+ * visitor could not act on anything for 10.4s after load, on every visit,
+ * which is a bounce, not an opening. Four and a half keeps all four beats and
+ * their order — and the skip is now offered rather than merely possible.
+ */
 export const BEATS: { phase: Phase; duration: number }[] = [
-  { phase: "VOID", duration: 1.6 },
-  { phase: "SIGNAL", duration: 2.6 },
-  { phase: "EMERGENCE", duration: 4.2 },
-  { phase: "ARRIVAL", duration: 1.6 },
+  { phase: "VOID", duration: 0.7 },
+  { phase: "SIGNAL", duration: 1.2 },
+  { phase: "EMERGENCE", duration: 1.8 },
+  { phase: "ARRIVAL", duration: 0.8 },
 ];
+
+/** After this, any input hands authority back and the skip is offered. */
+export const SKIPPABLE_AFTER = 0.8;
 
 export const OPENING_SECONDS = BEATS.reduce((n, b) => n + b.duration, 0);
 
@@ -99,8 +110,9 @@ export function traversalPose(scroll: number) {
   const y = WORLD.eyeHeight + Math.sin(scroll * Math.PI) * 2.4 + lift * lift * 30;
 
   // Yaw toward the nearest significant structure ahead. Approach and pass —
-  // never orbit.
-  const near = nearest(z);
+  // never orbit. The held variant, so the camera does not swap its subject
+  // mid-approach when two structures trade places for nearest.
+  const near = nearestOnRoute(z);
   // The weave has to stay inside the corridor the layout reserves.
   const lateral = near ? near.x * 0.1 : 0;
   const x = lateral * (1 - lift);
@@ -128,18 +140,49 @@ const SIGNIFICANT = entities
   .filter((e) => e.type !== "FRAGMENT")
   .sort((a, b) => b.z - a.z);
 
-/** The structure the visitor is currently passing. */
-export function nearest(z: number) {
+/**
+ * The structure the visitor is currently passing.
+ *
+ * `hold` is hysteresis, and it is not optional: without it the readout
+ * changed eight times across a quarter of the traverse, because two
+ * structures either side of the route trade places for the nearest position
+ * on almost every frame. A candidate must be meaningfully closer than the one
+ * already held before it takes over.
+ */
+export function nearest(z: number, held?: string | null) {
   let best: (typeof SIGNIFICANT)[number] | null = null;
   let bestD = Infinity;
+  let heldD = Infinity;
+
   for (const e of SIGNIFICANT) {
     const d = Math.abs(e.z - (z - NEAREST_LEAD));
+    if (e.id === held) heldD = d;
     if (d < bestD) {
       bestD = d;
       best = e;
     }
   }
+
+  // Keep what we have while it is still in range and not clearly beaten.
+  if (held && heldD < 90 && heldD < bestD + 22) {
+    return SIGNIFICANT.find((e) => e.id === held) ?? null;
+  }
   return bestD < 90 ? best : null;
+}
+
+/**
+ * The route's own memory of what it is passing.
+ *
+ * The camera and the readout have to name the same structure, and neither may
+ * change its mind sixty times a second, so the held id lives here rather than
+ * in either caller.
+ */
+let routeHeld: string | null = null;
+
+export function nearestOnRoute(z: number) {
+  const e = nearest(z, routeHeld);
+  routeHeld = e?.id ?? null;
+  return e;
 }
 
 /**

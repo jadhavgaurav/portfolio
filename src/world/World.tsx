@@ -41,6 +41,12 @@ export default function World({
      phone that turns out to be fast is promoted back. */
   const [tier, setTier] = useState<"high" | "low">(quality);
 
+  /* The frameloop is always on, including under reduced motion. A demand loop
+     was tried there and is wrong: the camera, the fog and the lens are all
+     critically damped, so with no running loop they never converge and the
+     frame the visitor is left holding is a half-finished blend. Reduced motion
+     asks for no vestibular motion, which the damping constant already gives —
+     it does not ask for a stalled renderer. */
   return (
     <Canvas
       dpr={tier === "high" ? [1, 1.6] : [0.6, 1]}
@@ -57,7 +63,7 @@ export default function World({
         gl.toneMappingExposure = 2.7;
       }}
       camera={{ fov: 55, near: 0.4, far: 1400, position: [0, 96, 200] }}
-      frameloop={reduced ? "demand" : "always"}
+      frameloop="always"
     >
       <PerformanceMonitor
         bounds={() => [45, 58]}
@@ -73,7 +79,7 @@ export default function World({
         lenses={lenses}
         noticing={noticing}
       />
-      <Post phase={phase} scroll={scroll} quality={tier} />
+      <Post quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />
       <Preload all />

@@ -44,9 +44,16 @@ export const TUNING: Record<string, number> & {
   w_seen: 0.4,
   noticeThreshold: 0.42,
   investigateThreshold: 0.62,
-  /** Sustained attention required to resolve. Faster feels accidental. */
-  investigateSeconds: 2.4,
-  awarenessRadius: 78,
+  /**
+   * Sustained attention required to resolve.
+   *
+   * 2.4s was measured against the actual interaction: the visitor moves by
+   * scrolling, so dwelling means stopping, and nothing invited them to stop.
+   * Most visitors reached the end with nothing resolved. 1.3s is reachable by
+   * slowing down, which people already do when something appears.
+   */
+  investigateSeconds: 1.3,
+  awarenessRadius: 92,
   relaxSeconds: 1.2,
 };
 

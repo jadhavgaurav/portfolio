@@ -2,8 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { OPENING_SECONDS, beatAt, nearest, type Phase } from "@/world/sequence";
-import { traversalPose } from "@/world/sequence";
+import {
+  OPENING_SECONDS,
+  SKIPPABLE_AFTER,
+  beatAt,
+  nearestOnRoute,
+  traversalPose,
+  type Phase,
+} from "@/world/sequence";
 import { dayAtZ, dayToLabel } from "@/world/telemetry";
 import {
   DISCOVERY_TARGETS,
@@ -18,7 +24,30 @@ import { WorldNav } from "./world-nav";
 import { EXHIBIT_BY_ENTITY } from "@/data/exhibits";
 import type { Entity } from "@/world/telemetry";
 
-const World = dynamic(() => import("@/world/World"), { ssr: false });
+const World = dynamic(() => import("@/world/World"), {
+  ssr: false,
+  loading: () => <Booting />,
+});
+
+/**
+ * The one thing shown before the world exists.
+ *
+ * Not a spinner: a spinner says a page is loading. This says a place is being
+ * assembled, and it is the same ground colour and the same mono voice the
+ * world uses, so nothing about the first paint contradicts what follows.
+ */
+function Booting() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-12">
+      <p
+        className="u-mono text-[0.625rem] uppercase tracking-[0.24em]"
+        style={{ color: "#5c6a6e", animation: "null-breathe 2.4s ease-in-out infinite" }}
+      >
+        Assembling the record
+      </p>
+    </div>
+  );
+}
 
 /**
  * Capability probe. A failed context means the written record is served
@@ -63,6 +92,10 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   const [noticing, setNoticing] = useState<{ id: string; progress: number } | null>(null);
   const [reward, setReward] = useState<{ lens: Lens; grants: string; entity: string } | null>(null);
   const investigation = useRef<{ id: string; t: number } | null>(null);
+  /* The mechanic is taught once, the first time the world offers it, and then
+     never again. A rule stated before it can be used is a rule nobody reads. */
+  const [taught, setTaught] = useState(false);
+  const taughtRef = useRef(false);
 
   /* FOCUS: the record for a structure, opened where the visitor stands. */
   const [focused, setFocused] = useState<Entity | null>(null);
@@ -70,6 +103,10 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   const openIndex = useCallback((v: boolean) => setIndexOpen(v), []);
   const startedAt = useRef<number | null>(null);
   const skipped = useRef(false);
+  /* Whether the skip has been offered yet. Control rule C2 already allowed the
+     opening to be interrupted; nothing said so, which is the same as it not
+     being there. */
+  const [canSkip, setCanSkip] = useState(false);
 
   /* Capability and preference detection. */
   useEffect(() => {
@@ -108,6 +145,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
       const b = beatAt(elapsed);
       setPhase(b.phase);
       setT(b.t);
+      if (elapsed >= SKIPPABLE_AFTER) setCanSkip(true);
       raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
@@ -122,7 +160,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   const skip = useCallback(() => {
     if (startedAt.current === null) return;
     const elapsed = (performance.now() - startedAt.current) / 1000;
-    if (elapsed < 1.6) return;
+    if (elapsed < SKIPPABLE_AFTER) return;
     skipped.current = true;
   }, []);
 
@@ -149,7 +187,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
     let raf2 = 0;
     let last = performance.now();
 
-    const step = (now: number) => {
+    const frame = (now: number) => {
       // Clamped so a stalled tab cannot jump the investigation, but loose
       // enough that a slow device does not demand four times the attention.
       const dt = Math.min(0.2, (now - last) / 1000);
@@ -171,7 +209,18 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         inv.t += dt;
         investigation.current = inv;
         const p = Math.min(1, inv.t / TUNING.investigateSeconds);
-        setNoticing({ id: hit.entity.id, progress: p });
+        // Quantised: a new object every frame re-rendered the whole tree
+        // sixty times a second for no visible gain.
+        const step = Math.round(p * 24) / 24;
+        setNoticing((prev) =>
+          prev && prev.id === hit.entity.id && prev.progress === step
+            ? prev
+            : { id: hit.entity.id, progress: step },
+        );
+        if (!taughtRef.current) {
+          taughtRef.current = true;
+          setTaught(true);
+        }
 
         if (p >= 1) {
           const d = discoveryFor(hit.entity.id)!;
@@ -187,11 +236,11 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
           investigation.current.t -= dt * (TUNING.investigateSeconds / TUNING.relaxSeconds);
           if (investigation.current.t <= 0) investigation.current = null;
         }
-        setNoticing(null);
+        setNoticing((prev) => (prev === null ? prev : null));
       }
-      raf2 = requestAnimationFrame(step);
+      raf2 = requestAnimationFrame(frame);
     };
-    raf2 = requestAnimationFrame(step);
+    raf2 = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf2);
   }, [supported, phase]);
 
@@ -228,7 +277,12 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
      same record, not a stub. While probing, hold the ground colour so the
      opening never flashes the paper stock behind it. */
   if (supported === false) return <>{fallback}</>;
-  if (supported === null) return <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" />;
+  if (supported === null)
+    return (
+      <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]">
+        <Booting />
+      </div>
+    );
 
   /* Travel: move along the same spine rather than teleporting, so position
      keeps meaning what it means. */
@@ -238,14 +292,17 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
   };
 
   const z = traversalPose(scroll).position[2];
-  const passing = phase === "PLAYER" ? nearest(z) : null;
+  const passing = phase === "PLAYER" ? nearestOnRoute(z) : null;
   // Prefer the date of the structure being passed; fall back to the
   // interpolated position between works.
   const day = passing ? passing.firstDay : dayAtZ(z);
 
   return (
     <>
-      <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]">
+      {/* The canvas carries no accessible content of its own — everything it
+          shows is stated in the text layer below, which is what a screen
+          reader is actually given. */}
+      <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" aria-hidden="true">
         <World
           phase={phase}
           t={t}
@@ -272,6 +329,11 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         onFocus={() => passing && setFocused(passing)}
         focusing={Boolean(focused)}
         indexOpen={indexOpen}
+        canSkip={canSkip}
+        onSkip={() => {
+          skipped.current = true;
+        }}
+        taught={taught && discovered.length === 0}
       />
 
       {phase === "PLAYER" && !focused && (
@@ -281,6 +343,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
           onFocus={setFocused}
           open={indexOpen}
           setOpen={openIndex}
+          hidden={scroll > 0.956}
         />
       )}
 

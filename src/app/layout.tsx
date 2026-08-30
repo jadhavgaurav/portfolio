@@ -53,10 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${newsreader.variable} ${mono.variable}`}>
         <a
-          href="#finding"
+          href="#record"
           className="u-label sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-paper focus:px-4 focus:py-3 focus:text-ink"
         >
-          Skip to the finding
+          Skip to the written record
         </a>
         {children}
       </body>

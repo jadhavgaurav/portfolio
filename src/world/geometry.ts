@@ -188,6 +188,23 @@ function place(g: THREE.BufferGeometry, e: Entity) {
   return g;
 }
 
+/**
+ * Merge, having first agreed on whether the set is indexed.
+ *
+ * three's polyhedra — the crystals and the shards — come back non-indexed,
+ * while boxes, lathes, tori, cylinders and tubes come back indexed, and
+ * mergeGeometries refuses a mixed set: it logs and returns null. The null was
+ * then filtered out, so two whole material families were being dropped from
+ * the world without anything failing. Flattening to non-indexed costs a few
+ * thousand vertices at this polygon count and makes the merge total.
+ */
+function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const flat = parts.map((g) => (g.index ? g.toNonIndexed() : g));
+  const out = mergeGeometries(flat, false);
+  if (!out) throw new Error("mergeGeometries returned null after normalising to non-indexed");
+  return out;
+}
+
 export interface WorldGeometry {
   families: { family: MaterialFamily; geometry: THREE.BufferGeometry }[];
   seams: THREE.BufferGeometry | null;
@@ -222,8 +239,7 @@ export function buildWorld(): WorldGeometry {
   }
 
   const families = Array.from(byFamily.entries())
-    .map(([family, parts]) => ({ family, geometry: mergeGeometries(parts, false)! }))
-    .filter((f) => f.geometry);
+    .map(([family, parts]) => ({ family, geometry: merge(parts) }));
 
   const len = WORLD.depth + 200;
   const strip = (x: number) => {
@@ -232,7 +248,7 @@ export function buildWorld(): WorldGeometry {
     g.translate(x, 0.03, -len / 2 + 70);
     return g;
   };
-  const route = mergeGeometries([strip(-3.1), strip(3.1)], false)!;
+  const route = merge([strip(-3.1), strip(3.1)]);
 
   /* Rifts: placed where the record actually breaks, between the clusters of
      works, not on a work. */
@@ -248,7 +264,7 @@ export function buildWorld(): WorldGeometry {
     .forEach((g, i) => {
       riftParts.push(...fissure(g.z, WORLD.spread * 2.6, noiser(`rift${i}`)));
     });
-  const rifts = mergeGeometries(riftParts.map((g) => shade(g, -3, 4)), false)!;
+  const rifts = merge(riftParts.map((g) => shade(g, -3, 4)));
 
   /* Conduits: the eight attempts at one assistant, drawn as one line through
      the world. This is the relationship the record most clearly supports. */
@@ -260,11 +276,9 @@ export function buildWorld(): WorldGeometry {
   const conduitParts: Part[] = [];
   if (chain.length > 1) {
     const pts = chain.map((e) => new THREE.Vector3(e.x, e.height * 0.55 + 2, e.z));
-    conduitParts.push(conduit(pts, 0.42));
+    conduitParts.push(conduit(pts, 0.24));
   }
-  const conduits = conduitParts.length
-    ? mergeGeometries(conduitParts, false)!
-    : new THREE.BufferGeometry();
+  const conduits = conduitParts.length ? merge(conduitParts) : new THREE.BufferGeometry();
 
-  return { families, seams: seams.length ? mergeGeometries(seams, false) : null, route, rifts, conduits };
+  return { families, seams: seams.length ? merge(seams) : null, route, rifts, conduits };
 }

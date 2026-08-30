@@ -33,6 +33,7 @@ export function WorldNav({
   onFocus,
   open,
   setOpen,
+  hidden,
 }: {
   discovered: string[];
   onTravel: (scroll: number) => void;
@@ -40,6 +41,9 @@ export function WorldNav({
   /** Owned by the experience, so the core and the index are never both up. */
   open: boolean;
   setOpen: (v: boolean) => void;
+  /** True at the core, where the index has nowhere left to send anyone and
+   *  its button was sitting on top of the only page that is a page. */
+  hidden: boolean;
 }) {
 
   useEffect(() => {
@@ -62,6 +66,8 @@ export function WorldNav({
   }, []);
 
   const found = discovered.length;
+
+  if (hidden && !open) return null;
 
   return (
     <>
@@ -145,7 +151,7 @@ export function WorldNav({
                         {lens && (
                           <span
                             className="u-mono text-[0.6rem] tracking-[0.14em]"
-                            style={{ color: got ? "#8cbcae" : UI.border }}
+                            style={{ color: got ? "#8cbcae" : UI.textMuted }}
                           >
                             {lens}
                           </span>
@@ -184,7 +190,7 @@ export function WorldNav({
                     <li key={d.lens} className="text-[0.8rem]">
                       <span
                         className="u-mono mr-2 text-[0.65rem] tracking-[0.14em]"
-                        style={{ color: got ? "#8cbcae" : UI.border }}
+                        style={{ color: got ? "#8cbcae" : UI.textMuted }}
                       >
                         {d.lens}
                       </span>

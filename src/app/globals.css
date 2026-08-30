@@ -324,3 +324,23 @@ body::before {
 body:has(.world-root) {
   background: #0d0f10;
 }
+
+/* The only thing shown before the world exists. A slow breath rather than a
+   spinner: the wait is a place assembling, not a request in flight. */
+@keyframes null-breathe {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+
+/* The world's own focus ring. Tailwind's default is invisible against the
+   ground, which on a keyboard is the same as having none. */
+.world-root ~ * :focus-visible,
+body:has(.world-root) :focus-visible {
+  outline: 1px solid #cfd6d3;
+  outline-offset: 3px;
+}

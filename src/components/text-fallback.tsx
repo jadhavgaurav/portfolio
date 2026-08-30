@@ -17,6 +17,8 @@ export function TextFallback() {
 
   return (
     <main
+      id="record"
+      tabIndex={-1}
       style={{
         maxWidth: "46rem",
         margin: "0 auto",

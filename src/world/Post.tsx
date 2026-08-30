@@ -8,7 +8,6 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
-import type { Phase } from "./sequence";
 
 /**
  * The grade.
@@ -25,7 +24,7 @@ import type { Phase } from "./sequence";
  * Everything is thresholded so only the seams and the core actually bloom —
  * the surfaces never do, which is what keeps this out of glow-for-its-own-sake.
  */
-export function Post({ quality }: { phase: Phase; scroll: number; quality: "high" | "low" }) {
+export function Post({ quality }: { quality: "high" | "low" }) {
   if (quality === "low") {
     // Mobile: a light bloom only. The expensive passes are dropped.
     return (
