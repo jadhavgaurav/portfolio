@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${newsreader.variable} ${mono.variable}`}>
         <a
           href="#record"
-          className="u-label sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-paper focus:px-4 focus:py-3 focus:text-ink"
+          className="u-label sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-rule focus:bg-ground focus:px-4 focus:py-3 focus:text-ink"
         >
           Skip to the written record
         </a>

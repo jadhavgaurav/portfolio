@@ -1,26 +1,18 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Tailwind is used for layout and spacing only. Colour, type and the
- * evidence markers live in globals.css as tokens, so the visual system has a
- * single source of truth that a designer can read without knowing Tailwind.
+ * Tailwind is used for layout and spacing only. Colour and type live in
+ * globals.css and in src/world/palette.ts, which is what the renderer reads,
+ * so the interface and the world cannot drift apart.
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        paper: "var(--paper)",
-        "paper-sunk": "var(--paper-sunk)",
-        "paper-raised": "var(--paper-raised)",
+        ground: "var(--ground)",
         ink: "var(--ink)",
-        "ink-2": "var(--ink-2)",
-        "ink-3": "var(--ink-3)",
         rule: "var(--rule)",
-        "rule-faint": "var(--rule-faint)",
-        oxide: "var(--oxide)",
-        ochre: "var(--ochre)",
-        void: "var(--void)",
       },
       fontFamily: {
         text: ["var(--font-text)", "Georgia", "serif"],

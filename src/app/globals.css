@@ -3,52 +3,32 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────────────────
-   THE RECORD — visual system
+   NULL — visual system
 
-   Ground is paper, not screen. The palette is drawn from archival printing:
-   a warm bone stock, warm black ink, and two pigments that carry meaning
-   rather than decoration —
+   Everything here serves the world. The stylesheet that preceded it was the
+   written record's: a warm paper stock, iron-oxide and ochre pigments, an
+   evidence-marker vocabulary, and a paper-tooth overlay painted fixed across
+   the whole viewport. Fifteen of its class blocks had no remaining callers,
+   and three of the rules that did apply were working against the world —
+   color-scheme: light gave a dark page a light scrollbar, ::selection
+   highlighted in oxide red on cream, and the tooth laid a warm tint over
+   every frame of a world graded in cool greys.
 
-     oxide   iron-oxide red. Attested. The colour of a stamped verdict.
-     ochre   Interpretation. Argued, not proven.
-     (none)  Not claimed. Rendered hollow: outline, no fill.
-
-   One inversion exists in the whole document — the ledger — because a dense
-   time series reads better as light marks on dark, the way an instrument
-   trace does. It is used once so that it means something.
+   Two families and four utilities is the whole system now. Colour lives in
+   src/world/palette.ts, which is what the renderer reads, so the interface
+   and the world cannot drift apart.
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --paper: #f1ece2;
-  --paper-sunk: #e8e2d5;
-  --paper-raised: #f7f4ed;
-
-  --ink: #191710;
-  --ink-2: #4c463a;
-  --ink-3: #67604f;
-
-  --rule: rgba(25, 23, 16, 0.16);
-  --rule-strong: rgba(25, 23, 16, 0.42);
-  --rule-faint: rgba(25, 23, 16, 0.08);
-
-  --oxide: #9c2f16;
-  --oxide-soft: rgba(156, 47, 22, 0.1);
-  --ochre: #8a6410;
-  --ochre-soft: rgba(138, 100, 16, 0.1);
-
-  --void: #16140e;
-  --void-ink: #ded7c8;
-  --void-ink-2: #9d9686;
-  --void-rule: rgba(222, 215, 200, 0.16);
+  --ground: #0d0f10;
+  --ink: #e2e8f0;
+  --rule: #2a2f32;
 
   --measure: 34rem;
   --gutter: clamp(1.25rem, 4vw, 4rem);
   --shell: 96rem;
 
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur: 620ms;
-
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -60,7 +40,7 @@ html {
 }
 
 body {
-  background: var(--paper);
+  background: var(--ground);
   color: var(--ink);
   font-family: var(--font-text), Georgia, "Times New Roman", serif;
   font-size: 1.0625rem;
@@ -71,24 +51,9 @@ body {
   overflow-x: hidden;
 }
 
-/* Faint paper tooth. Static, one small gradient — no animated noise layer. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: radial-gradient(
-      circle at 18% 12%,
-      rgba(156, 47, 22, 0.035),
-      transparent 55%
-    ),
-    radial-gradient(circle at 88% 82%, rgba(138, 100, 16, 0.035), transparent 55%);
-}
-
 ::selection {
-  background: var(--oxide);
-  color: var(--paper);
+  background: #3c4a46;
+  color: #eef2f4;
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
@@ -118,214 +83,16 @@ body::before {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   line-height: 1.4;
-  color: var(--ink-3);
 }
 
-.u-label-ink {
-  color: var(--ink-2);
-}
-
-.u-prose {
-  max-width: var(--measure);
-}
-
-.u-prose p + p {
-  margin-top: 1.15em;
-}
-
-.u-lede {
-  font-size: clamp(1.1rem, 1.15vw + 0.85rem, 1.4rem);
-  line-height: 1.5;
-  color: var(--ink-2);
-  text-wrap: pretty;
-}
-
-/* ── Rules ──────────────────────────────────────────────────────────────── */
-
-.u-rule {
-  height: 1px;
-  background: var(--rule);
-  border: 0;
-  transform-origin: left;
-}
-
-.u-rule-strong {
-  background: var(--rule-strong);
-}
-
-/* Registration marks — the corner crosses of a printed plate. Purely
-   structural: they mark the trim of the composition, nothing else. */
-.u-reg {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  color: var(--oxide);
-  opacity: 0.55;
-}
-
-/* ── Evidence markers ───────────────────────────────────────────────────── */
-
-.ev {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.625rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.ev::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-}
-
-.ev-attested {
-  color: var(--oxide);
-}
-.ev-attested::before {
-  background: var(--oxide);
-}
-
-.ev-read {
-  color: var(--ochre);
-}
-.ev-read::before {
-  background: var(--ochre);
-  border-radius: 0;
-  transform: rotate(45deg);
-}
-
-.ev-unclaimed {
-  color: var(--ink-3);
-}
-.ev-unclaimed::before {
-  background: transparent;
-  border: 1px solid var(--ink-3);
-}
-
-/* ── The one inversion ──────────────────────────────────────────────────── */
-
-.u-void {
-  background: var(--void);
-  color: var(--void-ink);
-  --rule: var(--void-rule);
-  --rule-faint: rgba(222, 215, 200, 0.08);
-  --ink: var(--void-ink);
-  --ink-2: var(--void-ink-2);
-  --ink-3: #878071;
-  --oxide: #d8613c;
-  --ochre: #c39a3a;
-  color-scheme: dark;
-}
-
-/* ── Focus & links ──────────────────────────────────────────────────────── */
-
-:focus-visible {
-  outline: 2px solid var(--oxide);
-  outline-offset: 3px;
-  border-radius: 1px;
-}
-
-.u-link {
-  color: inherit;
-  text-decoration: none;
-  background-image: linear-gradient(var(--oxide), var(--oxide));
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size: 0% 1px;
-  transition: background-size 340ms var(--ease), color 340ms var(--ease);
-}
-
-.u-link:hover,
-.u-link:focus-visible {
-  background-size: 100% 1px;
-  color: var(--oxide);
-}
-
-.u-cite {
-  color: var(--ink-3);
-  text-decoration: none;
-  border-bottom: 1px solid var(--rule);
-  transition: color 220ms var(--ease), border-color 220ms var(--ease);
-}
-
-.u-cite:hover,
-.u-cite:focus-visible {
-  color: var(--oxide);
-  border-color: var(--oxide);
-}
-
-/* ── Reveal ─────────────────────────────────────────────────────────────── */
-
-.u-rise {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
-}
-
-.u-rise[data-shown="true"] {
-  opacity: 1;
-  transform: none;
-}
-
-.u-draw {
-  transform: scaleX(0);
-  transition: transform 900ms var(--ease);
-}
-
-.u-draw[data-shown="true"] {
-  transform: scaleX(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  .u-rise {
-    opacity: 1;
-    transform: none;
-  }
-
-  .u-draw {
-    transform: scaleX(1);
-  }
-}
-
-/* Print: the record should survive being printed, because that is what it is. */
-@media print {
-  body::before,
-  .u-noprint {
-    display: none !important;
-  }
-  .u-void {
-    background: #fff;
-    color: #000;
-  }
-  .u-rise {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ── The world route ────────────────────────────────────────────────────── */
+/* ── The world ──────────────────────────────────────────────────────────── */
 
 /* The world owns the full viewport and paints its own ground. The written
    record does the same when it is served in the world's place — without this
-   the document sits in a 46rem band of the deleted paper stock. */
+   the document sits in a band of whatever the page ground happens to be. */
 body:has(.world-root),
 body:has(main#record) {
-  background: #0d0f10;
+  background: var(--ground);
 }
 
 /* The only thing shown before the world exists. A slow breath rather than a
@@ -340,10 +107,40 @@ body:has(main#record) {
   }
 }
 
-/* The world's own focus ring. Tailwind's default is invisible against the
-   ground, which on a keyboard is the same as having none. */
-.world-root ~ * :focus-visible,
-body:has(.world-root) :focus-visible {
+/* A focus ring the world can actually show. Tailwind's default is invisible
+   against this ground, which on a keyboard is the same as having none. */
+:focus-visible {
   outline: 1px solid #cfd6d3;
   outline-offset: 3px;
+}
+
+/* ── Preferences ────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print: the record should survive being printed, because that is what it
+   is. The world cannot print, so what prints is the document. */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  main#record {
+    background: #fff !important;
+    color: #000 !important;
+    min-height: 0 !important;
+  }
+  .world-root,
+  .u-noprint {
+    display: none !important;
+  }
 }

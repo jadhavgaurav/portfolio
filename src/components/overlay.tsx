@@ -408,10 +408,12 @@ export function Overlay({
           <div className="relative max-w-[26rem] text-center">
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-x-[40%] -inset-y-[85%] -z-10"
+              /* Wide and gentle: against a world this bright a tight scrim
+                 reads as a smudge on the lens rather than as shade. */
+              className="pointer-events-none absolute -inset-x-[85%] -inset-y-[190%] -z-10"
               style={{
                 background:
-                  "radial-gradient(closest-side, rgba(6,8,9,0.94) 0%, rgba(6,8,9,0.8) 40%, rgba(6,8,9,0.4) 68%, rgba(6,8,9,0) 100%)",
+                  "radial-gradient(closest-side, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.78) 26%, rgba(6,8,9,0.5) 48%, rgba(6,8,9,0.2) 72%, rgba(6,8,9,0) 100%)",
               }}
             />
             <div
