@@ -132,13 +132,30 @@ export function nearest(z: number) {
   let best: (typeof SIGNIFICANT)[number] | null = null;
   let bestD = Infinity;
   for (const e of SIGNIFICANT) {
-    const d = Math.abs(e.z - (z - 30));
+    const d = Math.abs(e.z - (z - NEAREST_LEAD));
     if (d < bestD) {
       bestD = d;
       best = e;
     }
   }
   return bestD < 90 ? best : null;
+}
+
+/**
+ * Inverse of the traverse: the scroll value at which the camera stands a
+ * given distance before an entity. Passages are positioned with this rather
+ * than by hand, so the text always describes the structure actually in front
+ * of the visitor.
+ */
+export const NEAREST_LEAD = 30;
+
+export function scrollAtEntity(id: string, lead = NEAREST_LEAD): number {
+  const e = entities.find((x) => x.id === id);
+  if (!e) return 0;
+  const startZ = ARRIVAL_POSE.position[2];
+  const endZ = core.z + 34;
+  const targetZ = e.z + lead;
+  return Math.min(0.94, Math.max(0, (targetZ - startZ) / (endZ - startZ)));
 }
 
 /** Which beat a given elapsed time falls in. */

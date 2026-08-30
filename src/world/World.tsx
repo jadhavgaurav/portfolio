@@ -2,7 +2,8 @@
 
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
+import { AdaptiveDpr, AdaptiveEvents, PerformanceMonitor, Preload } from "@react-three/drei";
+import { useState } from "react";
 import { CameraRig } from "./CameraRig";
 import { Post } from "./Post";
 import { Scene } from "./Scene";
@@ -27,11 +28,17 @@ export default function World({
   reduced: boolean;
   quality: "high" | "low";
 }) {
+  /* The declared tier is a starting guess from the device. The measured tier
+     is what the machine can actually sustain: if frames start slipping the
+     expensive passes are dropped rather than letting the world stutter. A
+     phone that turns out to be fast is promoted back. */
+  const [tier, setTier] = useState<"high" | "low">(quality);
+
   return (
     <Canvas
-      dpr={quality === "high" ? [1, 1.75] : [0.75, 1]}
+      dpr={tier === "high" ? [1, 1.6] : [0.6, 1]}
       gl={{
-        antialias: quality === "high",
+        antialias: false, // SMAA handles this in the composer when affordable
         powerPreference: "high-performance",
         alpha: false,
         stencil: false,
@@ -45,9 +52,14 @@ export default function World({
       camera={{ fov: 55, near: 0.4, far: 1400, position: [0, 96, 200] }}
       frameloop={reduced ? "demand" : "always"}
     >
+      <PerformanceMonitor
+        bounds={() => [45, 58]}
+        onDecline={() => setTier("low")}
+        onIncline={() => quality === "high" && setTier("high")}
+      />
       <CameraRig phase={phase} t={t} scroll={scroll} reduced={reduced} />
-      <Scene phase={phase} t={t} scroll={scroll} quality={quality} />
-      <Post phase={phase} scroll={scroll} quality={quality} />
+      <Scene phase={phase} t={t} scroll={scroll} quality={tier} />
+      <Post phase={phase} scroll={scroll} quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />
       <Preload all />

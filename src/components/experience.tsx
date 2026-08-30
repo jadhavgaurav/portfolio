@@ -4,21 +4,30 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OPENING_SECONDS, beatAt, nearest, type Phase } from "@/world/sequence";
 import { traversalPose } from "@/world/sequence";
-import { dayToLabel, WORLD } from "@/world/telemetry";
+import { dayAtZ, dayToLabel } from "@/world/telemetry";
 import { Overlay } from "./overlay";
 
 const World = dynamic(() => import("@/world/World"), { ssr: false });
 
-/** Cheap capability probe. A failed context means the document is served. */
-function hasWebGL(): boolean {
+/**
+ * Capability probe. A failed context means the written record is served
+ * instead. A software renderer — SwiftShader, llvmpipe, an unaccelerated VM —
+ * still gets the world, but starts on the cheap tier rather than discovering
+ * the hard way that it cannot afford ambient occlusion.
+ */
+function probe(): { webgl: boolean; software: boolean } {
   try {
     const c = document.createElement("canvas");
-    return Boolean(
-      window.WebGLRenderingContext &&
-        (c.getContext("webgl2") || c.getContext("webgl")),
-    );
+    const gl = (c.getContext("webgl2") || c.getContext("webgl")) as WebGLRenderingContext | null;
+    if (!gl) return { webgl: false, software: false };
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = info
+      ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)).toLowerCase()
+      : "";
+    const software = /swiftshader|llvmpipe|software|basic render|microsoft basic/.test(renderer);
+    return { webgl: true, software };
   } catch {
-    return false;
+    return { webgl: false, software: false };
   }
 }
 
@@ -42,8 +51,11 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
     const rm = window.matchMedia("(prefers-reduced-motion: reduce)");
     const coarse = window.matchMedia("(pointer: coarse)");
     setReduced(rm.matches);
-    setQuality(coarse.matches || window.innerWidth < 900 ? "low" : "high");
-    setSupported(hasWebGL());
+    const cap = probe();
+    setQuality(
+      cap.software || coarse.matches || window.innerWidth < 900 ? "low" : "high",
+    );
+    setSupported(cap.webgl);
     const onChange = () => setReduced(rm.matches);
     rm.addEventListener("change", onChange);
     return () => rm.removeEventListener("change", onChange);
@@ -132,10 +144,9 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
 
   const z = traversalPose(scroll).position[2];
   const passing = phase === "PLAYER" ? nearest(z) : null;
-  const day = Math.max(
-    0,
-    Math.round((-z / (WORLD.depth + 60)) * 1216),
-  );
+  // Prefer the date of the structure being passed; fall back to the
+  // interpolated position between works.
+  const day = passing ? passing.firstDay : dayAtZ(z);
 
   return (
     <>
@@ -147,7 +158,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         phase={phase}
         scroll={scroll}
         passing={passing}
-        dateLabel={dayToLabel(Math.min(day, 1216))}
+        dateLabel={dayToLabel(day)}
         scrollVh={SCROLL_VH}
         fallback={fallback}
       />

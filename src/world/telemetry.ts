@@ -227,6 +227,33 @@ export const core = {
   z: -WORLD.depth - 46,
 } as const;
 
+/**
+ * Position → date.
+ *
+ * The spine is not linear in time — quiet stretches are compressed — so the
+ * readout cannot invert it arithmetically. Interpolating between the works
+ * themselves gives the honest answer: the date is read off the structures the
+ * visitor is standing among.
+ */
+const BY_Z = [...entities].sort((a, b) => b.z - a.z);
+
+export function dayAtZ(z: number): number {
+  if (!BY_Z.length) return 0;
+  if (z >= BY_Z[0].z) return BY_Z[0].firstDay;
+  const last = BY_Z[BY_Z.length - 1];
+  if (z <= last.z) return last.firstDay;
+  for (let i = 0; i < BY_Z.length - 1; i++) {
+    const a = BY_Z[i];
+    const b = BY_Z[i + 1];
+    if (z <= a.z && z >= b.z) {
+      const span = a.z - b.z;
+      const k = span === 0 ? 0 : (a.z - z) / span;
+      return Math.round(a.firstDay + (b.firstDay - a.firstDay) * k);
+    }
+  }
+  return last.firstDay;
+}
+
 /** Day offset → calendar label, for the readout. */
 export function dayToLabel(day: number): string {
   const d = new Date(Date.parse(EPOCH) + day * 86_400_000);

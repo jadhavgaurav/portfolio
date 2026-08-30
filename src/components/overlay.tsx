@@ -6,7 +6,7 @@ import { lineage } from "@/data/lineage";
 import { finding, subject, unclaimed } from "@/data/record";
 import { EMISSIVE, UI } from "@/world/palette";
 import type { Entity } from "@/world/telemetry";
-import type { Phase } from "@/world/sequence";
+import { scrollAtEntity, type Phase } from "@/world/sequence";
 
 /**
  * The interface layer.
@@ -20,7 +20,10 @@ import type { Phase } from "@/world/sequence";
 
 /** Beats along the traverse. `at` is scroll progress; each holds for `hold`. */
 interface Passage {
-  at: number;
+  /** The structure this passage is about. Position is derived from it. */
+  entity?: string;
+  /** Only for passages with no structure of their own. */
+  at?: number;
   hold: number;
   kicker: string;
   title: string;
@@ -31,33 +34,33 @@ interface Passage {
 
 const PASSAGES: Passage[] = [
   {
-    at: 0.0,
-    hold: 0.085,
-    kicker: "Origin · May 2023",
+    at: 0,
+    hold: 0.075,
+    kicker: "Arrival",
     title: finding.headline,
     body: "Everything here was generated from a real commit history — forty repositories, four hundred and thirty-three commits. Walk forward and you walk through it, first commit to last.",
     meta: "Scroll to move",
   },
   {
-    at: 0.1,
-    hold: 0.085,
-    kicker: "The earliest trace",
+    entity: "twitter-blockchain-web3",
+    hold: 0.07,
+    kicker: "Origin · the earliest trace",
     title: "A blockchain Twitter clone, and a habit that starts here.",
     body: "The first thing in the record is a semester project. The second is a thesis on making voting auditable — published, with a DOI. The instinct to build systems that can be inspected shows up before anything else does.",
     meta: "twitter-blockchain-web3 · E-Voting · IJREAM, April 2024",
     align: "right",
   },
   {
-    at: 0.22,
-    hold: 0.085,
-    kicker: "Stratum · late 2024",
+    entity: "machine-learning-project-template",
+    hold: 0.07,
+    kicker: "Monolith · late 2024",
     title: "Before building the models, he built the thing that makes models reproducible.",
     body: "A project template with logging, exception handling and a pipeline — committed weeks before the five machine-learning repositories that used it. The apparatus arrives first. That ordering is the whole argument of this world.",
     meta: "machine-learning-project-template",
   },
   {
-    at: 0.34,
-    hold: 0.09,
+    entity: "CodeB_Internship_Project",
+    hold: 0.075,
     kicker: "The relic · 112 commits",
     title: "A classifier that has to explain itself.",
     body: "Phishing detection, taken from an 11,430-row dataset to a deployed application. Eighty-nine features cut to twenty-eight by four independent methods. SHAP and LIME attached, so a flagged URL can be argued with rather than merely trusted. 95.83% accuracy, 0.990 ROC-AUC.",
@@ -65,16 +68,24 @@ const PASSAGES: Passage[] = [
     align: "right",
   },
   {
-    at: 0.46,
-    hold: 0.085,
+    entity: "Kidney_disease_classification_cnn",
+    hold: 0.07,
     kicker: "The crush · May 2025",
     title: "126 commits in a single month.",
     body: "The internship, a kidney-CT classifier on MLflow and DVC, YOLO, an email agent, VisionX, and the first attempt at Victus. Six months in which most of what he now knows was acquired at speed. The density of this stretch is not decoration — it is the commit record, plotted.",
     meta: "Kidney_disease_classification_cnn · Vision-X · smart-email-assistant",
   },
   {
-    at: 0.58,
-    hold: 0.09,
+    entity: "JarvisAI-pro",
+    hold: 0.07,
+    kicker: "The recursion",
+    title: "He started the same project eight times.",
+    body: "assistant, Jarvis, JarvisAI-pro, a local-first build, victus-AI, Victus-AI-Assistant, PROJECT-VICTUS, then the split into a backend and a frontend. Six went nowhere. What finally made the eighth different was not a better model — it was deciding who is allowed to authorise an action.",
+    meta: `${lineage.length} attempts · 2024-09 to 2026-01`,
+  },
+  {
+    entity: "PROJECT-VICTUS",
+    hold: 0.075,
     kicker: "Landmark · governance",
     title: "An agent that will not act without asking.",
     body: "Every tool call in PROJECT-VICTUS passes a policy engine that can return REQUIRE_APPROVAL. A high-risk call does not run: it becomes a pending action and waits for a human. Every step — tool, arguments, decision, duration — is written to a trace the client renders beside the conversation.",
@@ -82,16 +93,8 @@ const PASSAGES: Passage[] = [
     align: "right",
   },
   {
-    at: 0.7,
-    hold: 0.085,
-    kicker: "The recursion",
-    title: "He started the same project eight times.",
-    body: "assistant, Jarvis, JarvisAI-pro, a local-first build, victus-AI, Victus-AI-Assistant, PROJECT-VICTUS, then the split into a backend and a frontend. Six went nowhere. What finally made the eighth different was not a better model — it was deciding who is allowed to authorise an action.",
-    meta: `${lineage.length} attempts · 2024-09 to 2026-01`,
-  },
-  {
-    at: 0.8,
-    hold: 0.085,
+    entity: "Null",
+    hold: 0.032,
     kicker: "August 2026 · 124 commits in eight days",
     title: "The world you are standing in was designed here, and never built.",
     body: "NULL is his: a browser game that reconstructs a developer's history as a place. Twenty-one design documents, four architecture decisions, fourteen visual studies each gated behind binding rules and a recorded verdict. The rule reads: no implementation is approved solely because it technically works. This site is that design, executed.",
@@ -99,8 +102,8 @@ const PASSAGES: Passage[] = [
     align: "right",
   },
   {
-    at: 0.89,
-    hold: 0.06,
+    at: 0.775,
+    hold: 0.058,
     kicker: "Not claimed",
     title: "What this record does not show.",
     body: "No adoption, no traffic, no revenue — the public repositories carry four stars between them. Open-source contribution is intent, not history: twenty-six forks in three days and no merged pull request yet. Two of the four busiest repositories are private and are counted here but not described.",
@@ -108,10 +111,14 @@ const PASSAGES: Passage[] = [
   },
 ];
 
-function passageState(scroll: number, p: Passage) {
+/** Resolve a passage to a scroll position, from its structure where it has one. */
+function anchorOf(p: Passage): number {
+  return p.entity !== undefined ? scrollAtEntity(p.entity) : (p.at ?? 0);
+}
+
+function passageState(scroll: number, p: Passage, start: number) {
   const fadeIn = 0.022;
-  const start = p.at;
-  const end = p.at + p.hold;
+  const end = start + p.hold;
   if (scroll < start - fadeIn || scroll > end + fadeIn) return 0;
   if (scroll < start) return (scroll - (start - fadeIn)) / fadeIn;
   if (scroll > end) return 1 - (scroll - end) / fadeIn;
@@ -134,7 +141,7 @@ export function Overlay({
   fallback: ReactNode;
 }) {
   const arrived = phase === "PLAYER";
-  const atCore = scroll > 0.945;
+  const atCore = scroll > 0.956;
 
   return (
     <>
@@ -203,6 +210,16 @@ export function Overlay({
               )}
             </div>
           </div>
+          <div className="mt-3 flex justify-end">
+            <a
+              href="/record"
+              className="u-mono pointer-events-auto text-[0.625rem] uppercase tracking-[0.16em] underline-offset-4 hover:underline"
+              style={{ color: UI.textMuted }}
+            >
+              Read it as text
+            </a>
+          </div>
+
           {/* Route progress. */}
           <div className="mt-4 h-px w-full" style={{ background: UI.border }}>
             <div
@@ -221,11 +238,12 @@ export function Overlay({
       {arrived &&
         !atCore &&
         PASSAGES.map((p) => {
-          const o = passageState(scroll, p);
+          const start = anchorOf(p);
+          const o = passageState(scroll, p, start);
           if (o <= 0) return null;
           return (
             <div
-              key={p.at}
+              key={p.kicker}
               className={`pointer-events-none fixed inset-x-0 z-20 px-5 sm:px-10 ${
                 p.align === "right" ? "flex justify-end" : ""
               }`}
@@ -280,7 +298,7 @@ export function Overlay({
         <div
           className="fixed inset-0 z-30 flex items-center justify-center px-6 transition-opacity duration-700"
           style={{
-            opacity: Math.min(1, (scroll - 0.945) / 0.03),
+            opacity: Math.min(1, (scroll - 0.956) / 0.025),
             background:
               "radial-gradient(70% 60% at 50% 46%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.72) 55%, rgba(6,8,9,0.25) 100%)",
           }}

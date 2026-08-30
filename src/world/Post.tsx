@@ -38,7 +38,14 @@ export function Post({ quality }: { phase: Phase; scroll: number; quality: "high
 
   return (
     <EffectComposer multisampling={0} enableNormalPass>
-      <N8AO aoRadius={5.5} intensity={1.05} distanceFalloff={1.0} quality="medium" color="#070a0d" />
+      <N8AO
+        aoRadius={5.5}
+        intensity={1.05}
+        distanceFalloff={1.0}
+        quality="low"
+        halfRes
+        color="#070a0d"
+      />
       <Bloom
         intensity={1.35}
         luminanceThreshold={0.55}
