@@ -161,9 +161,9 @@ export function Overlay({
 
   return (
     <>
-      {/* Scroll length. The document itself is off-screen but still in the
-          accessibility tree, so the whole record is reachable without WebGL
-          and by a screen reader. */}
+      {/* Scroll length. The text layer stays in the accessibility tree so a
+          screen reader, which cannot perceive the world, still gets its
+          content. */}
       <div style={{ height: `${scrollVh}vh` }} aria-hidden="true" />
       <div className="sr-only">{fallback}</div>
 
@@ -186,7 +186,7 @@ export function Overlay({
 
       {/* Persistent HUD. Two readings and a route indicator — the minimum
           that answers where am I and what am I looking at. */}
-      {arrived && (
+      {arrived && !atCore && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7">
           <div className="flex items-start justify-between">
             <div>
@@ -248,16 +248,6 @@ export function Overlay({
             </span>
           </div>
 
-          <div className="mt-3 flex justify-end">
-            <a
-              href="/record"
-              className="u-mono pointer-events-auto text-[0.625rem] uppercase tracking-[0.16em] underline-offset-4 hover:underline"
-              style={{ color: UI.textMuted }}
-            >
-              Read it as text
-            </a>
-          </div>
-
           {/* Route progress. */}
           <div className="mt-4 h-px w-full" style={{ background: UI.border }}>
             <div
@@ -289,7 +279,7 @@ export function Overlay({
 
       {/* REWARD. A short beat: the lens is named once, and what changed in the
           world is stated. Then it goes away and the change stays. */}
-      {reward && (
+      {reward && !atCore && (
         <div
           className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center px-6"
           style={{
@@ -381,7 +371,7 @@ export function Overlay({
           is there anything to click. */}
       {atCore && (
         <div
-          className="fixed inset-0 z-30 flex items-center justify-center px-6 transition-opacity duration-700"
+          className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto overscroll-contain px-5 py-10 transition-opacity duration-700"
           style={{
             opacity: Math.min(1, (scroll - 0.956) / 0.025),
             background:
@@ -392,7 +382,7 @@ export function Overlay({
             {/* Only at the CORE does the identity become explicit — Bible §16.
                 The portrait is graded into the world's own colour so it reads
                 as part of the place rather than as a pasted avatar. */}
-            <div className="relative mx-auto mb-7 h-[132px] w-[132px]">
+            <div className="relative mx-auto mb-6 h-[92px] w-[92px] sm:h-[132px] sm:w-[132px]">
               <span
                 aria-hidden="true"
                 className="absolute -inset-[6px] rounded-full"
@@ -407,6 +397,7 @@ export function Overlay({
                 src="/images/portrait.webp"
                 width={132}
                 height={132}
+                loading="lazy"
                 alt="Gaurav Vijay Jadhav"
                 className="relative h-full w-full rounded-full object-cover"
                 style={{
@@ -422,13 +413,13 @@ export function Overlay({
               The core
             </div>
             <h2
-              className="u-display mt-5 text-[clamp(2rem,5vw,3.4rem)] leading-[1.02]"
+              className="u-display mt-4 text-[clamp(1.75rem,6.5vw,3.4rem)] leading-[1.04]"
               style={{ color: UI.textPrimary }}
             >
               {subject.name}
             </h2>
             <p
-              className="mt-5 text-[1rem] leading-[1.6]"
+              className="mt-4 text-[0.92rem] leading-[1.55] sm:text-[1rem]"
               style={{ color: UI.textSecondary }}
             >
               Full Stack AI Engineer at Alsonotify, a Digibranders brand,
@@ -436,13 +427,12 @@ export function Overlay({
               every structure is a repository, its mass is its commit count, its
               decay is the time since it was last touched.
             </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
               {[
                 { label: "Email", href: `mailto:${subject.email}` },
                 { label: "GitHub", href: subject.github },
                 { label: "LinkedIn", href: subject.linkedin },
                 { label: "Curriculum vitae", href: "/resume/resume.pdf" },
-                { label: "Read the full record", href: "/record" },
               ].map((l) => (
                 <a
                   key={l.label}
@@ -456,7 +446,7 @@ export function Overlay({
                 </a>
               ))}
             </div>
-            <div className="mt-10 border-t pt-6" style={{ borderColor: UI.border }}>
+            <div className="mt-8 border-t pt-5" style={{ borderColor: UI.border }}>
               <div
                 className="u-mono text-[0.625rem] uppercase tracking-[0.2em]"
                 style={{ color: UI.textMuted }}
@@ -487,8 +477,8 @@ export function Overlay({
                 className="u-mono mt-4 text-[0.625rem] leading-[1.7] tracking-[0.04em]"
                 style={{ color: UI.textMuted }}
               >
-                {exhibits.length} projects documented in full, with sources, in
-                the written record.
+                Every structure you passed is a repository. {exhibits.length} of
+                them are described in full where the world names them.
               </p>
             </div>
           </div>

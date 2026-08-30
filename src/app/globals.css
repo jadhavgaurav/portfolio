@@ -320,12 +320,7 @@ body::before {
 
 /* ── The world route ────────────────────────────────────────────────────── */
 
-/* The world owns the full viewport and paints its own ground. The written
-   record keeps the paper stock. */
+/* The world owns the full viewport and paints its own ground. */
 body:has(.world-root) {
   background: #0d0f10;
-}
-
-.record-page {
-  background: var(--paper);
 }
