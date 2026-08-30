@@ -305,7 +305,7 @@ export function Dossier({
           </div>
           <button
             onClick={onClose}
-            className="u-mono shrink-0 border px-4 py-2 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
+            className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
             style={{ borderColor: UI.border, color: UI.textSecondary }}
           >
             Close

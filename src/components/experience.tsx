@@ -267,7 +267,7 @@ export function Experience({
   /* The reward beat holds briefly, then the world keeps the change. */
   useEffect(() => {
     if (!reward) return;
-    const id = setTimeout(() => setReward(null), 4200);
+    const id = setTimeout(() => setReward(null), 2600);
     return () => clearTimeout(id);
   }, [reward]);
 
@@ -390,7 +390,7 @@ export function Experience({
           onFocus={setFocused}
           open={indexOpen}
           setOpen={openIndex}
-          hidden={scroll > 0.956}
+          hidden={scroll > 0.948}
         />
       )}
 

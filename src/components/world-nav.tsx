@@ -77,7 +77,7 @@ export function WorldNav({
         data-focus-return="index"
         aria-expanded={open}
         aria-label={open ? "Close world index" : "Open world index"}
-        className="u-mono pointer-events-auto fixed left-5 top-5 z-40 border px-3 py-2 text-[0.6rem] uppercase tracking-[0.18em] transition-colors sm:left-8 sm:top-7"
+        className="u-mono pointer-events-auto fixed left-5 top-5 z-40 inline-flex min-h-[44px] min-w-[44px] items-center justify-center border px-4 text-[0.6rem] uppercase tracking-[0.18em] transition-colors sm:left-8 sm:top-7"
         style={{
           borderColor: open ? UI.borderActive : UI.border,
           color: open ? UI.textHighlight : UI.textSecondary,
@@ -139,7 +139,7 @@ export function WorldNav({
                             onTravel(scrollAtEntity(e.id));
                             setOpen(false);
                           }}
-                          className="u-mono flex-1 text-left text-[0.8rem] underline-offset-4 hover:underline"
+                          className="u-mono min-h-[44px] flex-1 text-left text-[0.8rem] underline-offset-4 hover:underline"
                           style={{ color: UI.textHighlight }}
                         >
                           {e.name}
@@ -165,7 +165,7 @@ export function WorldNav({
                               onFocus(e);
                               setOpen(false);
                             }}
-                            className="u-mono border px-2.5 py-1 text-[0.55rem] uppercase tracking-[0.16em]"
+                            className="u-mono inline-flex min-h-[44px] items-center border px-3 text-[0.55rem] uppercase tracking-[0.16em]"
                             style={{ borderColor: UI.border, color: UI.textSecondary }}
                           >
                             Record

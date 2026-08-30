@@ -169,7 +169,15 @@ export function Overlay({
   taught: boolean;
 }) {
   const arrived = phase === "PLAYER" && !focusing && !indexOpen;
-  const atCore = scroll > 0.956 && !focusing && !indexOpen;
+
+  /* The core resolving, as one number rather than two independent switches.
+     They used to disagree: the readout vanished the instant scroll passed
+     0.956 while the core was still ramping from zero, so for the width of
+     that ramp the visitor had no readout and a core they could barely see.
+     One value now fades one out as it fades the other in. */
+  const coreIn = Math.min(1, Math.max(0, (scroll - 0.948) / 0.02));
+  const atCore = coreIn > 0 && !focusing && !indexOpen;
+  const onRoute = coreIn < 1;
 
   /* Anchors can sit close together where the record itself is dense, so more
      than one passage can be in range at once. Only the strongest is shown —
@@ -206,7 +214,7 @@ export function Overlay({
           </p>
           <button
             onClick={onSkip}
-            className="u-mono pointer-events-auto border px-4 py-2 text-[0.55rem] uppercase tracking-[0.2em] transition-opacity duration-700"
+            className="u-mono pointer-events-auto inline-flex min-h-[44px] items-center border px-5 text-[0.55rem] uppercase tracking-[0.2em] transition-opacity duration-700"
             style={{
               borderColor: UI.border,
               color: UI.textMuted,
@@ -227,10 +235,11 @@ export function Overlay({
           happens to put behind it, and a pale structure passing under it made
           the type unreadable. It is a gradient of the ground colour, so it
           darkens the world rather than introducing a surface. */}
-      {arrived && !atCore && (
+      {arrived && onRoute && (
         <aside
           aria-label="Position readout"
           className="pointer-events-none fixed inset-x-0 top-0 z-20 px-5 pt-5 sm:px-8 sm:pt-7"
+          style={{ opacity: 1 - coreIn }}
         >
           <span
             aria-hidden="true"
@@ -240,8 +249,8 @@ export function Overlay({
                 "linear-gradient(180deg, rgba(6,8,9,0.94) 0%, rgba(6,8,9,0.78) 34%, rgba(6,8,9,0.34) 68%, rgba(6,8,9,0) 100%)",
             }}
           />
-          <div className="flex items-start justify-between gap-4 pl-[4.5rem] sm:pl-[5.5rem]">
-            <div>
+          <div className="flex items-start justify-between gap-4 pl-[6rem] sm:pl-[6.5rem]">
+            <div className="shrink-0">
               {/* The name is the one thing the core says in full, and at 360px
                   it wrapped onto two lines and ran into the structure readout.
                   The date is what the left column is actually for. */}
@@ -252,7 +261,7 @@ export function Overlay({
                 {subject.filedAs}
               </div>
               <div
-                className="u-mono text-[0.7rem] tracking-[0.08em] sm:mt-1"
+                className="u-mono whitespace-nowrap text-[0.7rem] tracking-[0.08em] sm:mt-1"
                 style={{ color: UI.textSecondary }}
               >
                 {dateLabel}
@@ -266,7 +275,7 @@ export function Overlay({
                 {passing ? passing.type : "Traverse"}
               </div>
               <div
-                className="u-mono mt-1 max-w-[46vw] truncate text-[0.7rem] tracking-[0.04em] sm:max-w-[52vw]"
+                className="u-mono mt-1 max-w-[40vw] truncate text-[0.7rem] tracking-[0.04em] sm:max-w-[52vw]"
                 style={{ color: passing ? UI.textHighlight : UI.textMuted }}
               >
                 {passing ? passing.name : "—"}
@@ -329,7 +338,7 @@ export function Overlay({
 
       {/* FOCUS is offered only where there is something to focus on, and only
           while the visitor is actually standing at it. */}
-      {arrived && !atCore && !reward && record && (
+      {arrived && onRoute && record && (
         <aside
           aria-label="Record"
           className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5"
@@ -337,14 +346,17 @@ export function Overlay({
           <button
             onClick={onFocus}
             data-focus-return="record"
-            className="u-mono pointer-events-auto border px-5 py-2.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
+            className="u-mono pointer-events-auto inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
             style={{
               borderColor: UI.borderActive,
               color: UI.textHighlight,
               background: "rgba(6,8,9,0.7)",
             }}
           >
-            Open the record for {record.title}
+            {/* The full title is a mouthful on a 390px screen and wrapped to
+                two lines inside the button. */}
+            <span className="sm:hidden">Open the record</span>
+            <span className="hidden sm:inline">Open the record for {record.title}</span>
           </button>
         </aside>
       )}
@@ -378,32 +390,44 @@ export function Overlay({
         </div>
       )}
 
-      {/* REWARD. A short beat: the lens is named once, and what changed in the
-          world is stated. Then it goes away and the change stays. */}
-      {reward && !atCore && (
+      {/* REWARD.
+          A beat, not a modal. It was a full-screen scrim held for 4.2
+          seconds, and with seven lenses now resolving over a traverse that
+          takes about half a minute on a phone, each new one replaced the last
+          before it cleared: measured at nineteen of twenty-one sampled
+          positions on a 390px device, the reward was the state of the screen
+          and the world was never visible under it. It is now a compact block
+          with a scrim only as wide as its own text, it holds briefly, and it
+          suppresses nothing except the passage it would otherwise be printed
+          on top of. */}
+      {reward && arrived && onRoute && (
         <aside
           aria-label="Lens resolved"
-          className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center px-6"
-          style={{
-            background:
-              "radial-gradient(46% 34% at 50% 48%, rgba(6,8,9,0.9) 0%, rgba(6,8,9,0.74) 40%, rgba(6,8,9,0.34) 70%, rgba(6,8,9,0) 100%)",
-          }}
+          className="pointer-events-none fixed inset-x-0 top-[44%] z-30 flex -translate-y-1/2 justify-center px-6"
         >
-          <div className="max-w-[30rem] text-center">
+          <div className="relative max-w-[26rem] text-center">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-x-[40%] -inset-y-[85%] -z-10"
+              style={{
+                background:
+                  "radial-gradient(closest-side, rgba(6,8,9,0.94) 0%, rgba(6,8,9,0.8) 40%, rgba(6,8,9,0.4) 68%, rgba(6,8,9,0) 100%)",
+              }}
+            />
             <div
-              className="u-mono break-words text-[0.625rem] uppercase tracking-[0.16em] sm:tracking-[0.28em]"
+              className="u-mono break-words text-[0.55rem] uppercase tracking-[0.12em] sm:text-[0.625rem] sm:tracking-[0.24em]"
               style={{ color: UI.textMuted }}
             >
               Resolved · {reward.entity}
             </div>
             <div
-              className="u-mono mt-4 text-[clamp(1.5rem,3.4vw,2.3rem)] tracking-[0.14em] [@media(max-height:520px)]:mt-2 [@media(max-height:520px)]:text-[1.25rem]"
+              className="u-mono mt-3 text-[clamp(1.3rem,3vw,1.9rem)] tracking-[0.14em] [@media(max-height:520px)]:mt-1.5 [@media(max-height:520px)]:text-[1.15rem]"
               style={{ color: "#8cbcae" }}
             >
               {reward.lens}
             </div>
             <p
-              className="mt-4 text-[0.95rem] leading-[1.55] [@media(max-height:520px)]:mt-2 [@media(max-height:520px)]:text-[0.85rem]"
+              className="mt-3 text-[0.9rem] leading-[1.5] [@media(max-height:520px)]:mt-1.5 [@media(max-height:520px)]:text-[0.8rem]"
               style={{ color: UI.textSecondary }}
             >
               {reward.grants}
@@ -414,7 +438,7 @@ export function Overlay({
 
       {/* Passages. They resolve where the world they describe is. */}
       {arrived &&
-        !atCore &&
+        onRoute &&
         !reward &&
         activePassage &&
         [activePassage].map(({ p, o }) => {
@@ -480,7 +504,7 @@ export function Overlay({
           aria-label="The core"
           className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto overscroll-contain px-5 py-10 transition-opacity duration-700"
           style={{
-            opacity: Math.min(1, (scroll - 0.956) / 0.025),
+            opacity: coreIn,
             background: "#060809",
           }}
         >
