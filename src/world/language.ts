@@ -61,15 +61,20 @@ export interface District {
 
 const TAU = Math.PI * 2;
 
+/* Evenly spaced round the ring. Hand-picked angles bunched Other against
+   Java and Dart against JavaScript closely enough that their labels collided
+   on the map and their pads nearly touched in the world. An eighth of a turn
+   each guarantees the separation; the variety comes from radius and spread,
+   which are sized by how many repositories each district actually holds. */
 export const DISTRICTS: District[] = [
-  { language: "Java", angle: 0.0, radius: 132, spread: 34 },
-  { language: "PHP", angle: TAU * 0.13, radius: 108, spread: 22 },
-  { language: "Python", angle: TAU * 0.27, radius: 178, spread: 62 },
-  { language: "Jupyter Notebook", angle: TAU * 0.45, radius: 168, spread: 54 },
-  { language: "TypeScript", angle: TAU * 0.62, radius: 176, spread: 58 },
-  { language: "JavaScript", angle: TAU * 0.77, radius: 124, spread: 30 },
-  { language: "Dart", angle: TAU * 0.87, radius: 104, spread: 20 },
-  { language: "Other", angle: TAU * 0.95, radius: 138, spread: 36 },
+  { language: "Python", angle: TAU * 0.0, radius: 186, spread: 62 },
+  { language: "Jupyter Notebook", angle: TAU * 0.125, radius: 176, spread: 54 },
+  { language: "TypeScript", angle: TAU * 0.25, radius: 182, spread: 58 },
+  { language: "JavaScript", angle: TAU * 0.375, radius: 138, spread: 30 },
+  { language: "Java", angle: TAU * 0.5, radius: 142, spread: 32 },
+  { language: "Other", angle: TAU * 0.625, radius: 132, spread: 28 },
+  { language: "PHP", angle: TAU * 0.75, radius: 118, spread: 20 },
+  { language: "Dart", angle: TAU * 0.875, radius: 116, spread: 20 },
 ];
 
 export const districtFor = (language: string): District =>

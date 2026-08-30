@@ -7,6 +7,9 @@ import { makeInput, type Input, type PlayerState } from "@/world/Player";
 import { useKeyboardAndPointer, PLAYER } from "@/world/Player";
 import { ARRIVAL_POSE } from "@/world/sequence";
 import { Joystick } from "./joystick";
+import { Minimap } from "./minimap";
+import { WorldMap } from "./world-map";
+import { TitleScreen } from "./title-screen";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -56,6 +59,11 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [quality, setQuality] = useState<"high" | "low">("high");
   const [touch, setTouch] = useState(false);
+  /* TITLE → PLAYING, and back. The world runs behind the title so entering it
+     is a curtain lifting rather than a load. */
+  const [mode, setMode] = useState<"TITLE" | "PLAYING">("TITLE");
+  const [mapOpen, setMapOpen] = useState(false);
+  const [reading, setReading] = useState(false);
 
   const input = useRef<Input>(makeInput());
   const state = useRef<PlayerState>({
@@ -85,7 +93,37 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     };
   }, [supported]);
 
-  useKeyboardAndPointer(input, supported === true);
+  /* Input is live only while the player has the world. With the title, the
+     map or the document up, keys belong to those. */
+  const playing = mode === "PLAYING" && !mapOpen && !reading;
+  useKeyboardAndPointer(input, supported === true && playing);
+
+  /* M opens the map, Escape hands the world back to the title. */
+  useEffect(() => {
+    if (supported !== true || mode !== "PLAYING") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyM") {
+        e.preventDefault();
+        setMapOpen((v) => !v);
+      } else if (e.key === "Escape") {
+        if (mapOpen) setMapOpen(false);
+        else setMode("TITLE");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [supported, mode, mapOpen]);
+
+  /* Fast travel. Placed just short of the destination and turned to face it,
+     so arriving reads as walking up to a thing rather than being inside it. */
+  const travelTo = (x: number, z: number) => {
+    const s = state.current;
+    const d = Math.hypot(x, z) || 1;
+    s.position.set(x - (x / d) * 26, 0, z - (z / d) * 26);
+    s.velocity.set(0, 0, 0);
+    s.yaw = Math.atan2(x - s.position.x, z - s.position.z);
+    s.camYaw = Math.atan2(-(x - s.position.x), -(z - s.position.z));
+  };
 
   if (supported === false) return <>{fallback}</>;
   if (supported === null)
@@ -98,22 +136,54 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   return (
     <>
       <div className="world-root fixed inset-0 z-0 bg-[#0d0f10]" aria-hidden="true">
-        <GameCanvas input={input} state={state} quality={quality} enabled />
+        <GameCanvas input={input} state={state} quality={quality} enabled={playing} />
       </div>
 
       <div className="sr-only">{fallback}</div>
 
-      {touch && <Joystick input={input} />}
+      {mode === "TITLE" && !reading && (
+        <TitleScreen
+          onStart={() => setMode("PLAYING")}
+          onRead={() => setReading(true)}
+          touch={touch}
+        />
+      )}
 
-      {/* Controls, stated once. A game that does not say how to move it is a
-          demo, and the previous build's only instruction was "scroll". */}
-      {!touch && (
+      {reading && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
+          style={{ background: "#0d0f10" }}
+        >
+          <button
+            onClick={() => setReading(false)}
+            className="u-mono fixed right-4 top-4 z-10 inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
+            style={{ borderColor: "#2a2f32", color: "#9eaab0", background: "rgba(6,8,9,0.8)" }}
+          >
+            Back
+          </button>
+          {fallback}
+        </div>
+      )}
+
+      {playing && touch && <Joystick input={input} />}
+
+      {mode === "PLAYING" && !reading && (
+        <Minimap state={state} onOpenMap={() => setMapOpen(true)} />
+      )}
+
+      {mapOpen && (
+        <WorldMap state={state} onClose={() => setMapOpen(false)} onTravel={travelTo} />
+      )}
+
+      {/* A reminder, not an instruction sheet — the title screen already gave
+          the full list. */}
+      {playing && !touch && (
         <div className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5">
           <p
             className="u-mono text-[0.6rem] uppercase tracking-[0.2em]"
-            style={{ color: "#8b979c" }}
+            style={{ color: "#7d888d" }}
           >
-            WASD to move · Shift to run · Space to jump · Drag to look
+            WASD · Shift to run · Space to jump · Drag to look · M for the map
           </p>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { WORLD, entities } from "./telemetry";
+import { entities } from "./telemetry";
 
 /**
  * The player.
@@ -27,7 +27,9 @@ export const PLAYER = {
   /** Reached in a fifth of a second. Sharper than realistic on purpose:
    *  input latency is the single thing that makes a browser game feel dead. */
   accel: 46,
-  friction: 11,
+  /* Was 11, which left a tail of about two seconds after the key came up —
+     long enough to read as the character not stopping. */
+  friction: 30,
   gravity: 26,
   jump: 8.4,
   /** Third-person rig. */
@@ -110,10 +112,17 @@ export function resolve(x: number, z: number): [number, number] {
   return [px, pz];
 }
 
-/** Keep the player inside the world rather than letting them walk to nowhere. */
-const BOUND_X = WORLD.spread * 3.4;
-const BOUND_Z_NEAR = 70;
-const BOUND_Z_FAR = -(WORLD.depth + 90);
+/**
+ * Keep the player inside the world rather than letting them walk to nowhere.
+ *
+ * This was a box: X clamped to ±88 and Z to a long strip, which is the shape
+ * of the corridor the world used to be. The world is a ring of districts
+ * reaching about 240 units out in every direction, so five of the eight sat
+ * outside the box — walking toward them stopped dead at an invisible wall,
+ * and fast travel to Python put the player down at exactly the clamp. The
+ * bound is a circle now, sized to the furthest district plus its spread.
+ */
+const BOUND_R = 320;
 
 export function PlayerRig({
   input,
@@ -175,6 +184,13 @@ export function PlayerRig({
         const k = Math.max(0, 1 - PLAYER.friction * dt);
         s.velocity.x *= k;
         s.velocity.z *= k;
+        // Exponential decay never reaches zero. Below walking pace a tenth of
+        // a unit per second still slides the avatar and still plays the walk
+        // cycle, so it is snapped off.
+        if (Math.hypot(s.velocity.x, s.velocity.z) < 0.4) {
+          s.velocity.x = 0;
+          s.velocity.z = 0;
+        }
       }
 
       if (i.jump && s.grounded) {
@@ -197,8 +213,14 @@ export function PlayerRig({
     const nx = s.position.x + s.velocity.x * dt;
     const nz = s.position.z + s.velocity.z * dt;
     const [rx, rz] = resolve(nx, nz);
-    s.position.x = Math.max(-BOUND_X, Math.min(BOUND_X, rx));
-    s.position.z = Math.max(BOUND_Z_FAR, Math.min(BOUND_Z_NEAR, rz));
+    const outward = Math.hypot(rx, rz);
+    if (outward > BOUND_R) {
+      s.position.x = (rx / outward) * BOUND_R;
+      s.position.z = (rz / outward) * BOUND_R;
+    } else {
+      s.position.x = rx;
+      s.position.z = rz;
+    }
 
     s.speed01 = Math.min(1, Math.hypot(s.velocity.x, s.velocity.z) / PLAYER.run);
 
@@ -284,8 +306,21 @@ export function useKeyboardAndPointer(
       held.delete(e.code);
       apply();
     };
-    const blur = () => {
+    /* Everything stops. A keyup that never arrives — alt-tab mid-stride, a
+       system shortcut swallowing the release, the tab going to the background
+       — used to leave the key in the held set forever, and the character ran
+       until the page was reloaded. There is no state here worth preserving
+       across a focus loss, so every one of these clears the lot. */
+    const stopAll = () => {
       held.clear();
+      dragging = false;
+      const i = input.current;
+      i.forward = 0;
+      i.strafe = 0;
+      i.run = false;
+      i.jump = false;
+      i.lookX = 0;
+      i.lookY = 0;
       apply();
     };
 
@@ -297,6 +332,12 @@ export function useKeyboardAndPointer(
     const pointerUp = () => {
       dragging = false;
     };
+    /* A drag released outside the window never reports up, and the camera
+       then span with every later mouse move. Any move with no button down
+       ends the drag, which is the one signal that is always true. */
+    const guard = (e: PointerEvent) => {
+      if (dragging && e.buttons === 0) dragging = false;
+    };
     const pointerMove = (e: PointerEvent) => {
       if (!dragging) return;
       input.current.lookX += e.movementX * 0.0032;
@@ -305,19 +346,26 @@ export function useKeyboardAndPointer(
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
+    window.addEventListener("blur", stopAll);
+    window.addEventListener("contextmenu", stopAll);
+    document.addEventListener("visibilitychange", stopAll);
     window.addEventListener("pointerdown", pointerDown);
     window.addEventListener("pointerup", pointerUp);
     window.addEventListener("pointercancel", pointerUp);
+    window.addEventListener("pointermove", guard);
     window.addEventListener("pointermove", pointerMove);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
+      window.removeEventListener("blur", stopAll);
+      window.removeEventListener("contextmenu", stopAll);
+      document.removeEventListener("visibilitychange", stopAll);
       window.removeEventListener("pointerdown", pointerDown);
       window.removeEventListener("pointerup", pointerUp);
       window.removeEventListener("pointercancel", pointerUp);
+      window.removeEventListener("pointermove", guard);
       window.removeEventListener("pointermove", pointerMove);
+      stopAll();
     };
   }, [input, enabled]);
 }

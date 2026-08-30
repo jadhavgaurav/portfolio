@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Input } from "@/world/Player";
 
 /**
@@ -30,9 +30,15 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
       const half = window.innerWidth / 2;
       if (e.clientX < half && moveId.current === null) {
         moveId.current = e.pointerId;
+        // Capture, so this pointer keeps reporting to us even if the thumb
+        // slides over the jump button or off the edge of the screen. Without
+        // it the release lands on whatever is on top, our handler never runs,
+        // and the character keeps running with no way to stop it.
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         setStick({ ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 });
       } else if (e.clientX >= half && lookId.current === null) {
         lookId.current = e.pointerId;
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         lookLast.current = { x: e.clientX, y: e.clientY };
       }
     },
@@ -67,22 +73,50 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
     [input],
   );
 
-  const onUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.pointerId === moveId.current) {
+  const release = useCallback(
+    (pointerId: number | null) => {
+      if (pointerId === null || pointerId === moveId.current) {
         moveId.current = null;
         setStick(null);
         const i = input.current;
         i.forward = 0;
         i.strafe = 0;
         i.run = false;
-      } else if (e.pointerId === lookId.current) {
+      }
+      if (pointerId === null || pointerId === lookId.current) {
         lookId.current = null;
         lookLast.current = null;
       }
     },
     [input],
   );
+
+  /* Belt and braces. Pointer capture covers the thumb sliding somewhere else;
+     these cover the cases where the browser takes the pointer away without
+     ever telling us it went up — a system gesture, a notification, the tab
+     going to the background, the phone locking. Every one of them used to
+     leave the stick stuck on. */
+  useEffect(() => {
+    const stop = () => release(null);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("blur", stop);
+    window.addEventListener("contextmenu", stop);
+    document.addEventListener("visibilitychange", stop);
+    return () => {
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("blur", stop);
+      window.removeEventListener("contextmenu", stop);
+      document.removeEventListener("visibilitychange", stop);
+    };
+  }, [release]);
+
+  const onUp = useCallback(
+    (e: React.PointerEvent) => {
+      release(e.pointerId);
+    },
+    [release],
+  );
+
 
   return (
     <>
