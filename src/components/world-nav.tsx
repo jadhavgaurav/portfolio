@@ -34,7 +34,6 @@ export function WorldNav({
   onFocus,
   open,
   setOpen,
-  hidden,
 }: {
   discovered: string[];
   onTravel: (scroll: number) => void;
@@ -42,9 +41,6 @@ export function WorldNav({
   /** Owned by the experience, so the core and the index are never both up. */
   open: boolean;
   setOpen: (v: boolean) => void;
-  /** True at the core, where the index has nowhere left to send anyone and
-   *  its button was sitting on top of the only page that is a page. */
-  hidden: boolean;
 }) {
 
   useEffect(() => {
@@ -71,8 +67,6 @@ export function WorldNav({
      travel targets, so the count says how many of them this list actually
      offers rather than implying it lists them all. */
   const listedCount = grouped.reduce((n, g) => n + g.items.length, 0);
-
-  if (hidden && !open) return null;
 
   return (
     <>

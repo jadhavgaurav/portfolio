@@ -139,6 +139,7 @@ export function Overlay({
   total,
   record,
   onFocus,
+  onTravel,
   focusing,
   indexOpen,
   canSkip,
@@ -158,6 +159,8 @@ export function Overlay({
   /** The record for the structure being passed, if it has one. */
   record: { title: string } | null;
   onFocus: () => void;
+  /** Move to a point on the route. The core uses it to hand the world back. */
+  onTravel: (scroll: number) => void;
   /** True while a record is open. Everything transient stands down. */
   focusing: boolean;
   /** True while the index is open — the core stands down with the rest. */
@@ -605,6 +608,28 @@ export function Overlay({
                   approach a structure and stay with it.
                 </p>
               )}
+
+              {/* The way back. The core sits at the end of nine screens of
+                  scroll, and the only exit from it was scrolling all nine
+                  back up. The index is reachable from here too — it is the
+                  world's navigation, and it was being hidden at exactly the
+                  point where someone is most likely to want it. */}
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => onTravel(0)}
+                  className="u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.16em]"
+                  style={{ borderColor: UI.borderActive, color: UI.textHighlight }}
+                >
+                  Walk it again
+                </button>
+                <button
+                  onClick={() => onTravel(scrollAtEntity("CodeB_Internship_Project"))}
+                  className="u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.16em]"
+                  style={{ borderColor: UI.border, color: UI.textSecondary }}
+                >
+                  Back to the largest structure
+                </button>
+              </div>
               <p
                 className="u-mono mt-4 text-[0.625rem] leading-[1.7] tracking-[0.04em]"
                 style={{ color: UI.textMuted }}

@@ -376,6 +376,7 @@ export function Experience({
         onFocus={() => passing && setFocused(passing)}
         focusing={Boolean(focused)}
         indexOpen={indexOpen}
+        onTravel={travel}
         canSkip={canSkip}
         onSkip={() => {
           skipped.current = true;
@@ -390,7 +391,6 @@ export function Experience({
           onFocus={setFocused}
           open={indexOpen}
           setOpen={openIndex}
-          hidden={scroll > 0.948}
         />
       )}
 
