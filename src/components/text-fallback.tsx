@@ -12,8 +12,24 @@ import { entities } from "@/world/telemetry";
  * which needs the world's content as a document because it cannot perceive
  * the world. Kept deliberately plain and short.
  */
-export function TextFallback() {
+/**
+ * `interactive` is false when this is the screen-reader copy behind a running
+ * world. Its four contact links are invisible on screen but still focusable,
+ * so a sighted keyboard visitor had to tab through eight dead stops before
+ * reaching a single control they could see. The addresses are written out as
+ * text instead — nothing is lost to a reader — and the world's own index
+ * carries the same four as real, visible links.
+ */
+export function TextFallback({ interactive = true }: { interactive?: boolean }) {
   const commits = entities.reduce((n, e) => n + e.commits, 0);
+  const link = (href: string, label: string, spoken?: string) =>
+    interactive ? (
+      <a href={href} style={{ color: "#e2e8f0" }}>
+        {label}
+      </a>
+    ) : (
+      <span>{spoken ?? label}</span>
+    );
 
   return (
     <main
@@ -86,25 +102,11 @@ export function TextFallback() {
 
       <h2 style={{ fontSize: "1.15rem", marginTop: "2.5rem" }}>Contact</h2>
       <ul style={{ paddingLeft: "1.1rem" }}>
+        <li>{link(`mailto:${subject.email}`, subject.email)}</li>
+        <li>{link(subject.github, `github.com/${subject.handle}`)}</li>
+        <li>{link(subject.linkedin, "LinkedIn", `LinkedIn: ${subject.linkedin}`)}</li>
         <li>
-          <a href={`mailto:${subject.email}`} style={{ color: "#e2e8f0" }}>
-            {subject.email}
-          </a>
-        </li>
-        <li>
-          <a href={subject.github} style={{ color: "#e2e8f0" }}>
-            github.com/{subject.handle}
-          </a>
-        </li>
-        <li>
-          <a href={subject.linkedin} style={{ color: "#e2e8f0" }}>
-            LinkedIn
-          </a>
-        </li>
-        <li>
-          <a href="/resume/resume.pdf" style={{ color: "#e2e8f0" }}>
-            Curriculum vitae
-          </a>
+          {link("/resume/resume.pdf", "Curriculum vitae", "Curriculum vitae at /resume/resume.pdf")}
         </li>
       </ul>
     </main>

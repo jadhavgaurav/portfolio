@@ -75,7 +75,16 @@ function probe(): { webgl: boolean; software: boolean } {
  *  slowly — the camera language calls for under 6 units per second. */
 const SCROLL_VH = 940;
 
-export function Experience({ fallback }: { fallback: React.ReactNode }) {
+export function Experience({
+  fallback,
+  srCopy,
+}: {
+  /** Served whole when there is no WebGL: a real document, with real links. */
+  fallback: React.ReactNode;
+  /** The same record, kept in the accessibility tree behind the world, with
+   *  its links flattened to text so they are not invisible tab stops. */
+  srCopy: React.ReactNode;
+}) {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [reduced, setReduced] = useState(false);
   const [quality, setQuality] = useState<"high" | "low">("high");
@@ -244,6 +253,17 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
     return () => cancelAnimationFrame(raf2);
   }, [supported, phase]);
 
+  /* The index is a full-screen surface. Leaving the page scrollable under it
+     meant the world moved while the visitor was reading a list of places to
+     go, and re-rendered every entry on every frame to do it. */
+  useEffect(() => {
+    if (!indexOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [indexOpen]);
+
   /* The reward beat holds briefly, then the world keeps the change. */
   useEffect(() => {
     if (!reward) return;
@@ -265,10 +285,30 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         setScroll(v);
       });
     };
+    /* Position is a fraction of the route, but the browser keeps scroll in
+       pixels. When the viewport height changes the route gets longer or
+       shorter and the same pixel offset lands somewhere else in the world —
+       measured as a 12% jump backwards on a 900 to 1200 change. On a phone
+       that fires every time the address bar hides, so the world drifts under
+       the visitor while they are standing still. Hold the fraction and let
+       the pixels follow. */
+    let maxWas = document.body.scrollHeight - window.innerHeight;
+    const onResize = () => {
+      const held = scrollRef.current;
+      requestAnimationFrame(() => {
+        const max = document.body.scrollHeight - window.innerHeight;
+        if (max <= 0 || Math.abs(max - maxWas) < 1) return;
+        maxWas = max;
+        window.scrollTo({ top: held * max, behavior: "auto" });
+      });
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
     onScroll();
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
       if (frame) cancelAnimationFrame(frame);
     };
   }, [supported]);
@@ -290,6 +330,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
     const max = document.body.scrollHeight - window.innerHeight;
     window.scrollTo({ top: max * target, behavior: "smooth" });
   };
+
 
   const z = traversalPose(scroll).position[2];
   const passing = phase === "PLAYER" ? nearestOnRoute(z) : null;
@@ -326,7 +367,7 @@ export function Experience({ fallback }: { fallback: React.ReactNode }) {
         passing={passing}
         dateLabel={dayToLabel(day)}
         scrollVh={SCROLL_VH}
-        fallback={fallback}
+        srCopy={srCopy}
         discovered={discovered}
         noticing={noticing}
         reward={reward}

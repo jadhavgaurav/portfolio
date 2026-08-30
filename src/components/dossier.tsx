@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   gateStudies,
   limeExample,
@@ -195,22 +195,93 @@ export function Dossier({
   entity: Entity | null;
   onClose: () => void;
 }) {
+  const panel = useRef<HTMLDivElement>(null);
+
+  /* onClose is a fresh closure on every render of the experience, and the
+     experience re-renders on every scroll frame. With it in the dependency
+     list the whole modal effect tore down and set up sixty times a second:
+     focus was yanked back to the panel continuously, the scroll lock was
+     toggled on and off, and the element it had memorised to return focus to
+     was whatever happened to be focused a frame ago. The effect must run
+     once, so the handler is read through a ref. */
+  const close = useRef(onClose);
+  close.current = onClose;
+
+  /**
+   * Modal behaviour, which this was declaring but not doing: it said
+   * aria-modal and then left focus on <body>, let Tab walk out into the world
+   * behind it, and dropped focus on the floor when it closed. A dialog takes
+   * focus, keeps it, and gives it back.
+   */
   useEffect(() => {
+    /* Not document.activeElement: the control that opened this record is
+       unmounted in the same commit that mounts the record, so by the time
+       this runs the active element has already fallen back to <body>, and
+       returning focus there is the bug this was written to fix. */
+    const here = document.activeElement as HTMLElement | null;
+    const opener = here && here !== document.body && here !== document.documentElement ? here : null;
+    const focusable = () =>
+      Array.from(
+        panel.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((el) => el.offsetParent !== null);
+
+    panel.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        close.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) {
+        e.preventDefault();
+        panel.current?.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const here = document.activeElement;
+      if (e.shiftKey && (here === first || here === panel.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && here === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (!panel.current?.contains(here)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      /* Back to whatever opened it — but the control that opened it is
+         unmounted while this record is up, so by the time we get here the
+         stored element is detached and focusing it drops focus on <body>.
+         Wait a frame for the world's chrome to come back, then aim at the
+         same control, falling back to the index. */
+      requestAnimationFrame(() => {
+        const back =
+          (opener?.isConnected ? opener : null) ??
+          document.querySelector<HTMLElement>('[data-focus-return="record"]') ??
+          document.querySelector<HTMLElement>('[data-focus-return="index"]');
+        back?.focus();
+      });
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div
+      ref={panel}
       role="dialog"
       aria-modal="true"
+      tabIndex={-1}
       aria-label={`${exhibit.title} — record`}
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
       style={{ background: "rgba(6,8,9,0.97)", backdropFilter: "blur(2px)" }}

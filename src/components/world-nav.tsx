@@ -6,6 +6,7 @@ import { DISCOVERIES, LENS_ORDER, discoveryFor } from "@/world/discovery";
 import { UI } from "@/world/palette";
 import { scrollAtEntity } from "@/world/sequence";
 import { dayToLabel, entities, type Entity } from "@/world/telemetry";
+import { subject } from "@/data/record";
 
 /**
  * Navigation.
@@ -73,6 +74,7 @@ export function WorldNav({
     <>
       <button
         onClick={() => setOpen(!open)}
+        data-focus-return="index"
         aria-expanded={open}
         aria-label={open ? "Close world index" : "Open world index"}
         className="u-mono pointer-events-auto fixed left-5 top-5 z-40 border px-3 py-2 text-[0.6rem] uppercase tracking-[0.18em] transition-colors sm:left-8 sm:top-7"
@@ -200,6 +202,38 @@ export function WorldNav({
                     </li>
                   );
                 })}
+              </ul>
+            </section>
+
+            {/* The core states these too, but the core is at the end of the
+                route. Someone navigating by keyboard or by screen reader
+                should not have to walk the whole world to find an address. */}
+            <section className="mt-10">
+              <h3
+                className="u-mono pb-2 text-[0.6rem] uppercase tracking-[0.2em]"
+                style={{ color: UI.textMuted, borderBottom: `1px solid ${UI.border}` }}
+              >
+                Reach him
+              </h3>
+              <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                {[
+                  { label: "Email", href: `mailto:${subject.email}` },
+                  { label: "GitHub", href: subject.github },
+                  { label: "LinkedIn", href: subject.linkedin },
+                  { label: "Curriculum vitae", href: "/resume/resume.pdf" },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
+                      target={l.href.startsWith("http") ? "_blank" : undefined}
+                      rel="noreferrer noopener"
+                      className="u-mono border-b pb-1 text-[0.7rem] uppercase tracking-[0.14em]"
+                      style={{ color: UI.textHighlight, borderColor: UI.border }}
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </section>
           </div>

@@ -9,5 +9,10 @@ import { TextFallback } from "@/components/text-fallback";
  * WebGL is unavailable the text layer is served instead.
  */
 export default function Page() {
-  return <Experience fallback={<TextFallback />} />;
+  return (
+    <Experience
+      fallback={<TextFallback />}
+      srCopy={<TextFallback interactive={false} />}
+    />
+  );
 }

@@ -132,7 +132,7 @@ export function Overlay({
   passing,
   dateLabel,
   scrollVh,
-  fallback,
+  srCopy,
   discovered,
   noticing,
   reward,
@@ -150,7 +150,7 @@ export function Overlay({
   passing: Entity | null;
   dateLabel: string;
   scrollVh: number;
-  fallback: ReactNode;
+  srCopy: ReactNode;
   discovered: string[];
   noticing: { id: string; progress: number } | null;
   reward: { lens: Lens; grants: string; entity: string } | null;
@@ -184,7 +184,7 @@ export function Overlay({
           screen reader, which cannot perceive the world, still gets its
           content. */}
       <div style={{ height: `${scrollVh}vh` }} aria-hidden="true" />
-      <div className="sr-only">{fallback}</div>
+      <div className="sr-only">{srCopy}</div>
 
       {/* Opening: no logo, no spinner. Emptiness reads as a place. The one
           concession is the skip — control rule C2 always allowed the opening
@@ -282,8 +282,12 @@ export function Overlay({
             </div>
           </div>
           {/* The lenses earned so far. Marks, not a meter — a lens is a way of
-              seeing, and the world is where the progress actually shows. */}
-          <div className="mt-4 flex items-center gap-2">
+              seeing, and the world is where the progress actually shows.
+
+              A phone held sideways is 360px tall and the readout was claiming
+              134 of them, which put the reward beat on top of the route bar.
+              The two rows the readout can spare stand down under 520px. */}
+          <div className="mt-4 flex items-center gap-2 [@media(max-height:520px)]:hidden">
             {LENS_ORDER.map((l) => {
               const got = discovered.some((id) => discoveryFor(id)?.lens === l);
               return (
@@ -307,7 +311,10 @@ export function Overlay({
           </div>
 
           {/* Route progress. */}
-          <div className="mt-4 h-px w-full" style={{ background: UI.border }}>
+          <div
+            className="mt-4 h-px w-full [@media(max-height:520px)]:hidden"
+            style={{ background: UI.border }}
+          >
             <div
               className="h-px origin-left"
               style={{
@@ -329,6 +336,7 @@ export function Overlay({
         >
           <button
             onClick={onFocus}
+            data-focus-return="record"
             className="u-mono pointer-events-auto border px-5 py-2.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors"
             style={{
               borderColor: UI.borderActive,
@@ -389,12 +397,15 @@ export function Overlay({
               Resolved · {reward.entity}
             </div>
             <div
-              className="u-mono mt-4 text-[clamp(1.5rem,3.4vw,2.3rem)] tracking-[0.14em]"
+              className="u-mono mt-4 text-[clamp(1.5rem,3.4vw,2.3rem)] tracking-[0.14em] [@media(max-height:520px)]:mt-2 [@media(max-height:520px)]:text-[1.25rem]"
               style={{ color: "#8cbcae" }}
             >
               {reward.lens}
             </div>
-            <p className="mt-4 text-[0.95rem] leading-[1.55]" style={{ color: UI.textSecondary }}>
+            <p
+              className="mt-4 text-[0.95rem] leading-[1.55] [@media(max-height:520px)]:mt-2 [@media(max-height:520px)]:text-[0.85rem]"
+              style={{ color: UI.textSecondary }}
+            >
               {reward.grants}
             </p>
           </div>
