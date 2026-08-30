@@ -1,0 +1,155 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import type { Input } from "@/world/Player";
+
+/**
+ * Touch controls.
+ *
+ * A phone has no WASD, and the previous build's answer to that was to make
+ * the whole thing a scroll — which is why it played like a page. Left thumb
+ * moves, right half of the screen looks. Both are absolute-position sticks
+ * that appear where the thumb lands rather than at a fixed spot, because a
+ * fixed stick is only reachable if the phone happens to be the size you
+ * designed for.
+ */
+
+const RADIUS = 58;
+
+export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
+  const [stick, setStick] = useState<{ ox: number; oy: number; dx: number; dy: number } | null>(
+    null,
+  );
+  const moveId = useRef<number | null>(null);
+  const lookId = useRef<number | null>(null);
+  const lookLast = useRef<{ x: number; y: number } | null>(null);
+
+  const onDown = useCallback(
+    (e: React.PointerEvent) => {
+      if ((e.target as HTMLElement)?.closest("button, a, [role=dialog], nav")) return;
+      const half = window.innerWidth / 2;
+      if (e.clientX < half && moveId.current === null) {
+        moveId.current = e.pointerId;
+        setStick({ ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 });
+      } else if (e.clientX >= half && lookId.current === null) {
+        lookId.current = e.pointerId;
+        lookLast.current = { x: e.clientX, y: e.clientY };
+      }
+    },
+    [],
+  );
+
+  const onMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.pointerId === moveId.current) {
+        setStick((s) => {
+          if (!s) return s;
+          let dx = e.clientX - s.ox;
+          let dy = e.clientY - s.oy;
+          const d = Math.hypot(dx, dy);
+          if (d > RADIUS) {
+            dx = (dx / d) * RADIUS;
+            dy = (dy / d) * RADIUS;
+          }
+          const i = input.current;
+          i.strafe = dx / RADIUS;
+          i.forward = -dy / RADIUS;
+          // Push the stick past two thirds and you are running. No run button.
+          i.run = Math.hypot(dx, dy) / RADIUS > 0.66;
+          return { ...s, dx, dy };
+        });
+      } else if (e.pointerId === lookId.current && lookLast.current) {
+        input.current.lookX += (e.clientX - lookLast.current.x) * 0.0058;
+        input.current.lookY += (e.clientY - lookLast.current.y) * 0.0058;
+        lookLast.current = { x: e.clientX, y: e.clientY };
+      }
+    },
+    [input],
+  );
+
+  const onUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.pointerId === moveId.current) {
+        moveId.current = null;
+        setStick(null);
+        const i = input.current;
+        i.forward = 0;
+        i.strafe = 0;
+        i.run = false;
+      } else if (e.pointerId === lookId.current) {
+        lookId.current = null;
+        lookLast.current = null;
+      }
+    },
+    [input],
+  );
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-10 touch-none"
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        aria-hidden="true"
+      />
+
+      {stick && (
+        <div
+          className="pointer-events-none fixed z-20"
+          style={{ left: stick.ox - RADIUS, top: stick.oy - RADIUS }}
+          aria-hidden="true"
+        >
+          <div
+            className="rounded-full border"
+            style={{
+              width: RADIUS * 2,
+              height: RADIUS * 2,
+              borderColor: "rgba(226,232,240,0.28)",
+              background: "rgba(6,8,9,0.28)",
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 46,
+              height: 46,
+              left: RADIUS - 23 + stick.dx,
+              top: RADIUS - 23 + stick.dy,
+              background: "rgba(226,232,240,0.55)",
+              boxShadow: "0 0 18px rgba(226,232,240,0.28)",
+            }}
+          />
+        </div>
+      )}
+
+      {!stick && (
+        <p
+          className="pointer-events-none fixed inset-x-0 bottom-7 z-20 text-center"
+          style={{ color: "#8b979c" }}
+        >
+          <span className="u-mono text-[0.58rem] uppercase tracking-[0.18em]">
+            Left thumb to walk · right to look
+          </span>
+        </p>
+      )}
+
+      {/* Jump. The one thing a thumb stick cannot express. */}
+      <button
+        onClick={() => {
+          input.current.jump = true;
+        }}
+        aria-label="Jump"
+        className="u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
+        style={{
+          borderColor: "rgba(226,232,240,0.3)",
+          color: "#cfd6d3",
+          background: "rgba(6,8,9,0.42)",
+        }}
+      >
+        Jump
+      </button>
+    </>
+  );
+}

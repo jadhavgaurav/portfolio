@@ -1,4 +1,4 @@
-import { Experience } from "@/components/experience";
+import { Game } from "@/components/game";
 import { TextFallback } from "@/components/text-fallback";
 
 /**
@@ -10,9 +10,6 @@ import { TextFallback } from "@/components/text-fallback";
  */
 export default function Page() {
   return (
-    <Experience
-      fallback={<TextFallback />}
-      srCopy={<TextFallback interactive={false} />}
-    />
+    <Game fallback={<TextFallback />} />
   );
 }
