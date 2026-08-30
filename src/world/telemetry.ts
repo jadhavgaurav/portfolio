@@ -1,4 +1,6 @@
 import { EPOCH, SPAN_DAYS, lanes } from "@/data/ledger";
+import { factByName } from "@/data/repo-facts";
+import { districtCentre, districtFor } from "./language";
 
 /**
  * Telemetry → WorldBlueprint.
@@ -27,7 +29,9 @@ export type EntityType =
   | "ORIGIN"
   | "CORE";
 
-/** Material families, selected by role and state — never by language. */
+/** Material families, selected by role and state. Language is carried
+ *  separately and drives colour, because the two say different things: what a
+ *  work is made of, and which ecosystem it belongs to. */
 export type MaterialFamily =
   | "FOUNDATION"
   | "CONSTRUCTED"
@@ -38,6 +42,9 @@ export type MaterialFamily =
 export interface Entity {
   id: string;
   name: string;
+  /** From the GitHub API. Drives the district a structure stands in and the
+   *  colour it is built out of. */
+  language: string;
   type: EntityType;
   material: MaterialFamily;
   /** World position. Z is time: 0 is the first commit, -SPAN is the last. */
@@ -140,13 +147,24 @@ function buildEntities(): Entity[] {
 
   const topSignificance = Math.max(...scored.map((s) => s.significance));
 
-  // Layout along the spine. A purely linear time axis leaves 2023 and 2024
-  // almost empty, because that is genuinely how the record is shaped — but it
-  // makes half the traverse a walk through nothing. Blending the date with the
-  // work's rank in date order compresses the quiet stretches while keeping the
-  // ordering strictly monotonic, so earlier work is always further back.
-  const order = [...scored].sort((a, b) => a.firstDay - b.firstDay);
-  const rankOf = new Map(order.map((w, i) => [w.name, i / (order.length - 1)]));
+  /* Rank inside each district, by first commit, so the spiral knows both
+     where a work sits in its district and how large that district is. */
+  const withinDistrict = new Map<string, number>();
+  const districtCount = new Map<string, number>();
+  {
+    const byLang = new Map<string, typeof scored>();
+    for (const w of scored) {
+      const lang = factByName.get(w.name)?.language ?? "Other";
+      const list = byLang.get(lang) ?? [];
+      list.push(w);
+      byLang.set(lang, list);
+    }
+    for (const [lang, list] of byLang) {
+      list.sort((a, b) => a.firstDay - b.firstDay);
+      districtCount.set(lang, list.length);
+      list.forEach((w, i) => withinDistrict.set(w.name, i));
+    }
+  }
 
   return scored.map((w): Entity => {
     const idleDays = latest - w.lastDay;
@@ -201,20 +219,39 @@ function buildEntities(): Entity[] {
 
     const h1 = hash(w.name);
     const h2 = hash(w.name + "§");
-    const side = h1 < 0.5 ? -1 : 1;
     const mass = 2.4 + (Math.log1p(w.commits) / maxLogCommits) * 9.6;
+
+    /* Position.
+     *
+     * The old layout was a single corridor with time running down -Z. That
+     * is the right shape for something you are pulled along and the wrong one
+     * for somewhere you walk: every structure was equidistant from the route
+     * and there was nowhere to go but forward.
+     *
+     * The world is districts now, one per language, arranged on a ring around
+     * a hub. Inside a district the structures are placed on a golden-angle
+     * spiral ordered by first commit, so the oldest work sits at the centre
+     * and the district grows outward in time — the history is still readable,
+     * it is just readable in two dimensions instead of one.
+     */
+    const language = factByName.get(w.name)?.language ?? "Other";
+    const d = districtFor(language);
+    const [dcx, dcz] = districtCentre(d);
+    const withinRank = withinDistrict.get(w.name) ?? 0;
+    const withinCount = districtCount.get(language) ?? 1;
+    // Golden angle: the classic even-scatter with no two neighbours aligned.
+    const a = withinRank * 2.399963;
+    const rr = Math.sqrt((withinRank + 0.55) / withinCount) * d.spread;
+    const jitter = (h2 - 0.5) * d.spread * 0.14;
 
     return {
       id: w.name,
       name: w.name,
+      language,
       type,
       material,
-      // Time is the spine, eased toward even spacing. Monotonic either way.
-      z: -(0.34 * (w.firstDay / SPAN_DAYS) + 0.66 * (rankOf.get(w.name) ?? 0)) * WORLD.depth,
-      /* Offset from the spine measured to the structure's near EDGE, not its
-         centre. Using the centre let wide masses overlap the route and the
-         camera walked through them. */
-      x: side * (WORLD.corridor + mass * 1.35 + h2 * WORLD.spread),
+      z: dcz + Math.cos(a) * rr + jitter,
+      x: dcx + Math.sin(a) * rr - jitter,
       y: 0,
       mass,
       height,
@@ -239,10 +276,13 @@ export const origin = entities.find((e) => e.type === "ORIGIN")!;
 export const relic = entities.find((e) => e.type === "RELIC")!;
 
 /** The CORE: the synthesis, placed beyond the last work. A consequence of the world. */
+/* The core sits at the hub the districts ring, not past the end of a
+   corridor. Every district is now the same short walk from it, which is what
+   makes it a landmark rather than a finish line. */
 export const core = {
   x: 0,
   y: 16,
-  z: -WORLD.depth - 46,
+  z: 0,
 } as const;
 
 /**

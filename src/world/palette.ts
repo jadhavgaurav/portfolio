@@ -45,7 +45,7 @@ export const SURFACE = {
   active: "#6d7476",
   organic: "#4a5750",
   ruined: "#2e2d26",
-  ground: "#242a2c",
+  ground: "#12171a",
 } as const;
 
 /** Interface layer. Reads over the world without becoming a dashboard. */

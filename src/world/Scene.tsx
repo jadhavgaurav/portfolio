@@ -6,15 +6,12 @@ import * as THREE from "three";
 import { buildWorld } from "./geometry";
 import {
   EMISSIVE,
-  FAMILY_METALNESS,
-  FAMILY_ROUGHNESS,
-  FAMILY_LENS_SURFACE,
-  FAMILY_SURFACE,
   LIGHT,
   SURFACE,
 } from "./palette";
 import { WORLD, core, entities } from "./telemetry";
 import { BEATS, type Phase } from "./sequence";
+import { DISTRICTS, districtCentre, styleFor } from "./language";
 import { Dust, Sky } from "./Atmosphere";
 import { entityById } from "./telemetry";
 import type { Lens } from "./discovery";
@@ -129,6 +126,68 @@ export function Scene({
         />
       </mesh>
 
+      {/* District ground.
+          The ground was the largest surface in every frame and carried no
+          information at all — a flat plate the player crossed to get between
+          things. Each district now stands on a pad in its own language colour
+          and a path runs from the hub to it, so from anywhere in the world the
+          player can see where the districts are and which is which before
+          reading a single label. */}
+      {DISTRICTS.map((d) => {
+        const [cx, cz] = districtCentre(d);
+        const style = styleFor(d.language);
+        const len = Math.hypot(cx, cz);
+        return (
+          <group key={d.language}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.05, cz]}>
+              <circleGeometry args={[d.spread + 16, 44]} />
+              <meshStandardMaterial
+                color={style.surface}
+                emissive={style.emissive}
+                emissiveIntensity={0.22}
+                roughness={0.88}
+                metalness={0.05}
+              />
+            </mesh>
+            {/* The rim, which is what actually reads at distance. */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.09, cz]}>
+              <ringGeometry args={[d.spread + 13.4, d.spread + 16, 44]} />
+              <meshStandardMaterial
+                color={style.surface}
+                emissive={style.emissive}
+                /* A drawn line, not a light source. At 1.5 the bloom turned
+                   the rim into a blown band that lit the player from below. */
+                emissiveIntensity={0.42}
+                roughness={0.4}
+              />
+            </mesh>
+            {/* A path back to the hub. Wayfinding, and the only thing that
+                makes the gaps between districts legible as distance rather
+                than as emptiness. */}
+            <mesh
+              rotation={[-Math.PI / 2, 0, -Math.atan2(cx, -cz)]}
+              position={[cx / 2, 0.06, cz / 2]}
+            >
+              <planeGeometry args={[3.4, len]} />
+              <meshStandardMaterial
+                color={style.surface}
+                emissive={style.emissive}
+                emissiveIntensity={0.42}
+                roughness={0.7}
+              />
+            </mesh>
+            {/* One lamp per district, so each has its own colour of light. */}
+            <pointLight
+              position={[cx, 26, cz]}
+              color={style.emissive}
+              intensity={210}
+              distance={d.spread + 92}
+              decay={2}
+            />
+          </group>
+        );
+      })}
+
       {/* The route. It is the time axis, so it earns its light. */}
       <mesh geometry={world.route}>
         <meshStandardMaterial
@@ -139,17 +198,25 @@ export function Scene({
         />
       </mesh>
 
-      {/* Structures: one merged mesh per material family. */}
-      {world.families.map(({ family, geometry }) => (
-        <mesh key={family} geometry={geometry} castShadow={false} receiveShadow={false}>
-          <meshStandardMaterial
-            color={has("LANGUAGE") ? FAMILY_LENS_SURFACE[family] : FAMILY_SURFACE[family]}
-            roughness={FAMILY_ROUGHNESS[family]}
-            metalness={FAMILY_METALNESS[family]}
-            vertexColors
-          />
-        </mesh>
-      ))}
+      {/* Structures: one merged mesh per language, coloured by ecosystem.
+          The whole world used to be a single stone. It holds eight distinct
+          ecosystems and now says so — GitHub's own language hues, so a blue
+          district reads as TypeScript before any label does. */}
+      {world.families.map(({ family, geometry }) => {
+        const style = styleFor(family);
+        return (
+          <mesh key={family} geometry={geometry} castShadow={false} receiveShadow={false}>
+            <meshStandardMaterial
+              color={style.surface}
+              emissive={style.emissive}
+              emissiveIntensity={0.055}
+              roughness={0.66}
+              metalness={0.18}
+              vertexColors
+            />
+          </mesh>
+        );
+      })}
 
       {/* NOTICE. World-side, as the loop requires: the entity being attended
           to takes light differently. No outline, no marker, no icon — it
@@ -218,8 +285,8 @@ export function Scene({
       <pointLight
         position={[relicEntity.x, relicEntity.height * 0.62, relicEntity.z]}
         color={EMISSIVE.reward}
-        intensity={phase === "PLAYER" ? 150 : 0}
-        distance={150}
+        intensity={phase === "PLAYER" ? 55 : 0}
+        distance={72}
         decay={2}
       />
 
@@ -235,11 +302,17 @@ export function Scene({
           flatShading
         />
       </mesh>
+      {/* The core's lamp.
+          It was tuned for a core approached from four hundred units away at
+          the end of a corridor. The core is the hub the districts ring now,
+          which put a 320-intensity point light where the player spawns and
+          washed the whole frame to white. Lifted, dimmed, and pulled in so it
+          lights the hub rather than the world. */}
       <pointLight
-        position={[core.x, core.y, core.z]}
+        position={[core.x, core.y + 18, core.z]}
         color={EMISSIVE.reward}
-        intensity={has("DNA") ? 320 : scroll > 0.85 ? 180 : 40}
-        distance={200}
+        intensity={46}
+        distance={78}
         decay={2}
       />
     </>

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { WORLD, entities, type Entity, type MaterialFamily } from "./telemetry";
+import { WORLD, entities, type Entity } from "./telemetry";
 import { lineage } from "@/data/lineage";
 import { branch, conduit, crystal, fissure, limb, obelisk, ring, shard, slab, type Part } from "./shapes";
 
@@ -206,7 +206,11 @@ function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 export interface WorldGeometry {
-  families: { family: MaterialFamily; geometry: THREE.BufferGeometry }[];
+  /* Merged by language rather than by material family. The family still
+     chooses the shape language and the surface qualities; the language
+     chooses the colour, and colour is what has to be one draw call per
+     district rather than one for the whole world. */
+  families: { family: string; geometry: THREE.BufferGeometry }[];
   seams: THREE.BufferGeometry | null;
   route: THREE.BufferGeometry;
   /** Trajectory breaks, at the boundaries between eras. */
@@ -216,7 +220,7 @@ export interface WorldGeometry {
 }
 
 export function buildWorld(): WorldGeometry {
-  const byFamily = new Map<MaterialFamily, Part[]>();
+  const byFamily = new Map<string, Part[]>();
   const seams: Part[] = [];
 
   for (const e of entities) {
@@ -225,9 +229,9 @@ export function buildWorld(): WorldGeometry {
     // how a work grew, not about how significant it became.
     const shaper = e.material === "ORGANIC" ? organicShape : SHAPE_BY_TYPE[e.type];
     const parts = shaper(e, n).map((g) => place(g, e));
-    const list = byFamily.get(e.material) ?? [];
+    const list = byFamily.get(e.language) ?? [];
     list.push(...parts);
-    byFamily.set(e.material, list);
+    byFamily.set(e.language, list);
 
     if (e.material === "ACTIVE") {
       const unit = e.height / e.phases;
