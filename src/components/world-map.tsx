@@ -13,6 +13,7 @@ import {
   type Waypoint,
 } from "@/world/mapdata";
 import type { PlayerState } from "@/world/Player";
+import type { Progress } from "@/world/progress";
 
 /**
  * The map.
@@ -39,6 +40,7 @@ export function WorldMap({
   waypoint,
   onWaypoint,
   visited,
+  progress,
 }: {
   state: React.MutableRefObject<PlayerState>;
   onClose: () => void;
@@ -46,6 +48,7 @@ export function WorldMap({
   waypoint: Waypoint | null;
   onWaypoint: (w: Waypoint | null) => void;
   visited: string[];
+  progress: Progress;
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -505,7 +508,7 @@ export function WorldMap({
               className="u-mono mt-7 border-b pb-2 text-[0.6rem] uppercase tracking-[0.2em]"
               style={{ color: "#8b979c", borderColor: "#2a2f32" }}
             >
-              Found · {visited.length} of {POIS.length + entities.length}
+              Found · {progress.found} of {progress.total}
             </h3>
             <p className="mt-3 text-[0.82rem] leading-[1.55]" style={{ color: "#69757a" }}>
               Districts you have not walked into are marked with a dot and their

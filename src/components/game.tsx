@@ -378,6 +378,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
             if (w) audio.waypointSet();
           }}
           visited={visited}
+          progress={progress}
         />
       )}
 
