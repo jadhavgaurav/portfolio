@@ -18,15 +18,11 @@ import { PLAYER, type PlayerState } from "./Player";
  * correctly reads as alive; a detailed one that slides reads as broken.
  */
 
-/* Authored against the renderer's exposure of 3.3, not against 1.0. Picked at
-   face value these blew out — the head read as a lit block rather than a
-   head. Every value here is roughly two and a half stops under the colour it
-   is meant to appear as. */
-const SKIN = "#5b3d2b";
-const JACKET = "#0f3d3a";
-const JACKET_DARK = "#0a2b29";
-const TROUSER = "#161d23";
-const ACCENT = "#7a5410";
+const SKIN = "#c98a5e";
+const JACKET = "#2fa89a";
+const JACKET_DARK = "#1f7d72";
+const TROUSER = "#2b3440";
+const ACCENT = "#ffb703";
 
 export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }) {
   const root = useRef<THREE.Group>(null);

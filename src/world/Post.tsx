@@ -12,25 +12,21 @@ import { BlendFunction } from "postprocessing";
 /**
  * The grade.
  *
- * Post is doing real work here rather than dressing: ambient occlusion gives
- * the structures contact and mass that a single raking key cannot, and bloom
- * is what makes a motivated emissive read as a light source rather than a
- * bright grey face.
- *
- * Depth of field was tried and cut. Aerial perspective already places the
- * visitor in the space, and the blur cost more legibility than it bought.
- * Tone mapping lives on the renderer so exposure is a single knob.
- *
- * Everything is thresholded so only the seams and the core actually bloom —
- * the surfaces never do, which is what keeps this out of glow-for-its-own-sake.
+ * A toon-shaded world reads by flat colour and a hard rim line, which is the
+ * opposite instinct from the previous grade: heavy ambient occlusion and a
+ * dark vignette were doing real work pulling a moody, near-monochrome scene
+ * together, and on bright saturated colour they just muddy it back down.
+ * Both are now light-touch — AO for a little contact grounding, vignette for
+ * a soft frame — and bloom is tuned to catch the rim lines and the reward
+ * gems rather than to be a mood device.
  */
 export function Post({ quality }: { quality: "high" | "low" }) {
   if (quality === "low") {
     // Mobile: a light bloom only. The expensive passes are dropped.
     return (
       <EffectComposer multisampling={0} enableNormalPass={false}>
-        <Bloom intensity={0.9} luminanceThreshold={0.62} luminanceSmoothing={0.3} mipmapBlur />
-        <Vignette offset={0.42} darkness={0.4} eskil={false} />
+        <Bloom intensity={0.5} luminanceThreshold={0.78} luminanceSmoothing={0.25} mipmapBlur />
+        <Vignette offset={0.55} darkness={0.16} eskil={false} />
       </EffectComposer>
     );
   }
@@ -38,21 +34,21 @@ export function Post({ quality }: { quality: "high" | "low" }) {
   return (
     <EffectComposer multisampling={0} enableNormalPass>
       <N8AO
-        aoRadius={5.5}
-        intensity={1.05}
+        aoRadius={4}
+        intensity={0.4}
         distanceFalloff={1.0}
         quality="low"
         halfRes
-        color="#070a0d"
+        color="#2a3324"
       />
       <Bloom
-        intensity={1.35}
-        luminanceThreshold={0.55}
-        luminanceSmoothing={0.32}
+        intensity={0.65}
+        luminanceThreshold={0.76}
+        luminanceSmoothing={0.28}
         mipmapBlur
-        radius={0.72}
+        radius={0.6}
       />
-      <Vignette offset={0.5} darkness={0.22} blendFunction={BlendFunction.NORMAL} />
+      <Vignette offset={0.58} darkness={0.14} blendFunction={BlendFunction.NORMAL} />
       <SMAA />
     </EffectComposer>
   );

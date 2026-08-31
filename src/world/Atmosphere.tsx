@@ -26,14 +26,20 @@ export function Sky({ phase }: { phase: Phase }) {
   const mat = useRef<THREE.ShaderMaterial>(null);
   const mesh = useRef<THREE.Mesh>(null);
 
+  // Starts at this mount's own resting opacity rather than always at 0. The
+  // live game renders phase="PLAYER" (opacity 1) from its first frame, and a
+  // frame-count ramp of 0.02/frame takes a very long time to visibly resolve
+  // under a low or unstable frame rate — during which the sky rendered as
+  // near-transparent, which is a fully rendered dark sphere reading as an
+  // ominous dark sky, not the intended pale-blue one.
   const uniforms = useMemo(
     () => ({
-      uHorizon: { value: new THREE.Color("#7c8992") },
-      uZenith: { value: new THREE.Color("#333e46") },
+      uHorizon: { value: new THREE.Color("#bfe0f5") },
+      uZenith: { value: new THREE.Color("#4a9fe0") },
       uKeyDir: { value: new THREE.Vector3(...LIGHT.keyPos).normalize() },
-      uOpacity: { value: 0 },
+      uOpacity: { value: phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.25 : 1 },
     }),
-    [],
+    [], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useFrame((state) => {

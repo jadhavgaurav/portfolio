@@ -1,51 +1,61 @@
 /**
- * The palette, taken verbatim from NULL's approved Study 14 (Colour) and
- * Study 12 (Lighting). Not invented here — these values already passed the
- * pre-production gate with a recorded verdict, including a provenance check
- * showing zero foreign hues.
+ * The palette.
+ *
+ * The previous version authored every colour "two and a half stops under" a
+ * renderer running at toneMappingExposure 3.3 — a convention that meant a
+ * district's true colour (say Python's #4B8BBE) was stored as a near-black
+ * navy (#1b3448) and relied on the exposure multiplier to lift it back. That
+ * is fragile by construction: get the exposure or the stop count even
+ * slightly wrong anywhere in the pipeline and every surface in the world
+ * reads as grey mud, which is exactly what happened. The renderer now runs
+ * at a normal exposure (GameCanvas.tsx) and every value below is the colour
+ * that is meant to appear on screen, full stop.
  */
 
 export const LIGHT = {
-  /**
-   * Dominant raking key.
-   *
-   * Study 12 fixes the colour, the intensity and the raking quality, and those
-   * carry over unchanged. Its literal coordinates do not: they were authored
-   * for a static study with a fixed camera, and applied to a camera that
-   * travels 520 units down -Z they put the light behind the visitor for the
-   * whole traverse, so every face they see is a shadowed one. The direction is
-   * re-aimed to rake across the line of travel instead.
-   */
-  key: "#d5d0c5",
-  keyPos: [-46, 34, -58] as const,
+  /** Warm daylight key, raking across the world rather than behind the
+   *  player, so faces the player walks toward are lit rather than shadowed. */
+  key: "#fff3d6",
+  keyPos: [-46, 60, -58] as const,
   keyTarget: [6, 8, -150] as const,
-  keyIntensity: 6.5,
-  fill: "#9aa4a5",
-  sky: "#9ca6ae",
-  /* Aerial perspective. Distance must fall away into the dark, not bleach
-     into the sky colour — the sky value is a light source, not a fog value. */
-  /* Aerial perspective only reads as air if the haze is lighter than the
-     shadowed faces it sits in front of. Near-black fog does the opposite —
-     it subtracts light with distance and the midground turns to mud. */
-  aerial: "#3b464d",
-  aerialFar: "#242d33",
+  /* ACES filmic tone mapping desaturates toward white as radiance climbs —
+     the classic "everything looks washed out" symptom is almost always this,
+     not a colour problem. Total incident light (hemisphere + fill + key)
+     times exposure has to stay well inside the curve's true-colour range,
+     not its highlight rolloff. */
+  keyIntensity: 1.3,
+  /** Cool sky-bounce fill, so shadow faces read as "in shade" rather than
+   *  "unlit". */
+  fill: "#bcd7f2",
+  sky: "#8fd0f0",
+  /** A light, barely-there haze — atmosphere for scale, not a mood device
+   *  hiding the world in grey. */
+  aerial: "#cfe6f7",
+  aerialFar: "#a9d4ef",
 } as const;
 
 /** Motivated emissives only — Rule L1. Every glow has a source in the world. */
 export const EMISSIVE = {
-  baseline: "#777f7d",
-  interaction: "#7a918e",
-  reward: "#43665e",
-  phaseJoint: "#223530",
+  baseline: "#ffe9a8",
+  interaction: "#ffd35c",
+  reward: "#ffb703",
+  phaseJoint: "#5cd6c0",
 } as const;
 
 export const SURFACE = {
-  foundation: "#524e45",
-  constructed: "#63696a",
-  active: "#6d7476",
-  organic: "#4a5750",
-  ruined: "#2e2d26",
-  ground: "#12171a",
+  foundation: "#d8c9a3",
+  constructed: "#e7c98f",
+  active: "#f2d98a",
+  organic: "#7fb96a",
+  ruined: "#8a7d63",
+  /** Grass. Districts sit on their own coloured pads on top of this. Kept
+   *  more saturated than it should need to be: the ground plane's normal
+   *  points straight up, so a hemisphere light's *sky* term (near-white
+   *  here) dominates its shading almost entirely — the groundColor term
+   *  only lights undersides, not the ground itself — and that plus the warm
+   *  key light will wash out anything short of a genuinely deep, saturated
+   *  green. */
+  ground: "#2f9e2a",
 } as const;
 
 /** Interface layer. Reads over the world without becoming a dashboard. */
@@ -68,19 +78,6 @@ export const FAMILY_SURFACE: Record<MaterialFamily, string> = {
   ACTIVE: SURFACE.active,
   ORGANIC: SURFACE.organic,
   RUINED: SURFACE.ruined,
-};
-
-/**
- * Under the LANGUAGE lens the families separate by ecosystem. The shift stays
- * inside the approved palette — these are the same greys pushed toward the
- * warm or cool end, not new hues introduced for coding.
- */
-export const FAMILY_LENS_SURFACE: Record<MaterialFamily, string> = {
-  FOUNDATION: "#5c5346",
-  CONSTRUCTED: "#5b6a70",
-  ACTIVE: "#5f7370",
-  ORGANIC: "#4e6154",
-  RUINED: "#332f28",
 };
 
 export const FAMILY_ROUGHNESS: Record<MaterialFamily, number> = {

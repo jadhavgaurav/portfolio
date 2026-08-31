@@ -2,27 +2,25 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD, entities, type Entity } from "./telemetry";
 import { lineage } from "@/data/lineage";
-import { branch, conduit, crystal, fissure, limb, obelisk, ring, shard, slab, type Part } from "./shapes";
+import { barrel, conduit, crate, fissure, gem, limb, puff, ring, roof, slab, type Part } from "./shapes";
 
 /**
  * World geometry.
  *
  * Shape is chosen by what a work IS — Bible §07, identifiable by silhouette
- * before detail resolves. Material is chosen by role and state, and only
- * affects the surface. The two are deliberately separate: a dormant crystal
- * and a dormant obelisk are both weathered, and still tell you apart at
- * distance.
+ * before detail resolves — and now answered with objects a person recognises
+ * on sight instead of abstract sculpture:
  *
- *   ORIGIN     stepped plinth inside a broken ring — age, and a beginning
- *   RELIC      faceted crystal — singular, not merely large
- *   MONOLITH   turned obelisk with construction courses — endurance
- *   LANDMARK   cantilevered slabs — engineered, deliberate
- *   ORGANIC    recursive branching — relationships and ecosystems
- *   DORMANT    half-buried arc and a leaning mass — something that stopped
- *   FRAGMENT   angular shards — an experiment, abandoned early
+ *   ORIGIN     a small stepped shrine, capped with a gem — the beginning
+ *   RELIC      a grand tower with a glowing gem crown — singular, not merely large
+ *   MONOLITH   a banded tower with a banner — endurance, built to last
+ *   LANDMARK   a hut with a peaked roof — the ordinary, common case
+ *   ORGANIC    a trunk with clustered foliage — a tree, for things that grew
+ *   DORMANT    a leaning, cracked hut — something that stopped
+ *   FRAGMENT   a small pile of crates — an experiment, abandoned early
  *
- * Everything merges per material family, so the world stays a handful of
- * draw calls no matter how much vocabulary it uses.
+ * Everything merges per language into one draw call, same as before — only
+ * the vocabulary changed, not the reason it exists.
  */
 
 function shade(g: THREE.BufferGeometry, floor: number, ceiling: number, tint = 1) {
@@ -31,7 +29,7 @@ function shade(g: THREE.BufferGeometry, floor: number, ceiling: number, tint = 1
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
     const k = Math.min(1, Math.max(0, (y - floor) / Math.max(0.001, ceiling - floor)));
-    const v = (0.66 + Math.pow(k, 0.7) * 0.34) * tint;
+    const v = (0.72 + Math.pow(k, 0.7) * 0.34) * tint;
     colors[i * 3] = v;
     colors[i * 3 + 1] = v;
     colors[i * 3 + 2] = v;
@@ -54,118 +52,150 @@ function noiser(seed: string) {
 
 /* ── shape languages, by what the work is ────────────────────────────────── */
 
+/** ORIGIN: a small stepped shrine, everything else traces back to it. */
 function originShape(e: Entity, n: (i: number) => number): Part[] {
   const out: Part[] = [];
-  const steps = 4;
+  const steps = 3;
+  let y = 0;
   for (let i = 0; i < steps; i++) {
     const t = i / steps;
-    const w = e.mass * (2.6 - t * 1.6);
-    const h = e.height / steps;
-    out.push(slab(w, h, w * 0.82, n(i) * e.mass * 0.4, h * i + h / 2, n(i + 40) * e.mass * 0.3, e.rot + t * 0.16));
+    const r = e.mass * (1.25 - t * 0.55);
+    const h = (e.height / steps) * 0.42;
+    out.push(barrel(r, r * 0.88, h, n(i) * e.mass * 0.12, y + h / 2, n(i + 6) * e.mass * 0.12, 8, e.rot));
+    y += h;
   }
-  // A ring around it, broken and partly buried: everything traces back here.
-  out.push(ring(e.mass * 2.4, 0.5, 0, 0.4, 0, Math.PI * 1.45, Math.PI / 2, e.rot));
+  out.push(gem(e.mass * 0.5, 0, y + e.mass * 0.4, 0, e.rot * 1.7));
+  out.push(ring(e.mass * 1.9, 0.32, 0, 0.25, 0, Math.PI * 2, Math.PI / 2, e.rot));
   return out;
 }
 
+/** RELIC: the single most significant work — a grand tower, gem-crowned. */
 function relicShape(e: Entity, n: (i: number) => number): Part[] {
   const out: Part[] = [];
-  const cells = 7;
-  for (let i = 0; i < cells; i++) {
-    const t = i / cells;
-    const r = e.mass * (1.15 - t * 0.72);
+  const baseR = e.mass * 0.66;
+  const topR = baseR * 0.68;
+  const bodyH = e.height * 0.76;
+  out.push(barrel(baseR, topR, bodyH, 0, bodyH / 2, 0, 10, e.rot));
+  const bands = Math.max(2, Math.min(5, e.phases));
+  for (let i = 1; i < bands; i++) {
+    const t = i / bands;
+    const r = baseR + (topR - baseR) * t + 0.18;
+    out.push(ring(r, 0.14, 0, bodyH * t, 0, Math.PI * 2, Math.PI / 2, e.rot));
+  }
+  const roofH = e.height * 0.16;
+  out.push(roof(topR * 1.3, roofH, 0, bodyH + roofH / 2, 0, 10, e.rot));
+  out.push(gem(e.mass * 0.46, n(0) * e.mass * 0.06, bodyH + roofH + e.mass * 0.32, n(1) * e.mass * 0.06, e.rot * 1.4));
+  return out;
+}
+
+/** MONOLITH: long-lived and heavily committed — a banded tower, a banner. */
+function monolithShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const baseR = e.mass * 0.52;
+  const topR = baseR * 0.74;
+  const bodyH = e.height * 0.78;
+  out.push(barrel(baseR, topR, bodyH, 0, bodyH / 2, 0, 8, e.rot));
+  const bands = Math.max(2, Math.min(6, e.phases));
+  for (let i = 1; i < bands; i++) {
+    const t = i / bands;
+    const r = baseR + (topR - baseR) * t + 0.14;
+    out.push(ring(r, 0.1, 0, bodyH * t, 0, Math.PI * 2, Math.PI / 2, e.rot));
+  }
+  const roofH = e.height * 0.14;
+  out.push(roof(topR * 1.2, roofH, 0, bodyH + roofH / 2, 0, 8, e.rot));
+  // A banner, angled off the apex so it is not radially symmetric.
+  const bannerH = Math.max(2, e.height * 0.13);
+  out.push(
+    slab(
+      topR * 0.55,
+      bannerH,
+      0.14,
+      Math.sign(n(1) || 1) * topR * 0.5,
+      bodyH + roofH + bannerH / 2,
+      0,
+      e.rot,
+    ),
+  );
+  return out;
+}
+
+/** LANDMARK: the ordinary case — a hut with a peaked roof. */
+function landmarkShape(e: Entity, n: (i: number) => number): Part[] {
+  const out: Part[] = [];
+  const bodyW = e.mass * 1.3;
+  const bodyD = e.mass * 1.1;
+  const bodyH = e.height * 0.6;
+  out.push(slab(bodyW, bodyH, bodyD, 0, bodyH / 2, 0, e.rot));
+  const roofR = Math.max(bodyW, bodyD) * 0.76;
+  const roofH = e.height * 0.4;
+  out.push(roof(roofR, roofH, 0, bodyH + roofH / 2, 0, 4, e.rot + Math.PI / 4));
+  // A chimney or dormer, only on the more built-up ones — reads as character
+  // rather than noise on the many small huts.
+  if (e.phases > 2) {
     out.push(
-      crystal(
-        r,
-        n(i) * e.mass * 0.3,
-        e.height * t + r * 0.7,
-        n(i + 9) * e.mass * 0.3,
-        e.rot + t * 2.1,
-        t * 0.5,
+      slab(
+        bodyW * 0.16,
+        roofH * 0.9,
+        bodyW * 0.16,
+        Math.sign(n(2) || 1) * bodyW * 0.26,
+        bodyH + roofH * 0.62,
+        bodyD * 0.12,
+        e.rot,
       ),
     );
   }
-  // A shallow plinth so the crystal is set into the ground, not resting on it.
-  out.push(slab(e.mass * 2.5, 1.6, e.mass * 2.5, 0, 0.8, 0, e.rot));
   return out;
 }
 
-function monolithShape(e: Entity, n: (i: number) => number): Part[] {
-  const g = obelisk(e.mass * 0.92, e.mass * 0.3, e.height, Math.max(4, e.phases));
-  g.rotateY(e.rot);
-  const out: Part[] = [g];
-  // One buttress, so it is not radially symmetric from every approach.
-  out.push(
-    slab(e.mass * 0.5, e.height * 0.42, e.mass * 1.5, e.mass * 0.8 * Math.sign(n(1) || 1), e.height * 0.21, 0, e.rot),
-  );
-  return out;
-}
-
-function landmarkShape(e: Entity, n: (i: number) => number): Part[] {
-  const out: Part[] = [];
-  const ph = e.phases;
-  const unit = e.height / ph;
-  for (let i = 0; i < ph; i++) {
-    const t = i / ph;
-    const w = e.mass * (1.2 - t * 0.4);
-    // Alternating cantilever: each course overhangs the one below.
-    const off = n(i) * e.mass * 0.5;
-    out.push(slab(w, unit * 0.84, w * 0.7, off, unit * i + unit * 0.42, 0, e.rot + t * 0.1));
-    if (i < ph - 1) out.push(slab(w * 0.78, unit * 0.12, w * 0.55, off, unit * (i + 1), 0, e.rot));
-  }
-  return out;
-}
-
+/** ORGANIC: grown slowly rather than built — a tree, trunk and foliage. */
 function organicShape(e: Entity, n: (i: number) => number): Part[] {
   const out: Part[] = [];
-  const trunks = 3;
-  for (let i = 0; i < trunks; i++) {
-    const a = (i / trunks) * Math.PI * 2 + e.rot;
-    const r = e.mass * 0.42;
-    branch(
-      out,
-      Math.cos(a) * r,
-      0,
-      Math.sin(a) * r,
-      { ry: a, rz: n(i) * 0.12 },
-      e.height * 0.42,
-      e.mass * 0.2,
-      4,
-      n,
+  const trunkH = e.height * 0.5;
+  out.push(limb(e.mass * 0.24, e.mass * 0.16, trunkH, 0, 0, 0, e.rot, 0));
+  const clusters = 3 + (e.mass > 6 ? 1 : 0);
+  for (let i = 0; i < clusters; i++) {
+    const a = (i / clusters) * Math.PI * 2 + e.rot;
+    const r = e.mass * 0.3;
+    out.push(
+      puff(
+        e.mass * (0.5 - i * 0.04),
+        Math.cos(a) * r * 0.55,
+        trunkH + e.mass * 0.22 + n(i) * e.mass * 0.14,
+        Math.sin(a) * r * 0.55,
+        e.rot + i,
+      ),
     );
   }
-  out.push(ring(e.mass * 1.1, 0.4, 0, 0.35, 0, Math.PI * 2, Math.PI / 2, 0));
+  out.push(puff(e.mass * 0.6, 0, trunkH + e.mass * 0.42, 0, e.rot));
   return out;
 }
 
+/** DORMANT: stopped — a hut leaning off true, roof askew. */
 function dormantShape(e: Entity, n: (i: number) => number): Part[] {
   const out: Part[] = [];
-  const sink = e.height * (0.24 + e.erosion * 0.3);
-  const main = e.height - sink;
-  // A leaning mass, cut off where the work stopped.
-  out.push(
-    limb(e.mass * 0.78, e.mass * 0.5, main, 0, -sink * 0.2, 0, e.rot, n(3) * 0.14),
-  );
-  // The arc of something that was once complete, now partly in the ground.
-  out.push(ring(e.mass * 1.6, 0.45, 0, 0.3, 0, Math.PI * (0.7 + Math.abs(n(5)) * 0.5), Math.PI / 2, e.rot + 0.4));
-  out.push(shard(e.mass * 0.55, n(7) * e.mass, main * 0.3, n(9) * e.mass, e.rot, n(11) * 0.6));
+  const lean = 0.1 + Math.abs(n(3)) * 0.16;
+  const bodyW = e.mass * 1.18;
+  const bodyD = e.mass * 0.98;
+  const bodyH = e.height * 0.52;
+  out.push(slab(bodyW, bodyH, bodyD, 0, bodyH / 2, 0, e.rot, lean * Math.sign(n(4) || 1)));
+  const roofR = Math.max(bodyW, bodyD) * 0.72;
+  out.push(roof(roofR, e.height * 0.3, 0, bodyH + e.height * 0.15, 0, 4, e.rot + 0.5));
+  // A fallen support, leant against the wall.
+  out.push(limb(bodyW * 0.09, bodyW * 0.09, e.height * 0.46, bodyW * 0.56, 0, n(5) * bodyD * 0.2, e.rot, 0.55));
   return out;
 }
 
+/** FRAGMENT: abandoned early — a small loose pile of crates. */
 function fragmentShape(e: Entity, n: (i: number) => number): Part[] {
   const out: Part[] = [];
   const count = 3;
+  let y = 0;
   for (let i = 0; i < count; i++) {
-    out.push(
-      shard(
-        e.mass * (0.5 - i * 0.1),
-        n(i) * e.mass * 1.1,
-        e.height * (0.3 + i * 0.24),
-        n(i + 5) * e.mass * 1.1,
-        e.rot + i,
-        n(i + 12) * 0.9,
-      ),
-    );
+    const s = e.mass * (0.62 - i * 0.11);
+    const x = n(i) * e.mass * 0.5;
+    const z = n(i + 5) * e.mass * 0.5;
+    out.push(crate(s, x, y + s / 2, z, e.rot + i * 0.6));
+    y += s * 0.78;
   }
   return out;
 }
@@ -183,7 +213,7 @@ const SHAPE_BY_TYPE = {
 /* ── assembly ────────────────────────────────────────────────────────────── */
 
 function place(g: THREE.BufferGeometry, e: Entity) {
-  shade(g, -e.depth * 0.4, e.height, 1 - e.erosion * 0.34);
+  shade(g, -e.depth * 0.4, e.height, 1 - e.erosion * 0.28);
   g.translate(e.x, e.y, e.z);
   return g;
 }
@@ -233,12 +263,10 @@ export function buildWorld(): WorldGeometry {
     list.push(...parts);
     byFamily.set(e.language, list);
 
+    // A running system has a glow at its base. One ring, not one per phase —
+    // the phase count now drives roof dormers and tower bands instead.
     if (e.material === "ACTIVE") {
-      const unit = e.height / e.phases;
-      for (let i = 1; i < e.phases; i++) {
-        const w = e.mass * (1.2 - (i / e.phases) * 0.4);
-        seams.push(place(slab(w * 0.9, unit * 0.06, w * 0.66, n(i) * e.mass * 0.5, unit * i, 0, e.rot), e));
-      }
+      seams.push(place(ring(e.mass * 1.05, 0.09, 0, 0.12, 0, Math.PI * 2, Math.PI / 2, e.rot), e));
     }
   }
 

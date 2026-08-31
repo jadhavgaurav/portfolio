@@ -13,8 +13,8 @@
  * Three values per language, because a renderer needs three different things:
  *
  *   ui        the true hue, for interface, minimap and labels
- *   surface   the same hue two and a half stops down, because the renderer
- *             runs at an exposure of 3.3 and a face-value colour blows out
+ *   surface   the same hue, held for large-area fill — a light source hits
+ *             it and it visibly is that colour, not a hint of it
  *   emissive  what the seams, signage and district lights are lit with
  */
 
@@ -27,14 +27,14 @@ export interface LanguageStyle {
 }
 
 export const LANGUAGE_STYLE: Record<string, LanguageStyle> = {
-  Python: { ui: "#4B8BBE", surface: "#1b3448", emissive: "#2f6f9e", label: "Python" },
-  "Jupyter Notebook": { ui: "#DA5B0B", surface: "#4a2207", emissive: "#a8460c", label: "Notebooks" },
-  TypeScript: { ui: "#3178C6", surface: "#152c49", emissive: "#2a63a3", label: "TypeScript" },
-  JavaScript: { ui: "#F1E05A", surface: "#4a441a", emissive: "#b5a637", label: "JavaScript" },
-  Java: { ui: "#B07219", surface: "#3b2709", emissive: "#8a5813", label: "Java" },
-  PHP: { ui: "#7A86B8", surface: "#252a44", emissive: "#4f5a8c", label: "PHP" },
-  Dart: { ui: "#00B4AB", surface: "#053b38", emissive: "#00817a", label: "Dart" },
-  Other: { ui: "#8b979c", surface: "#2a3033", emissive: "#5a666b", label: "Other" },
+  Python: { ui: "#4B8BBE", surface: "#5B9BD3", emissive: "#7FC1F5", label: "Python" },
+  "Jupyter Notebook": { ui: "#DA5B0B", surface: "#F07C2E", emissive: "#FFA855", label: "Notebooks" },
+  TypeScript: { ui: "#3178C6", surface: "#4A8FDB", emissive: "#7BB3F0", label: "TypeScript" },
+  JavaScript: { ui: "#F1E05A", surface: "#F5DE6E", emissive: "#FFF0A0", label: "JavaScript" },
+  Java: { ui: "#B07219", surface: "#D69434", emissive: "#F5B559", label: "Java" },
+  PHP: { ui: "#7A86B8", surface: "#8F9BD1", emissive: "#B4BEEA", label: "PHP" },
+  Dart: { ui: "#00B4AB", surface: "#2CD1C6", emissive: "#6FEAE1", label: "Dart" },
+  Other: { ui: "#8b979c", surface: "#A3AFB4", emissive: "#C6D0D3", label: "Other" },
 };
 
 export const styleFor = (language: string): LanguageStyle =>

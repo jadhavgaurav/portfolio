@@ -154,3 +154,25 @@ export function getGroundDetailTexture(): THREE.CanvasTexture {
   groundDetail = tex;
   return tex;
 }
+
+let toonRamp: THREE.DataTexture | null = null;
+
+/** A four-step lighting ramp for MeshToonMaterial. Discrete bands are what
+ *  make a cel-shaded surface read as cel-shaded rather than as a standard
+ *  material with a cheap gradient — the eye is very good at noticing a smooth
+ *  falloff and very bad at questioning a clean step. */
+export function getToonRamp(): THREE.DataTexture {
+  if (toonRamp) return toonRamp;
+  const steps = new Uint8Array([
+    70, 70, 70, 255,
+    130, 130, 130, 255,
+    195, 195, 195, 255,
+    255, 255, 255, 255,
+  ]);
+  const tex = new THREE.DataTexture(steps, 4, 1, THREE.RGBAFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.needsUpdate = true;
+  toonRamp = tex;
+  return tex;
+}

@@ -49,7 +49,12 @@ export default function GameCanvas({
       }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 3.3;
+        // A near-neutral exposure, so every colour in the world is authored
+        // at the value it is meant to appear as. The old 3.3 forced every
+        // material to be stored "two and a half stops under" its real
+        // colour, which is exactly the kind of implicit coupling that goes
+        // silently wrong the moment any one material forgets the convention.
+        gl.toneMappingExposure = 1.0;
       }}
       camera={{ fov: 62, near: 0.3, far: 1400 }}
       frameloop="always"

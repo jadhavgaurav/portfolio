@@ -14,7 +14,7 @@ import { BEATS, type Phase } from "./sequence";
 import { DISTRICTS, districtCentre, styleFor } from "./language";
 import { Dust, Sky } from "./Atmosphere";
 import { applyTriplanarDetail } from "./triplanar";
-import { getGroundDetailTexture, getStructureDetailTexture } from "./textures";
+import { getGroundDetailTexture, getStructureDetailTexture, getToonRamp } from "./textures";
 import { entityById } from "./telemetry";
 import type { Lens } from "./discovery";
 
@@ -28,9 +28,27 @@ import type { Lens } from "./discovery";
 
 /** Atmosphere is the EMERGENCE mechanism: the world is revealed by the
  *  medium clearing, not by anything being built. */
+function fogTarget(phase: Phase, t: number): number {
+  // VOID and SIGNAL are opaque. EMERGENCE clears to the working density.
+  return phase === "VOID"
+    ? 0.32
+    : phase === "SIGNAL"
+      ? 0.19
+      : phase === "EMERGENCE"
+        ? 0.19 - t * 0.184
+        : 0.0018;
+}
+
 function Atmosphere({ phase, t }: { phase: Phase; t: number }) {
   const { scene } = useThree();
-  const fog = useMemo(() => new THREE.FogExp2(LIGHT.aerial, 0.09), []);
+  /* Starts at whatever this mount's phase already calls for, not at the old
+     cinematic's opening density. The live game renders phase="PLAYER" from
+     its very first frame, and a fog that opens at 0.09 and lerps toward a
+     0.0018 target over many frames means every frame before it catches up
+     renders under fifty-times too much fog — which used to read as a moody
+     dark haze and now, with a bright pale fog colour, reads as the whole
+     world washed to white for as long as that catch-up takes. */
+  const fog = useMemo(() => new THREE.FogExp2(LIGHT.aerial, fogTarget(phase, t)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useMemo(() => {
     scene.fog = fog;
@@ -38,9 +56,7 @@ function Atmosphere({ phase, t }: { phase: Phase; t: number }) {
   }, [scene, fog]);
 
   useFrame(() => {
-    // VOID and SIGNAL are opaque. EMERGENCE clears to the working density.
-    const target =
-      phase === "VOID" ? 0.32 : phase === "SIGNAL" ? 0.19 : phase === "EMERGENCE" ? 0.19 - t * 0.184 : 0.006;
+    const target = fogTarget(phase, t);
     fog.density += (target - fog.density) * 0.045;
     // The ground colour lifts a little as the medium clears, never to sky.
     const target2 = new THREE.Color(phase === "VOID" ? "#08090a" : LIGHT.aerialFar);
@@ -82,58 +98,69 @@ export function Scene({
     [],
   );
 
+  const toonRamp = useMemo(() => (typeof document === "undefined" ? null : getToonRamp()), []);
+
   const groundMaterial = useMemo(() => {
-    /* Matte, and not negotiable.
-       The IMPACT lens used to make the ground glossy as a reward, and every
-       lens is granted from the first frame now — so a 900-unit plane sat
-       permanently at roughness 0.74 and mirrored the key light into a blown
-       specular lobe the size of a district. A ground plane this large cannot
-       be shiny. */
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshToonMaterial({
       color: SURFACE.ground,
-      roughness: 0.96,
-      metalness: 0.02,
+      gradientMap: toonRamp,
     });
-    if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.055, 0.5);
+    if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.055, 0.42);
     return mat;
-  }, [groundDetail]);
+  }, [groundDetail, toonRamp]);
 
   const padMaterials = useMemo(() => {
-    const map = new Map<string, THREE.MeshStandardMaterial>();
+    const map = new Map<string, THREE.MeshToonMaterial>();
     for (const d of DISTRICTS) {
       const style = styleFor(d.language);
-      const mat = new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshToonMaterial({
         color: style.surface,
         emissive: style.emissive,
-        emissiveIntensity: 0.22,
-        roughness: 0.88,
-        metalness: 0.05,
+        emissiveIntensity: 0.18,
+        gradientMap: toonRamp,
       });
-      if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.09, 0.42);
+      if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.09, 0.3);
       map.set(d.language, mat);
     }
     return map;
-  }, [groundDetail]);
+  }, [groundDetail, toonRamp]);
 
   const familyMaterials = useMemo(() => {
-    const map = new Map<string, THREE.MeshStandardMaterial>();
+    const map = new Map<string, THREE.MeshToonMaterial>();
     for (const { family } of world.families) {
       const style = styleFor(family);
-      const mat = new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshToonMaterial({
         color: style.surface,
         emissive: style.emissive,
-        emissiveIntensity: 0.055,
-        roughness: 0.66,
-        metalness: 0.18,
+        emissiveIntensity: 0.1,
         vertexColors: true,
+        gradientMap: toonRamp,
       });
-      if (structureDetail) applyTriplanarDetail(mat, structureDetail, 0.34, 0.85);
+      // A bright rim so every silhouette edge reads a cel-shaded outline —
+      // the thing that most reads as "toon" rather than "matte plastic".
+      if (structureDetail) {
+        applyTriplanarDetail(mat, structureDetail, 0.34, 0.55, {
+          color: "#ffffff",
+          strength: 0.3,
+        });
+      }
       map.set(family, mat);
     }
     return map;
-  }, [world.families, structureDetail]);
+  }, [world.families, structureDetail, toonRamp]);
+
+  /** The core's own stone — not any one district's colour, since it belongs
+   *  to none of them and all of them. */
+  const coreMaterial = useMemo(() => {
+    const mat = new THREE.MeshToonMaterial({ color: SURFACE.constructed, gradientMap: toonRamp });
+    if (structureDetail) {
+      applyTriplanarDetail(mat, structureDetail, 0.28, 0.5, { color: "#ffffff", strength: 0.3 });
+    }
+    return mat;
+  }, [structureDetail, toonRamp]);
   const seamRef = useRef<THREE.MeshStandardMaterial>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
+  const coreGemRef = useRef<THREE.Mesh>(null);
   const target = useMemo(() => {
     const o = new THREE.Object3D();
     o.position.set(...LIGHT.keyTarget);
@@ -153,6 +180,10 @@ export function Scene({
       const base = phase === "VOID" ? 0 : 1;
       seamRef.current.emissiveIntensity = base * (1.5 + Math.sin(time * 0.9) * 0.35);
     }
+    if (coreGemRef.current) {
+      coreGemRef.current.rotation.y = time * 0.4;
+      coreGemRef.current.position.y = 22 + Math.sin(time * 0.8) * 0.6;
+    }
     if (keyRef.current) {
       // The key light arrives with the world.
       const want = phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.5 : LIGHT.keyIntensity;
@@ -166,24 +197,26 @@ export function Scene({
       <Sky phase={phase} />
       {quality === "high" && <Dust quality={quality} />}
 
-      {/* Lighting, per the approved Study 12: one dominant raking key,
-          a cool hemisphere fill, nothing else. */}
-      <hemisphereLight args={["#93a7b1", "#2b3236", 2.0]} />
-      {/* A low, cool counter-light so silhouettes separate from the aerial
-          haze without softening the key. */}
-      <directionalLight color={LIGHT.fill} intensity={1.1} position={[52, 16, 70]} />
+      {/* Lighting: one dominant warm key, a bright sky/ground hemisphere so
+          shadow faces read as "in shade" rather than "unlit", and a soft
+          cool fill so silhouettes separate without fighting the key. */}
+      <hemisphereLight args={["#dff3ff", "#bfe0a0", 0.65]} />
+      <directionalLight color={LIGHT.fill} intensity={0.3} position={[52, 16, 70]} />
       <primitive object={target} />
       <directionalLight
         ref={keyRef}
         color={LIGHT.key}
-        intensity={0}
+        // Starts at this mount's resting intensity — see the matching note
+        // on Sky's uOpacity for why starting at 0 and ramping per-frame is
+        // the wrong default now that the live game never actually opens on
+        // phase="VOID".
+        intensity={phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.5 : LIGHT.keyIntensity}
         position={LIGHT.keyPos as unknown as [number, number, number]}
         target={target}
       />
 
-      {/* Ground. Dark and matte, so structures read by silhouette first.
-          IMPACT gives it a sheen, which is how shipped work starts casting
-          onto the ground around it. */}
+      {/* Ground. Grass, so structures stand somewhere rather than on a
+          drafting-table plane. */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, -WORLD.depth / 2]}
@@ -215,14 +248,7 @@ export function Scene({
             {/* The rim, which is what actually reads at distance. */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.09, cz]}>
               <ringGeometry args={[d.spread + 13.4, d.spread + 16, 44]} />
-              <meshStandardMaterial
-                color={style.surface}
-                emissive={style.emissive}
-                /* A drawn line, not a light source. At 1.5 the bloom turned
-                   the rim into a blown band that lit the player from below. */
-                emissiveIntensity={0.42}
-                roughness={0.4}
-              />
+              <meshBasicMaterial color={style.emissive} toneMapped={false} />
             </mesh>
             {/* A path back to the hub.
                 The bearing has to be applied about Y and the flat-to-ground
@@ -233,23 +259,21 @@ export function Scene({
                 the air rather than as a road. */}
             <group rotation={[0, -Math.atan2(cx, -cz), 0]} position={[cx / 2, 0.06, cz / 2]}>
               <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <planeGeometry args={[4.2, len]} />
-                <meshStandardMaterial
-                  color={style.surface}
-                  emissive={style.emissive}
-                  emissiveIntensity={0.42}
-                  roughness={0.7}
-                />
+                <planeGeometry args={[4.4, len]} />
+                <meshToonMaterial color={style.surface} gradientMap={toonRamp} />
+              </mesh>
+              {/* A bright wayfinding centerline — the thing that makes a
+                  path read as "walk this way" rather than as tinted ground. */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+                <planeGeometry args={[0.5, len]} />
+                <meshBasicMaterial color={style.emissive} toneMapped={false} />
               </mesh>
             </group>
             {/* One lamp per district, so each has its own colour of light. */}
-            {/* Raised and dimmed. At 26 units up and 210 candela the pool
-                directly beneath each lamp blew past the bloom threshold and
-                burned a white hole in the ground. */}
             <pointLight
               position={[cx, 44, cz]}
               color={style.emissive}
-              intensity={62}
+              intensity={28}
               distance={d.spread + 96}
               decay={2}
             />
@@ -338,7 +362,7 @@ export function Scene({
       <pointLight
         position={[signal.x, signal.height + 3, signal.z]}
         color={EMISSIVE.interaction}
-        intensity={phase === "VOID" ? 0 : phase === "SIGNAL" ? 90 : 26}
+        intensity={phase === "VOID" ? 0 : phase === "SIGNAL" ? 90 : 40}
         distance={140}
         decay={2}
       />
@@ -348,40 +372,56 @@ export function Scene({
       <pointLight
         position={[relicEntity.x, relicEntity.height * 0.62, relicEntity.z]}
         color={EMISSIVE.reward}
-        intensity={phase === "PLAYER" ? 55 : 0}
+        intensity={phase === "PLAYER" ? 70 : 0}
         distance={72}
         decay={2}
       />
 
-      {/* CORE: the synthesis, beyond the last work. A consequence of the world. */}
-      <mesh position={[core.x, core.y, core.z]} rotation={[0, Math.PI / 4, Math.PI / 4]}>
-        <octahedronGeometry args={[9, 0]} />
-        <meshStandardMaterial
-          color={SURFACE.constructed}
-          emissive={EMISSIVE.reward}
-          /* Every lens is granted from the first frame now, so this was
-             permanently at 3.2 — an eighteen-unit emissive object standing at
-             the hub the player spawns beside, bloomed into a white field
-             across a third of the screen. It is a landmark, not a lamp. */
-          emissiveIntensity={0.55}
-          roughness={0.3}
-          metalness={0.6}
-          flatShading
-        />
-      </mesh>
-      {/* The core's lamp.
-          It was tuned for a core approached from four hundred units away at
-          the end of a corridor. The core is the hub the districts ring now,
-          which put a 320-intensity point light where the player spawns and
-          washed the whole frame to white. Lifted, dimmed, and pulled in so it
-          lights the hub rather than the world. */}
-      <pointLight
-        position={[core.x, core.y + 30, core.z]}
-        color={EMISSIVE.reward}
-        intensity={24}
-        distance={62}
-        decay={2}
-      />
+      {/* CORE: the synthesis, at the hub every district rings. A small
+          hand-built gazebo rather than one abstract gem, so the one place in
+          the world with no repository behind it still reads as a place —
+          a plinth, a ring of pillars, a roof, and the same reward-coloured
+          gem it always had, now floating above a building instead of being
+          the only thing there. */}
+      <group position={[core.x, 0, core.z]}>
+        <mesh position={[0, 1, 0]} material={coreMaterial}>
+          <cylinderGeometry args={[10, 11, 2, 12]} />
+        </mesh>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const a = (i / 6) * Math.PI * 2;
+          const r = 8;
+          return (
+            <mesh
+              key={i}
+              position={[Math.cos(a) * r, 7, Math.sin(a) * r]}
+              material={coreMaterial}
+            >
+              <cylinderGeometry args={[0.6, 0.7, 10, 8]} />
+            </mesh>
+          );
+        })}
+        <mesh position={[0, 15, 0]}>
+          <coneGeometry args={[11.5, 6, 12]} />
+          <meshToonMaterial
+            color={SURFACE.constructed}
+            emissive={EMISSIVE.reward}
+            emissiveIntensity={0.12}
+            gradientMap={toonRamp}
+          />
+        </mesh>
+        <mesh ref={coreGemRef} position={[0, 22, 0]} rotation={[0, Math.PI / 4, Math.PI / 4]}>
+          <octahedronGeometry args={[3.4, 0]} />
+          <meshStandardMaterial
+            color={SURFACE.constructed}
+            emissive={EMISSIVE.reward}
+            emissiveIntensity={1.1}
+            roughness={0.25}
+            metalness={0.5}
+            flatShading
+          />
+        </mesh>
+        <pointLight position={[0, 26, 0]} color={EMISSIVE.reward} intensity={55} distance={70} decay={2} />
+      </group>
     </>
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { INTERACTABLES, type Interactable } from "./interactables";
 import { DISTRICTS, districtCentre, styleFor } from "./language";
+import { collect as collectSfx } from "@/audio/engine";
 
 /**
  * Markers and signage.
@@ -64,7 +65,7 @@ const KIND_COLOR: Record<Interactable["kind"], string> = {
   PROJECT: "#f2b544",
   WORK: "#e8834a",
   CERT: "#7fd1c4",
-  REPO: "#7d9aa6",
+  REPO: "#f2c94c",
 };
 
 /** Plain repositories get a smaller, dimmer mark: there are thirty-odd of
@@ -89,18 +90,28 @@ export function Markers({
   const group = useRef<THREE.Group>(null);
   const seen = useMemo(() => new Set(visited), [visited]);
 
-  const geo = useMemo(() => new THREE.OctahedronGeometry(0.62, 0), []);
+  /* A coin for the forty-two repositories, a star for the seven
+     certifications, and a gem for everything singular — the core, the
+     eleven case studies, the two employers. One shared shape read as
+     decoration; different shapes read as different kinds of thing to find,
+     which is what the log's four categories actually are. */
+  const geoByKind = useMemo<Record<Interactable["kind"], THREE.BufferGeometry>>(
+    () => ({
+      REPO: new THREE.CylinderGeometry(0.5, 0.5, 0.14, 14),
+      CERT: new THREE.TetrahedronGeometry(0.56, 0),
+      PROJECT: new THREE.OctahedronGeometry(0.62, 0),
+      WORK: new THREE.OctahedronGeometry(0.62, 0),
+      CORE: new THREE.OctahedronGeometry(0.62, 0),
+    }),
+    [],
+  );
   const materials = useMemo(() => {
     const out: Record<string, THREE.MeshStandardMaterial> = {};
     for (const [kind, color] of Object.entries(KIND_COLOR)) {
       out[kind] = new THREE.MeshStandardMaterial({
         color,
         emissive: color,
-        /* Everything in this scene is graded at an exposure of 3.3 and then
-           bloomed. At 1.5 a marker was not a marker, it was a light source —
-           the core's read as a blown white lozenge filling a third of the
-           frame. */
-        emissiveIntensity: 0.5,
+        emissiveIntensity: 1.1,
         roughness: 0.3,
       });
     }
@@ -121,7 +132,51 @@ export function Markers({
       const s = (KIND_SCALE[kind as Interactable["kind"]] ?? 1) * (active ? 1.45 : 1);
       child.scale.setScalar(s);
       const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-      m.emissiveIntensity = seen.has(id) ? 0.16 : active ? 1.05 : 0.5;
+      m.emissiveIntensity = seen.has(id) ? 0.35 : active ? 1.9 : 1.1;
+    }
+  });
+
+  /* A coin, badge or star picked up plays a stinger and a brief expanding
+     ring at the spot it was standing — the moment "visited" happens, not
+     just the fact that it eventually did. */
+  const [bursts, setBursts] = useState<{ id: string; x: number; y: number; z: number; born: number }[]>([]);
+  const prevVisited = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const now = performance.now();
+    const fresh: typeof bursts = [];
+    for (const id of visited) {
+      if (prevVisited.current.has(id)) continue;
+      const it = INTERACTABLES.find((x) => x.id === id);
+      if (!it) continue;
+      fresh.push({ id, x: it.x, y: it.y, z: it.z, born: now });
+    }
+    prevVisited.current = new Set(visited);
+    if (fresh.length) {
+      collectSfx();
+      setBursts((b) => [...b, ...fresh]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visited]);
+
+  const burstRefs = useRef(new Map<string, THREE.Mesh>());
+
+  useFrame(() => {
+    const now = performance.now();
+    let expired = false;
+    for (const b of bursts) {
+      const mesh = burstRefs.current.get(b.id);
+      const age = (now - b.born) / 550;
+      if (mesh) {
+        const s = 0.4 + age * 3.2;
+        mesh.scale.setScalar(s);
+        (mesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1 - age);
+      }
+      if (age >= 1) expired = true;
+    }
+    if (expired) {
+      const cutoff = now - 600;
+      setBursts((b) => b.filter((x) => x.born > cutoff));
     }
   });
 
@@ -131,13 +186,28 @@ export function Markers({
         {INTERACTABLES.map((it, i) => (
           <mesh
             key={it.id}
-            geometry={geo}
+            geometry={geoByKind[it.kind]}
             material={materials[it.kind]}
             position={[it.x, it.y, it.z]}
             userData={{ kind: it.kind, id: it.id, baseY: it.y, phase: i * 1.7 }}
           />
         ))}
       </group>
+
+      {bursts.map((b) => (
+        <mesh
+          key={b.id}
+          ref={(m) => {
+            if (m) burstRefs.current.set(b.id, m);
+            else burstRefs.current.delete(b.id);
+          }}
+          position={[b.x, b.y, b.z]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <ringGeometry args={[0.5, 0.68, 20]} />
+          <meshBasicMaterial color="#ffd35c" transparent opacity={1} toneMapped={false} depthWrite={false} />
+        </mesh>
+      ))}
 
       {/* District signage. Placed at the near edge of each pad, facing the
           core, so you read it on the way in. */}

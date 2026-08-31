@@ -3,11 +3,15 @@ import * as THREE from "three";
 /**
  * Primitive vocabulary.
  *
- * The first pass built every structure out of stacked boxes, which collapsed
- * five material families into one silhouette and broke Bible §07: important
- * locations must be identifiable by shape before any detail resolves. These
- * are the forms that replace it — crystal, obelisk, branch, ring, shard,
- * arc, fissure — each with a different profile against the horizon.
+ * The previous pass built every structure out of abstract forms — crystals,
+ * obelisks, branching limbs — chosen so five material families would never
+ * collapse into one silhouette. That succeeded on its own terms and still
+ * read as a sculpture garden rather than a place: nothing here had a roof, a
+ * door, a trunk, or anything else a person recognises on sight as a building
+ * or a tree. These are the forms that replace it — a hut, a tower, a shrine,
+ * a tree built from a trunk and foliage, a crate — chosen so every structure
+ * is nameable before any label is read, the way Bible §07 always asked for,
+ * just answered with legible objects instead of abstract ones.
  */
 
 export type Part = THREE.BufferGeometry;
@@ -39,28 +43,36 @@ export const slab = (
   rz = 0,
 ) => place(new THREE.BoxGeometry(w, h, d), x, y, z, ry, rz);
 
-/** Faceted crystal. Used where a work is singular rather than merely large. */
-export const crystal = (r: number, x: number, y: number, z: number, ry = 0, rz = 0) =>
+/** A peaked or hipped roof — a low-sided cone/pyramid sat on a body. Four
+ *  sides reads as a hip roof, more as a cone. */
+export const roof = (r: number, h: number, x: number, y: number, z: number, sides = 4, ry = 0) =>
+  place(new THREE.ConeGeometry(r, h, sides), x, y, z, ry);
+
+/** A tapered cylindrical body — a tower or a silo. */
+export const barrel = (
+  baseR: number,
+  topR: number,
+  h: number,
+  x: number,
+  y: number,
+  z: number,
+  sides = 8,
+  ry = 0,
+) => place(new THREE.CylinderGeometry(topR, baseR, h, sides), x, y, z, ry);
+
+/** A gem. Used sparingly — the thing that says "this is the one that matters". */
+export const gem = (r: number, x: number, y: number, z: number, ry = 0, rz = 0) =>
   place(new THREE.IcosahedronGeometry(r, 0), x, y, z, ry, rz);
 
-/** Angular splinter. Fragments and rubble read as shards, never small boxes. */
-export const shard = (r: number, x: number, y: number, z: number, ry = 0, rz = 0) =>
-  place(new THREE.TetrahedronGeometry(r, 0), x, y, z, ry, rz);
+/** Foliage — a squashed, jittered puff. Trees are built from several of these
+ *  clustered around a trunk. */
+export const puff = (r: number, x: number, y: number, z: number, ry = 0) => {
+  const g = new THREE.IcosahedronGeometry(r, 1);
+  g.scale(1, 0.78, 1);
+  return place(g, x, y, z, ry);
+};
 
-/** A tapered obelisk turned from a profile — no stacking, one continuous mass. */
-export function obelisk(baseR: number, topR: number, h: number, bands = 5): Part {
-  const pts: THREE.Vector2[] = [];
-  for (let i = 0; i <= bands; i++) {
-    const t = i / bands;
-    const r = baseR + (topR - baseR) * Math.pow(t, 0.72);
-    // A slight step at each band reads as a construction course.
-    pts.push(new THREE.Vector2(r, t * h));
-    if (i < bands) pts.push(new THREE.Vector2(r * 0.94, (t + 1 / bands) * h * 0.999));
-  }
-  return new THREE.LatheGeometry(pts, 6);
-}
-
-/** Half-buried ring. Age, and something that was once whole. */
+/** A ring or halo. Kept for shrine bases and the core's crown. */
 export const ring = (
   R: number,
   tube: number,
@@ -72,7 +84,7 @@ export const ring = (
   ry = 0,
 ) => place(new THREE.TorusGeometry(R, tube, 5, 18, arc), x, y, z, ry, 0, rx);
 
-/** A limb. Branching growth is built from these, recursively. */
+/** A trunk, or any tapered branch/post. */
 export const limb = (
   r0: number,
   r1: number,
@@ -83,55 +95,14 @@ export const limb = (
   ry: number,
   rz: number,
 ) => {
-  const g = new THREE.CylinderGeometry(r1, r0, len, 5, 1, true);
+  const g = new THREE.CylinderGeometry(r1, r0, len, 6, 1);
   g.translate(0, len / 2, 0);
   return place(g, x, y, z, ry, rz);
 };
 
-/**
- * Recursive branching. Organic computational growth — Bible §05 — is the one
- * family that must not be rectilinear, because it stands for relationships
- * and ecosystems rather than construction.
- */
-export function branch(
-  out: Part[],
-  x: number,
-  y: number,
-  z: number,
-  dir: { ry: number; rz: number },
-  len: number,
-  r: number,
-  depth: number,
-  seed: (n: number) => number,
-) {
-  if (depth <= 0 || len < 0.9) return;
-  const r1 = r * 0.68;
-  out.push(limb(r, r1, len, x, y, z, dir.ry, dir.rz));
-
-  // Advance to the tip of the limb we just placed.
-  const tip = new THREE.Vector3(0, len, 0)
-    .applyEuler(new THREE.Euler(0, dir.ry, dir.rz))
-    .add(new THREE.Vector3(x, y, z));
-
-  const forks = depth > 2 ? 3 : 2;
-  for (let i = 0; i < forks; i++) {
-    const s = seed(depth * 10 + i);
-    branch(
-      out,
-      tip.x,
-      tip.y,
-      tip.z,
-      {
-        ry: dir.ry + s * 1.5 + (i - (forks - 1) / 2) * 0.8,
-        rz: dir.rz + (0.24 + Math.abs(s) * 0.42) * (i % 2 ? 1 : -1),
-      },
-      len * (0.66 + Math.abs(s) * 0.12),
-      r1,
-      depth - 1,
-      seed,
-    );
-  }
-}
+/** A crate. Small, stackable, reads as unfinished or abandoned in a pile. */
+export const crate = (s: number, x: number, y: number, z: number, ry = 0) =>
+  place(new THREE.BoxGeometry(s, s, s), x, y, z, ry);
 
 /** A tube following a path. Relationships are drawn, not implied. */
 export function conduit(points: THREE.Vector3[], radius: number): Part {

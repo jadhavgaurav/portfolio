@@ -195,6 +195,14 @@ export function districtEnter(language: string) {
   tone({ freq: f * 1.5, duration: 1.2, gain: 0.03, type: "sine", detune: 4 });
 }
 
+/** A coin, badge, or star, picked up in the world — separate from
+ *  interactOpen() because opening a panel and collecting the marker above a
+ *  structure are two different events and happen on different triggers. */
+export function collect() {
+  tone({ freq: 880, duration: 0.09, gain: 0.11, type: "triangle" });
+  tone({ freq: 1318.5, duration: 0.16, gain: 0.09, type: "triangle", detune: 3 });
+}
+
 export function coreArrival() {
   [261.6, 329.6, 392, 523.2].forEach((f, i) => {
     tone({ freq: f, duration: 1.6, gain: 0.05, type: "sine", detune: i * 2 });
