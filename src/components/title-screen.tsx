@@ -34,7 +34,13 @@ export function TitleScreen({
           "radial-gradient(120% 90% at 50% 8%, #16222a 0%, #0d1316 46%, #07090a 100%)",
       }}
     >
-      <div className="mx-auto flex min-h-full max-w-[46rem] flex-col justify-center px-6 py-14">
+      {/* A landmark, so the title screen's content is not loose in the
+          accessibility tree. Not <main>: the written record already holds
+          that role in the same document. */}
+      <section
+        aria-label="NULL — a world generated from a commit history"
+        className="mx-auto flex min-h-full max-w-[46rem] flex-col justify-center px-6 py-14"
+      >
         {/* The mark. Ten logo files shipped in this repository and had never
             been put on screen once. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -147,7 +153,7 @@ export function TitleScreen({
             ))}
           </dl>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

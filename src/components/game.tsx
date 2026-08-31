@@ -12,6 +12,8 @@ import { WorldMap } from "./world-map";
 import { TitleScreen } from "./title-screen";
 import { InteractPanel } from "./interact-panel";
 import { nearestInteractable, type Interactable } from "@/world/interactables";
+import { Compass } from "./compass";
+import type { Waypoint } from "@/world/mapdata";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -70,6 +72,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [near, setNear] = useState<Interactable | null>(null);
   const [open, setOpen] = useState<Interactable | null>(null);
   const [visited, setVisited] = useState<string[]>([]);
+  const [waypoint, setWaypoint] = useState<Waypoint | null>(null);
 
   const input = useRef<Input>(makeInput());
   const state = useRef<PlayerState>({
@@ -133,6 +136,11 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       const hz = -Math.cos(s.yaw);
       const hit = nearestInteractable(s.position.x, s.position.z, hx, hz);
       setNear((prev) => (prev?.id === hit?.id ? prev : hit));
+      // Arriving clears the marker. A waypoint you have reached and that is
+      // still on the compass is just clutter.
+      setWaypoint((w) =>
+        w && Math.hypot(w.x - s.position.x, w.z - s.position.z) < 12 ? null : w,
+      );
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -225,11 +233,26 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       {playing && touch && <Joystick input={input} />}
 
       {mode === "PLAYING" && !reading && (
-        <Minimap state={state} onOpenMap={() => setMapOpen(true)} />
+        <>
+          <Compass state={state} waypoint={waypoint} />
+          <Minimap
+            state={state}
+            onOpenMap={() => setMapOpen(true)}
+            waypoint={waypoint}
+            visited={visited}
+          />
+        </>
       )}
 
       {mapOpen && (
-        <WorldMap state={state} onClose={() => setMapOpen(false)} onTravel={travelTo} />
+        <WorldMap
+          state={state}
+          onClose={() => setMapOpen(false)}
+          onTravel={travelTo}
+          waypoint={waypoint}
+          onWaypoint={setWaypoint}
+          visited={visited}
+        />
       )}
 
       {open && <InteractPanel target={open} onClose={() => setOpen(null)} />}

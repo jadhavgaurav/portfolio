@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { DISTRICTS, districtCentre, styleFor } from "@/world/language";
-import { entities } from "@/world/telemetry";
+import { FOOTPRINTS, POIS, type Waypoint } from "@/world/mapdata";
 import type { PlayerState } from "@/world/Player";
 
 /**
@@ -27,10 +27,19 @@ const PAD = 6;
 export function Minimap({
   state,
   onOpenMap,
+  waypoint,
+  visited,
 }: {
   state: React.MutableRefObject<PlayerState>;
   onOpenMap: () => void;
+  waypoint: Waypoint | null;
+  visited: string[];
 }) {
+  /* Read through refs so the draw loop never depends on a React render. */
+  const wp = useRef<Waypoint | null>(waypoint);
+  wp.current = waypoint;
+  const seen = useRef<Set<string>>(new Set(visited));
+  seen.current = new Set(visited);
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -96,20 +105,87 @@ export function Minimap({
         ctx.stroke();
       }
 
-      // Structures. Size by footprint so the big ones are findable.
-      for (const e of entities) {
-        const style = styleFor(e.language);
-        ctx.beginPath();
-        ctx.arc((e.x - px) * k, (e.z - pz) * k, Math.max(1.3, e.mass * k * 1.5), 0, Math.PI * 2);
-        ctx.fillStyle = style.ui;
-        ctx.fill();
+      // Buildings, as footprints rather than dots — the same shapes the full
+      // map draws, so the two read as one place.
+      for (const f of FOOTPRINTS) {
+        ctx.save();
+        ctx.translate((f.x - px) * k, (f.z - pz) * k);
+        ctx.rotate(f.rot);
+        ctx.fillStyle = f.color;
+        ctx.globalAlpha = seen.current.has(`repo:${f.id}`) ? 1 : 0.55;
+        const w = Math.max(1.6, f.w * k);
+        const h = Math.max(1.2, f.h * k);
+        ctx.fillRect(-w, -h, w * 2, h * 2);
+        ctx.restore();
       }
+      ctx.globalAlpha = 1;
+
+      // Points of interest, so a case study is findable without the full map.
+      for (const p of POIS) {
+        const x = (p.x - px) * k;
+        const y = (p.z - pz) * k;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle =
+          p.kind === "PROJECT"
+            ? "#f2b544"
+            : p.kind === "WORK"
+              ? "#e8834a"
+              : p.kind === "CERT"
+                ? "#7fd1c4"
+                : "#8cbcae";
+        ctx.globalAlpha = seen.current.has(p.id) ? 0.45 : 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(4, 0);
+        ctx.lineTo(0, 4);
+        ctx.lineTo(-4, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
 
       // The hub.
       ctx.beginPath();
       ctx.arc((0 - px) * k, (0 - pz) * k, 4.5, 0, Math.PI * 2);
       ctx.fillStyle = "#8cbcae";
       ctx.fill();
+
+      // The waypoint. Inside the map it is drawn in place; outside it is
+      // pinned to the rim on its own bearing, because a marker that simply
+      // disappears once you walk past it is worse than none.
+      const w = wp.current;
+      if (w) {
+        const wx = (w.x - px) * k;
+        const wy = (w.z - pz) * k;
+        const d = Math.hypot(wx, wy);
+        ctx.fillStyle = "#8cbcae";
+        ctx.strokeStyle = "#8cbcae";
+        ctx.lineWidth = 1.6;
+        if (d < r - 8) {
+          ctx.beginPath();
+          ctx.arc(wx, wy, 5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(wx, wy, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          const a = Math.atan2(wy, wx);
+          const ex = Math.cos(a) * (r - 9);
+          const ey = Math.sin(a) * (r - 9);
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.rotate(a + Math.PI / 2);
+          ctx.beginPath();
+          ctx.moveTo(0, -5);
+          ctx.lineTo(4, 4);
+          ctx.lineTo(-4, 4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
 
       ctx.restore();
 
