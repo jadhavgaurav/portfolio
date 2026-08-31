@@ -27,7 +27,7 @@ const mono = JetBrains_Mono({
    what the link says when someone shares it. */
 const title = "NULL — Gaurav Vijay Jadhav";
 const description =
-  "A world generated from a real commit history: forty repositories, four hundred and thirty-three commits, walked first commit to last. Every structure is a repository, its mass is its commit count, its decay is the time since it was last touched.";
+  "A world generated from a real commit history: forty-two repositories, four hundred and thirty-seven commits, walked first commit to last. Every structure is a repository, its mass is its commit count, its decay is the time since it was last touched.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://iamgaurav.online"),

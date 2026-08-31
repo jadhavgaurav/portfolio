@@ -23,7 +23,7 @@ export const subject = {
 export const finding = {
   headline: "He builds systems that are required to justify themselves.",
   body: [
-    "Across three years and forty repositories the subject returns, without apparent prompting, to a single structural preoccupation: a system should be able to account for what it did.",
+    "Across three years and forty-two repositories the subject returns, without apparent prompting, to a single structural preoccupation: a system should be able to account for what it did.",
     "It shows up first as explainability — a classifier that must produce a reason alongside a prediction. It becomes reproducibility — a training run that can be re-executed from versioned data. It becomes governance — an agent that will not take a high-risk action without asking a human, and that writes down every step it took. Most recently it becomes method itself — a game whose visual decisions must pass written rules and be recorded as approved before any of them may be implemented.",
     "Almost nothing survives the period intact — not the language, not the domain, not the tools, not even the kind of thing being built. The disposition does.",
   ],
@@ -87,8 +87,8 @@ export interface Measure {
 }
 
 export const measures: Measure[] = [
-  { value: "40", label: "repositories with authored commits", note: "Public and private, excluding forks." },
-  { value: "433", label: "commits attributable to the subject", note: "Default branches only; the true figure is higher." },
+  { value: "42", label: "repositories with authored commits", note: "Public and private, excluding forks." },
+  { value: "437", label: "commits attributable to the subject", note: "Default branches only; the true figure is higher." },
   { value: "39", label: "months from first commit to last", note: "2023-05-27 to 2026-08-29, unevenly." },
   { value: "1", label: "peer-reviewed publication", note: "IJREAM, April 2024, with DOI." },
 ];

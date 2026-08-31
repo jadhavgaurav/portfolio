@@ -25,6 +25,8 @@ export const lanes: Lane[] = [
   { r: "android-music-player", d: [32, 32, 32, 32] },
   { r: "Algorithm-Visualizer", d: [32, 32, 32, 32, 302, 443] },
   { r: "Bricks-Breaker", d: [52, 85] },
+  { r: "Alpha-Practice", d: [84, 84, 84] },
+  { r: "Tic-Tac-Toe", d: [84] },
   { r: "Elevator-Project-java", d: [103, 104, 104, 105] },
   { r: "E-Voting-using-Blockchain-and-Face-Recognition", d: [372] },
   { r: "Cricket-WorldCup-Analysis", d: [467] },

@@ -7,7 +7,7 @@ import { DISTRICTS, districtCentre } from "./language";
 /**
  * Things you can walk up to.
  *
- * The world was navigable and empty: forty structures, none of which did
+ * The world was navigable and empty: forty-plus structures, none of which did
  * anything, while the record's actual content — eleven case studies, seven
  * certifications, the employment — sat in data files nothing rendered. This
  * is the layer that puts the content where the player is.
