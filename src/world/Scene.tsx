@@ -13,6 +13,8 @@ import { WORLD, core, entities } from "./telemetry";
 import { BEATS, type Phase } from "./sequence";
 import { DISTRICTS, districtCentre, styleFor } from "./language";
 import { Dust, Sky } from "./Atmosphere";
+import { applyTriplanarDetail } from "./triplanar";
+import { getGroundDetailTexture, getStructureDetailTexture } from "./textures";
 import { entityById } from "./telemetry";
 import type { Lens } from "./discovery";
 
@@ -66,6 +68,70 @@ export function Scene({
 }) {
   const has = (l: Lens) => lenses.includes(l);
   const world = useMemo(() => buildWorld(), []);
+
+  /* Detail textures and the materials built from them. Textures are canvas
+     generated and so need a document, hence the guard — this component only
+     ever renders on the client (the canvas above it is dynamically imported
+     with ssr: false), but the guard keeps that assumption from being silent. */
+  const structureDetail = useMemo(
+    () => (typeof document === "undefined" ? null : getStructureDetailTexture()),
+    [],
+  );
+  const groundDetail = useMemo(
+    () => (typeof document === "undefined" ? null : getGroundDetailTexture()),
+    [],
+  );
+
+  const groundMaterial = useMemo(() => {
+    /* Matte, and not negotiable.
+       The IMPACT lens used to make the ground glossy as a reward, and every
+       lens is granted from the first frame now — so a 900-unit plane sat
+       permanently at roughness 0.74 and mirrored the key light into a blown
+       specular lobe the size of a district. A ground plane this large cannot
+       be shiny. */
+    const mat = new THREE.MeshStandardMaterial({
+      color: SURFACE.ground,
+      roughness: 0.96,
+      metalness: 0.02,
+    });
+    if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.055, 0.5);
+    return mat;
+  }, [groundDetail]);
+
+  const padMaterials = useMemo(() => {
+    const map = new Map<string, THREE.MeshStandardMaterial>();
+    for (const d of DISTRICTS) {
+      const style = styleFor(d.language);
+      const mat = new THREE.MeshStandardMaterial({
+        color: style.surface,
+        emissive: style.emissive,
+        emissiveIntensity: 0.22,
+        roughness: 0.88,
+        metalness: 0.05,
+      });
+      if (groundDetail) applyTriplanarDetail(mat, groundDetail, 0.09, 0.42);
+      map.set(d.language, mat);
+    }
+    return map;
+  }, [groundDetail]);
+
+  const familyMaterials = useMemo(() => {
+    const map = new Map<string, THREE.MeshStandardMaterial>();
+    for (const { family } of world.families) {
+      const style = styleFor(family);
+      const mat = new THREE.MeshStandardMaterial({
+        color: style.surface,
+        emissive: style.emissive,
+        emissiveIntensity: 0.055,
+        roughness: 0.66,
+        metalness: 0.18,
+        vertexColors: true,
+      });
+      if (structureDetail) applyTriplanarDetail(mat, structureDetail, 0.34, 0.85);
+      map.set(family, mat);
+    }
+    return map;
+  }, [world.families, structureDetail]);
   const seamRef = useRef<THREE.MeshStandardMaterial>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
   const target = useMemo(() => {
@@ -118,15 +184,12 @@ export function Scene({
       {/* Ground. Dark and matte, so structures read by silhouette first.
           IMPACT gives it a sheen, which is how shipped work starts casting
           onto the ground around it. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -WORLD.depth / 2]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, -WORLD.depth / 2]}
+        material={groundMaterial}
+      >
         <planeGeometry args={[900, WORLD.depth + 700]} />
-        {/* Matte, and not negotiable.
-            The IMPACT lens used to make the ground glossy as a reward, and
-            every lens is granted from the first frame now — so a 900-unit
-            plane sat permanently at roughness 0.74 and mirrored the key light
-            into a blown specular lobe the size of a district. A ground plane
-            this large cannot be shiny. */}
-        <meshStandardMaterial color={SURFACE.ground} roughness={0.96} metalness={0.02} />
       </mesh>
 
       {/* District ground.
@@ -142,15 +205,12 @@ export function Scene({
         const len = Math.hypot(cx, cz);
         return (
           <group key={d.language}>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.05, cz]}>
+            <mesh
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[cx, 0.05, cz]}
+              material={padMaterials.get(d.language)}
+            >
               <circleGeometry args={[d.spread + 16, 44]} />
-              <meshStandardMaterial
-                color={style.surface}
-                emissive={style.emissive}
-                emissiveIntensity={0.22}
-                roughness={0.88}
-                metalness={0.05}
-              />
             </mesh>
             {/* The rim, which is what actually reads at distance. */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.09, cz]}>
@@ -211,21 +271,15 @@ export function Scene({
           The whole world used to be a single stone. It holds eight distinct
           ecosystems and now says so — GitHub's own language hues, so a blue
           district reads as TypeScript before any label does. */}
-      {world.families.map(({ family, geometry }) => {
-        const style = styleFor(family);
-        return (
-          <mesh key={family} geometry={geometry} castShadow={false} receiveShadow={false}>
-            <meshStandardMaterial
-              color={style.surface}
-              emissive={style.emissive}
-              emissiveIntensity={0.055}
-              roughness={0.66}
-              metalness={0.18}
-              vertexColors
-            />
-          </mesh>
-        );
-      })}
+      {world.families.map(({ family, geometry }) => (
+        <mesh
+          key={family}
+          geometry={geometry}
+          material={familyMaterials.get(family)}
+          castShadow={false}
+          receiveShadow={false}
+        />
+      ))}
 
       {/* NOTICE. World-side, as the loop requires: the entity being attended
           to takes light differently. No outline, no marker, no icon — it

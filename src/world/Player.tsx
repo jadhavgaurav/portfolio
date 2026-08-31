@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { entities } from "./telemetry";
+import { nearestDistrictLanguage } from "./mapdata";
+import { driveFootsteps, jump as jumpSfx, land as landSfx, tickAmbient } from "@/audio/engine";
 
 /**
  * The player.
@@ -32,11 +34,16 @@ export const PLAYER = {
   friction: 30,
   gravity: 26,
   jump: 8.4,
-  /** Third-person rig. */
+  /** Third-person rig. An orbit around a point above the character: yaw
+   *  swings it around, pitch swings it up and over or down and under. */
   camDistance: 6.0,
   camHeight: 2.5,
   camLag: 9,
   turnRate: 9,
+  /* Loose enough to look near-overhead or near level with the ground, tight
+   *  enough that the camera can never orbit under the terrain. */
+  pitchMin: -0.5,
+  pitchMax: 1.15,
 } as const;
 
 /** What the player can walk into. Cylinders from the telemetry rather than
@@ -67,6 +74,9 @@ export interface PlayerState {
   grounded: boolean;
   /** Camera yaw, which the player steers independently of facing. */
   camYaw: number;
+  /** Camera elevation. Positive looks down at the character from above;
+   *  negative looks up at them from low behind. */
+  camPitch: number;
 }
 
 /** Live input, written by listeners and read once per frame. */
@@ -137,6 +147,11 @@ export function PlayerRig({
   const camPos = useRef(new THREE.Vector3());
   const camLook = useRef(new THREE.Vector3());
   const started = useRef(false);
+  /** Whether the last frame's ground contact was already established —
+   *  land() should fire once on the frame contact resumes, not on every
+   *  frame the player happens to be standing still. */
+  const wasGrounded = useRef(true);
+  const fallSpeed = useRef(0);
 
   const tmp = useMemo(
     () => ({ want: new THREE.Vector3(), fwd: new THREE.Vector3(), right: new THREE.Vector3() }),
@@ -152,6 +167,10 @@ export function PlayerRig({
       // Look. Yaw is unbounded; pitch is clamped so the horizon stays in the
       // middle third, which is the one camera rule worth keeping from before.
       s.camYaw -= i.lookX;
+      s.camPitch = Math.min(
+        PLAYER.pitchMax,
+        Math.max(PLAYER.pitchMin, s.camPitch + i.lookY),
+      );
       i.lookX = 0;
       i.lookY = 0;
 
@@ -196,18 +215,24 @@ export function PlayerRig({
       if (i.jump && s.grounded) {
         s.velocity.y = PLAYER.jump;
         s.grounded = false;
+        jumpSfx();
       }
       i.jump = false;
     }
 
     // Gravity and the ground.
     s.velocity.y -= PLAYER.gravity * dt;
+    fallSpeed.current = -s.velocity.y;
     s.position.y += s.velocity.y * dt;
     if (s.position.y <= 0) {
       s.position.y = 0;
       s.velocity.y = 0;
       s.grounded = true;
     }
+    if (s.grounded && !wasGrounded.current && fallSpeed.current > 1) {
+      landSfx(fallSpeed.current);
+    }
+    wasGrounded.current = s.grounded;
 
     // Horizontal, then pushed out of anything it ended up inside.
     const nx = s.position.x + s.velocity.x * dt;
@@ -224,14 +249,22 @@ export function PlayerRig({
 
     s.speed01 = Math.min(1, Math.hypot(s.velocity.x, s.velocity.z) / PLAYER.run);
 
+    if (enabled) {
+      const flatSpeed = Math.hypot(s.velocity.x, s.velocity.z);
+      const language = nearestDistrictLanguage(s.position.x, s.position.z);
+      driveFootsteps(dt, flatSpeed, s.grounded, language);
+      tickAmbient(language);
+    }
+
     /* Third-person camera. It sits behind the camera yaw rather than behind
        the character, so the player steers the view and the character follows
        it — the arrangement every third-person game uses, because the reverse
        makes the camera swing every time you change direction. */
+    const cosPitch = Math.cos(s.camPitch);
     const back = new THREE.Vector3(
-      Math.sin(s.camYaw) * PLAYER.camDistance,
-      PLAYER.camHeight,
-      Math.cos(s.camYaw) * PLAYER.camDistance,
+      Math.sin(s.camYaw) * cosPitch * PLAYER.camDistance,
+      PLAYER.camHeight + Math.sin(s.camPitch) * PLAYER.camDistance,
+      Math.cos(s.camYaw) * cosPitch * PLAYER.camDistance,
     );
     const want = new THREE.Vector3().copy(s.position).add(back);
 

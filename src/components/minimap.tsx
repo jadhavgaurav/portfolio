@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { DISTRICTS, districtCentre, styleFor } from "@/world/language";
 import { FOOTPRINTS, POIS, type Waypoint } from "@/world/mapdata";
+import type { Progress } from "@/world/progress";
 import type { PlayerState } from "@/world/Player";
 
 /**
@@ -27,13 +28,21 @@ const PAD = 6;
 export function Minimap({
   state,
   onOpenMap,
+  onOpenLog,
   waypoint,
   visited,
+  muted,
+  onToggleMute,
+  progress,
 }: {
   state: React.MutableRefObject<PlayerState>;
   onOpenMap: () => void;
+  onOpenLog: () => void;
   waypoint: Waypoint | null;
   visited: string[];
+  muted: boolean;
+  onToggleMute: () => void;
+  progress: Progress;
 }) {
   /* Read through refs so the draw loop never depends on a React render. */
   const wp = useRef<Waypoint | null>(waypoint);
@@ -259,7 +268,7 @@ export function Minimap({
   return (
     <div
       ref={wrap}
-      role="group"
+      role="region"
       aria-label="Map"
       className="fixed right-4 top-4 z-30 flex flex-col items-end gap-2 sm:right-6 sm:top-6"
     >
@@ -270,17 +279,67 @@ export function Minimap({
         style={{ width: SIZE, height: SIZE }}
         aria-hidden="true"
       />
-      <button
-        onClick={onOpenMap}
-        className="u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.18em]"
-        style={{
-          borderColor: "rgba(226,232,240,0.28)",
-          color: "#cfd6d3",
-          background: "rgba(6,8,9,0.6)",
-        }}
-      >
-        Map · M
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onOpenMap}
+          className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center border px-4 text-[0.58rem] uppercase tracking-[0.18em]"
+          style={{
+            borderColor: "rgba(226,232,240,0.28)",
+            color: "#cfd6d3",
+            background: "rgba(6,8,9,0.6)",
+          }}
+        >
+          Map · M
+        </button>
+        <button
+          onClick={onOpenLog}
+          className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 border px-3 text-[0.58rem] uppercase tracking-[0.14em]"
+          style={{
+            borderColor: progress.complete ? "#43665e" : "rgba(226,232,240,0.28)",
+            color: progress.complete ? "#8cbcae" : "#cfd6d3",
+            background: "rgba(6,8,9,0.6)",
+          }}
+        >
+          Log
+          <span style={{ color: "#69757a" }}>
+            {progress.found}/{progress.total}
+          </span>
+        </button>
+        <button
+          onClick={onToggleMute}
+          aria-label={muted ? "Unmute" : "Mute"}
+          aria-pressed={muted}
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center border"
+          style={{
+            borderColor: "rgba(226,232,240,0.28)",
+            background: "rgba(6,8,9,0.6)",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M2 6h2.4L8 3v10L4.4 10H2z"
+              fill={muted ? "#69757a" : "#cfd6d3"}
+            />
+            {!muted && (
+              <path
+                d="M10.6 5.4a3.6 3.6 0 0 1 0 5.2M12.2 3.8a6 6 0 0 1 0 8.4"
+                stroke="#cfd6d3"
+                strokeWidth="1.1"
+                fill="none"
+                strokeLinecap="round"
+              />
+            )}
+            {muted && (
+              <path
+                d="M10.5 5.5l4 4m0-4l-4 4"
+                stroke="#69757a"
+                strokeWidth="1.1"
+                strokeLinecap="round"
+              />
+            )}
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

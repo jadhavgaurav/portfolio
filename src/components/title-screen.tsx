@@ -128,14 +128,17 @@ export function TitleScreen({
                   ["Left thumb", "Walk — push further to run"],
                   ["Right thumb", "Look around"],
                   ["Jump", "Bottom-right button"],
-                  ["Map", "Top-right button"],
+                  ["Open", "Tap the prompt when it appears"],
+                  ["Map / Log", "Top-right buttons"],
                 ] as const)
               : ([
                   ["W A S D", "Move"],
                   ["Shift", "Run"],
                   ["Space", "Jump"],
                   ["Drag", "Look around"],
+                  ["E", "Open what you are near"],
                   ["M", "Open the map"],
+                  ["O", "Open the log"],
                   ["Esc", "Back to this screen"],
                 ] as const)
             ).map(([k, v]) => (

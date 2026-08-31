@@ -116,3 +116,20 @@ export interface Waypoint {
   z: number;
   label: string;
 }
+
+/** The language of whichever district's centre is nearest — used for the
+ *  ambient audio bed and for the district-entry chime. Never null: outside
+ *  every district's radius it still names the closest one, which is what a
+ *  smoothly crossfading drone wants rather than a hole in the signal. */
+export function nearestDistrictLanguage(x: number, z: number): string {
+  let best = DISTRICT_GATES[0];
+  let bestDist = Infinity;
+  for (const g of DISTRICT_GATES) {
+    const d = Math.hypot(x - g.cx, z - g.cz);
+    if (d < bestDist) {
+      bestDist = d;
+      best = g;
+    }
+  }
+  return Math.hypot(x, z) < 30 ? "CORE" : best.d.language;
+}

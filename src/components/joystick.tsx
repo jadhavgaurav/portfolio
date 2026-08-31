@@ -159,31 +159,36 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
       )}
 
       {!stick && (
-        <p
+        <aside
+          aria-label="Touch control hint"
           className="pointer-events-none fixed inset-x-0 bottom-7 z-20 text-center"
-          style={{ color: "#8b979c" }}
         >
-          <span className="u-mono text-[0.58rem] uppercase tracking-[0.18em]">
+          <span
+            className="u-mono text-[0.58rem] uppercase tracking-[0.18em]"
+            style={{ color: "#8b979c" }}
+          >
             Left thumb to walk · right to look
           </span>
-        </p>
+        </aside>
       )}
 
       {/* Jump. The one thing a thumb stick cannot express. */}
-      <button
-        onClick={() => {
-          input.current.jump = true;
-        }}
-        aria-label="Jump"
-        className="u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
-        style={{
-          borderColor: "rgba(226,232,240,0.3)",
-          color: "#cfd6d3",
-          background: "rgba(6,8,9,0.42)",
-        }}
-      >
-        Jump
-      </button>
+      <aside aria-label="Jump control">
+        <button
+          onClick={() => {
+            input.current.jump = true;
+          }}
+          aria-label="Jump"
+          className="u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
+          style={{
+            borderColor: "rgba(226,232,240,0.3)",
+            color: "#cfd6d3",
+            background: "rgba(6,8,9,0.42)",
+          }}
+        >
+          Jump
+        </button>
+      </aside>
     </>
   );
 }

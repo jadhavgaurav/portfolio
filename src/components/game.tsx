@@ -14,6 +14,10 @@ import { InteractPanel } from "./interact-panel";
 import { nearestInteractable, type Interactable } from "@/world/interactables";
 import { Compass } from "./compass";
 import type { Waypoint } from "@/world/mapdata";
+import { nearestDistrictLanguage } from "@/world/mapdata";
+import * as audio from "@/audio/engine";
+import { computeProgress } from "@/world/progress";
+import { Objectives } from "./objectives";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -73,6 +77,12 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [open, setOpen] = useState<Interactable | null>(null);
   const [visited, setVisited] = useState<string[]>([]);
   const [waypoint, setWaypoint] = useState<Waypoint | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [enteredDistricts, setEnteredDistricts] = useState<string[]>([]);
+  const [objectivesOpen, setObjectivesOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const lastDistrict = useRef<string | null>(null);
+  const prevComplete = useRef<Record<string, boolean>>({});
 
   const input = useRef<Input>(makeInput());
   const state = useRef<PlayerState>({
@@ -82,9 +92,24 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     speed01: 0,
     grounded: true,
     camYaw: 0,
+    camPitch: 0,
   });
 
   useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("null:muted");
+      if (saved === "1") {
+        setMuted(true);
+        audio.setMuted(true);
+      }
+      const v = window.localStorage.getItem("null:visited");
+      if (v) setVisited(JSON.parse(v));
+      const d = window.localStorage.getItem("null:districts");
+      if (d) setEnteredDistricts(JSON.parse(d));
+    } catch {
+      // Private browsing can throw on localStorage access; progress just
+      // does not persist, which is no worse than not tracking it at all.
+    }
     const coarse = window.matchMedia("(pointer: coarse)");
     const cap = probe();
     setTouch(coarse.matches);
@@ -102,26 +127,77 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     };
   }, [supported]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("null:visited", JSON.stringify(visited));
+    } catch {
+      // See above.
+    }
+  }, [visited]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("null:districts", JSON.stringify(enteredDistricts));
+    } catch {
+      // See above.
+    }
+  }, [enteredDistricts]);
+
+  const progress = computeProgress(visited, enteredDistricts);
+
+  /* A category closing out is announced once, the frame it happens, rather
+     than every time the log is opened while it happens to be complete. */
+  useEffect(() => {
+    for (const c of progress.categories) {
+      const was = prevComplete.current[c.key];
+      if (c.complete && was === false) {
+        audio.milestone();
+        setToast(`${c.label} — complete`);
+      }
+      prevComplete.current[c.key] = c.complete;
+    }
+  }, [progress]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3600);
+    return () => clearTimeout(id);
+  }, [toast]);
+
   /* Input is live only while the player has the world. With the title, the
      map or the document up, keys belong to those. */
-  const playing = mode === "PLAYING" && !mapOpen && !reading && !open;
+  const playing = mode === "PLAYING" && !mapOpen && !reading && !open && !objectivesOpen;
   useKeyboardAndPointer(input, supported === true && playing);
 
-  /* M opens the map, Escape hands the world back to the title. */
+  /* M opens the map, O the log, Escape hands the world back to the title.
+   *
+   * Guarded on `open` and `reading` too, not just `mode`: without that, this
+   * stayed attached under the interact panel, and its own Escape branch —
+   * which does not know the panel exists — raced the panel's own close
+   * handler. Escape then did two things on the same press: the panel closed,
+   * and this sent the player straight back to the title screen. Confirmed by
+   * driving it end to end rather than by reading the code: the automated
+   * pass that opens a structure, closes it, then opens the log found the log
+   * dialog missing, because by the time O was pressed the game had already
+   * been kicked out of PLAYING. */
   useEffect(() => {
-    if (supported !== true || mode !== "PLAYING") return;
+    if (supported !== true || mode !== "PLAYING" || open || reading) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyM") {
         e.preventDefault();
         setMapOpen((v) => !v);
+      } else if (e.code === "KeyO") {
+        e.preventDefault();
+        setObjectivesOpen((v) => !v);
       } else if (e.key === "Escape") {
         if (mapOpen) setMapOpen(false);
+        else if (objectivesOpen) setObjectivesOpen(false);
         else setMode("TITLE");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [supported, mode, mapOpen]);
+  }, [supported, mode, mapOpen, objectivesOpen, open, reading]);
 
   /* Proximity. Polled on its own frame rather than in the render loop: the
      panel and the prompt are React, and re-rendering them sixty times a
@@ -153,6 +229,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "KeyE") return;
       e.preventDefault();
+      audio.interactOpen();
       setOpen(near);
       setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
     };
@@ -162,6 +239,45 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
   /* Fast travel. Placed just short of the destination and turned to face it,
      so arriving reads as walking up to a thing rather than being inside it. */
+  const toggleMute = () => {
+    setMuted((v) => {
+      const next = !v;
+      audio.setMuted(next);
+      try {
+        window.localStorage.setItem("null:muted", next ? "1" : "0");
+      } catch {
+        // See the load above — persistence is a nicety, not a requirement.
+      }
+      return next;
+    });
+  };
+
+  /* District and core arrival, announced with a short chime the first time
+     each frame's nearest one changes — not on every frame, which is what
+     driving this from the same proximity loop that already runs every
+     frame would otherwise do. */
+  useEffect(() => {
+    if (supported !== true || mode !== "PLAYING") return;
+    let raf = 0;
+    const tick = () => {
+      const s = state.current;
+      const lang = nearestDistrictLanguage(s.position.x, s.position.z);
+      if (lang !== lastDistrict.current) {
+        if (lastDistrict.current !== null) {
+          if (lang === "CORE") audio.coreArrival();
+          else if (lastDistrict.current !== "CORE") audio.districtEnter(lang);
+        }
+        if (lang !== "CORE") {
+          setEnteredDistricts((prev) => (prev.includes(lang) ? prev : [...prev, lang]));
+        }
+        lastDistrict.current = lang;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [supported, mode]);
+
   const travelTo = (x: number, z: number) => {
     const s = state.current;
     const d = Math.hypot(x, z) || 1;
@@ -208,7 +324,10 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
       {mode === "TITLE" && !reading && (
         <TitleScreen
-          onStart={() => setMode("PLAYING")}
+          onStart={() => {
+            audio.unlock();
+            setMode("PLAYING");
+          }}
           onRead={() => setReading(true)}
           touch={touch}
         />
@@ -238,8 +357,12 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           <Minimap
             state={state}
             onOpenMap={() => setMapOpen(true)}
+            onOpenLog={() => setObjectivesOpen(true)}
             waypoint={waypoint}
             visited={visited}
+            muted={muted}
+            onToggleMute={toggleMute}
+            progress={progress}
           />
         </>
       )}
@@ -250,19 +373,59 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           onClose={() => setMapOpen(false)}
           onTravel={travelTo}
           waypoint={waypoint}
-          onWaypoint={setWaypoint}
+          onWaypoint={(w) => {
+            setWaypoint(w);
+            if (w) audio.waypointSet();
+          }}
           visited={visited}
         />
       )}
 
-      {open && <InteractPanel target={open} onClose={() => setOpen(null)} />}
+      {objectivesOpen && (
+        <Objectives progress={progress} onClose={() => setObjectivesOpen(false)} />
+      )}
+
+      {/* A category closing out, stated once and then gone — the log itself
+          is where that state actually lives. */}
+      {toast && (
+        <aside
+          aria-label="Milestone"
+          className="pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center px-5"
+        >
+          <div
+            role="status"
+            className="u-mono border px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.14em]"
+            style={{
+              borderColor: "#43665e",
+              color: "#8cbcae",
+              background: "rgba(6,8,9,0.88)",
+            }}
+          >
+            {toast}
+          </div>
+        </aside>
+      )}
+
+      {open && (
+        <InteractPanel
+          target={open}
+          onClose={() => {
+            audio.interactClose();
+            setOpen(null);
+          }}
+        />
+      )}
 
       {/* The prompt. Doubles as the tap target on touch, where there is no E
           key to press and a prompt you cannot act on is just a label. */}
       {playing && near && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-5 sm:bottom-20">
+        <aside
+          aria-label="Interact prompt"
+          className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-5 sm:bottom-20"
+        >
           <button
             onClick={() => {
+              audio.interactOpen();
               setOpen(near);
               setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
             }}
@@ -293,20 +456,23 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
               </span>
             </span>
           </button>
-        </div>
+        </aside>
       )}
 
       {/* A reminder, not an instruction sheet — the title screen already gave
           the full list. */}
       {playing && !touch && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5">
+        <aside
+          aria-label="Controls reminder"
+          className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5"
+        >
           <p
             className="u-mono text-[0.6rem] uppercase tracking-[0.2em]"
             style={{ color: "#7d888d" }}
           >
-            WASD · Shift to run · Space to jump · Drag to look · M for the map
+            WASD · Shift to run · Space to jump · Drag to look · M for the map · O for the log
           </p>
-        </div>
+        </aside>
       )}
     </>
   );

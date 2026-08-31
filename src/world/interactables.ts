@@ -52,7 +52,7 @@ const PROJECT_ENTITY: Record<string, string> = {
   "KIDNEY DISEASE CLASSIFICATION": "Kidney_disease_classification_cnn",
   "PHISHING DETECTION": "CodeB_Internship_Project",
   "MULTIMODAL SEARCH PLATFORM": "multimodal-search-platform",
-  "SMART EMAIL ASSISTANT": "smart-email-assistant",
+  "SMART EMAIL ASSISTANT": "smart-email-assistant-newel",
   "E-VOTING BLOCKCHAIN": "E-Voting-using-Blockchain-and-Face-Recognition",
   "FINANCE DASHBOARD": "finance-dashboard",
 };

@@ -83,6 +83,7 @@ export function initialPlayerState(): PlayerState {
     speed01: 0,
     grounded: true,
     camYaw: 0,
+    camPitch: 0,
   };
 }
 
