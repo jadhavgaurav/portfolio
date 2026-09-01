@@ -416,26 +416,26 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
             }}
             className="u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
             style={{
-              borderColor: "rgba(226,232,240,0.34)",
-              background: "rgba(6,8,9,0.82)",
+              borderColor: "rgba(240,223,174,0.4)",
+              background: "rgba(20,14,6,0.85)",
             }}
           >
             <span
               className="u-mono shrink-0 border px-2 py-1 text-[0.58rem] uppercase tracking-[0.14em]"
-              style={{ borderColor: "rgba(226,232,240,0.3)", color: "#cfd6d3" }}
+              style={{ borderColor: "rgba(240,223,174,0.35)", color: "#e8dcb8" }}
             >
               {touch ? "Open" : "E"}
             </span>
             <span className="min-w-0">
               <span
                 className="block truncate text-[0.82rem]"
-                style={{ color: "#f2f6f7" }}
+                style={{ color: "#f6ecd4" }}
               >
                 {near.title}
               </span>
               <span
                 className="block truncate text-[0.66rem]"
-                style={{ color: "#8b979c" }}
+                style={{ color: "#b8a678" }}
               >
                 {near.kicker}
               </span>
@@ -453,7 +453,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
         >
           <p
             className="u-mono text-[0.6rem] uppercase tracking-[0.2em]"
-            style={{ color: "#7d888d" }}
+            style={{ color: "#a3916a" }}
           >
             WASD · Shift to run · Space to jump · Drag to look · M for the map · O for the log
           </p>

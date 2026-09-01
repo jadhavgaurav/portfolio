@@ -31,7 +31,7 @@ export function TitleScreen({
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
       style={{
         background:
-          "radial-gradient(120% 90% at 50% 8%, #16222a 0%, #0d1316 46%, #07090a 100%)",
+          "radial-gradient(120% 90% at 50% 8%, #2a1f10 0%, #1a1309 46%, #100b05 100%)",
       }}
     >
       {/* A landmark, so the title screen's content is not loose in the
@@ -54,18 +54,18 @@ export function TitleScreen({
 
         <h1
           className="u-mono text-[clamp(3.2rem,15vw,7rem)] leading-[0.86] tracking-[0.06em]"
-          style={{ color: "#f2f6f7" }}
+          style={{ color: "#f6ecd4" }}
         >
           NULL
         </h1>
         <p
           className="u-mono mt-4 text-[0.68rem] uppercase tracking-[0.3em]"
-          style={{ color: "#8cbcae" }}
+          style={{ color: "#ffb703" }}
         >
           {subject.name}
         </p>
 
-        <p className="mt-7 max-w-[34rem] text-[1rem] leading-[1.6]" style={{ color: "#b9c4c9" }}>
+        <p className="mt-7 max-w-[34rem] text-[1rem] leading-[1.6]" style={{ color: "#d9c9a0" }}>
           A world generated from a real commit history — {entities.length}{" "}
           repositories, {commits} commits. Every structure is a repository, its
           mass is its commit count, its decay is the time since it was last
@@ -87,7 +87,7 @@ export function TitleScreen({
                 />
                 <span
                   className="u-mono text-[0.62rem] uppercase tracking-[0.14em]"
-                  style={{ color: "#8b979c" }}
+                  style={{ color: "#b8a678" }}
                 >
                   {style.label} · {n}
                 </span>
@@ -101,24 +101,24 @@ export function TitleScreen({
             onClick={onStart}
             autoFocus
             className="u-mono inline-flex min-h-[52px] items-center border px-8 text-[0.7rem] uppercase tracking-[0.22em] transition-colors"
-            style={{ borderColor: "#8cbcae", color: "#0b0e10", background: "#8cbcae" }}
+            style={{ borderColor: "#ffb703", color: "#241a08", background: "#ffb703" }}
           >
             Enter the world
           </button>
           <button
             onClick={onRead}
             className="u-mono inline-flex min-h-[52px] items-center border px-6 text-[0.65rem] uppercase tracking-[0.18em]"
-            style={{ borderColor: "#2f383c", color: "#9eaab0" }}
+            style={{ borderColor: "#4a3a1c", color: "#c9b98a" }}
           >
             Read it instead
           </button>
         </div>
 
         {/* Controls, before they are needed rather than after. */}
-        <div className="mt-12 border-t pt-6" style={{ borderColor: "#232a2e" }}>
+        <div className="mt-12 border-t pt-6" style={{ borderColor: "#3a2c12" }}>
           <h2
             className="u-mono text-[0.6rem] uppercase tracking-[0.24em]"
-            style={{ color: "#69757a" }}
+            style={{ color: "#8a7a52" }}
           >
             Controls
           </h2>
@@ -145,11 +145,11 @@ export function TitleScreen({
               <div key={k} className="flex items-baseline gap-4">
                 <dt
                   className="u-mono w-[5.6rem] shrink-0 text-[0.62rem] uppercase tracking-[0.14em]"
-                  style={{ color: "#cfd6d3" }}
+                  style={{ color: "#e8dcb8" }}
                 >
                   {k}
                 </dt>
-                <dd className="text-[0.86rem]" style={{ color: "#8b979c" }}>
+                <dd className="text-[0.86rem]" style={{ color: "#b8a678" }}>
                   {v}
                 </dd>
               </div>

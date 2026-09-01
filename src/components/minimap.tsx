@@ -142,7 +142,7 @@ export function Minimap({
               ? "#e8834a"
               : p.kind === "CERT"
                 ? "#7fd1c4"
-                : "#8cbcae";
+                : "#ffb703";
         ctx.globalAlpha = seen.current.has(p.id) ? 0.45 : 1;
         ctx.beginPath();
         ctx.moveTo(0, -4);
@@ -155,10 +155,11 @@ export function Minimap({
       }
       ctx.globalAlpha = 1;
 
-      // The hub.
+      // The hub. Kept teal rather than the waypoint's gold — the two need
+      // to stay visually distinct on the same small canvas.
       ctx.beginPath();
       ctx.arc((0 - px) * k, (0 - pz) * k, 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#8cbcae";
+      ctx.fillStyle = "#5bc9b3";
       ctx.fill();
 
       // The waypoint. Inside the map it is drawn in place; outside it is
@@ -289,9 +290,9 @@ export function Minimap({
           onClick={onOpenMap}
           className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center border px-4 text-[0.58rem] uppercase tracking-[0.18em]"
           style={{
-            borderColor: "rgba(226,232,240,0.28)",
-            color: "#cfd6d3",
-            background: "rgba(6,8,9,0.6)",
+            borderColor: "rgba(240,223,174,0.35)",
+            color: "#e8dcb8",
+            background: "rgba(20,14,6,0.65)",
           }}
         >
           Map · M
@@ -300,13 +301,13 @@ export function Minimap({
           onClick={onOpenLog}
           className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 border px-3 text-[0.58rem] uppercase tracking-[0.14em]"
           style={{
-            borderColor: progress.complete ? "#43665e" : "rgba(226,232,240,0.28)",
-            color: progress.complete ? "#8cbcae" : "#cfd6d3",
-            background: "rgba(6,8,9,0.6)",
+            borderColor: progress.complete ? "#a3771f" : "rgba(240,223,174,0.35)",
+            color: progress.complete ? "#ffb703" : "#e8dcb8",
+            background: "rgba(20,14,6,0.65)",
           }}
         >
           Log
-          <span style={{ color: "#69757a" }}>
+          <span style={{ color: "#8a7a52" }}>
             {progress.found}/{progress.total}
           </span>
         </button>
@@ -316,19 +317,19 @@ export function Minimap({
           aria-pressed={muted}
           className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center border"
           style={{
-            borderColor: "rgba(226,232,240,0.28)",
-            background: "rgba(6,8,9,0.6)",
+            borderColor: "rgba(240,223,174,0.35)",
+            background: "rgba(20,14,6,0.65)",
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <path
               d="M2 6h2.4L8 3v10L4.4 10H2z"
-              fill={muted ? "#69757a" : "#cfd6d3"}
+              fill={muted ? "#8a7a52" : "#e8dcb8"}
             />
             {!muted && (
               <path
                 d="M10.6 5.4a3.6 3.6 0 0 1 0 5.2M12.2 3.8a6 6 0 0 1 0 8.4"
-                stroke="#cfd6d3"
+                stroke="#e8dcb8"
                 strokeWidth="1.1"
                 fill="none"
                 strokeLinecap="round"
@@ -337,7 +338,7 @@ export function Minimap({
             {muted && (
               <path
                 d="M10.5 5.5l4 4m0-4l-4 4"
-                stroke="#69757a"
+                stroke="#8a7a52"
                 strokeWidth="1.1"
                 strokeLinecap="round"
               />

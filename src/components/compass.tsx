@@ -86,9 +86,9 @@ export function Compass({
         return true;
       };
 
-      ctx.fillStyle = "rgba(6,8,9,0.62)";
+      ctx.fillStyle = "rgba(20,14,6,0.68)";
       ctx.fillRect(0, 0, width, H);
-      ctx.strokeStyle = "rgba(226,232,240,0.14)";
+      ctx.strokeStyle = "rgba(240,223,174,0.18)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, H - 0.5);
@@ -103,7 +103,7 @@ export function Compass({
         const x = at(b);
         if (x === null) continue;
         const cardinal = b % 90 === 0;
-        ctx.strokeStyle = cardinal ? "rgba(226,232,240,0.6)" : "rgba(226,232,240,0.22)";
+        ctx.strokeStyle = cardinal ? "rgba(240,223,174,0.65)" : "rgba(240,223,174,0.28)";
         ctx.beginPath();
         ctx.moveTo(x, cardinal ? 6 : 11);
         ctx.lineTo(x, 15);
@@ -120,7 +120,7 @@ export function Compass({
         const d = ((bearing - heading + 540) % 360) - 180;
         const off = Math.abs(d) > SPAN / 2;
         const x = off ? (d > 0 ? width - 10 : 10) : width / 2 + d * pxPerDeg;
-        ctx.fillStyle = "#8cbcae";
+        ctx.fillStyle = "#ffb703";
         ctx.beginPath();
         ctx.moveTo(x, 3);
         ctx.lineTo(x + 5, 11);
@@ -154,7 +154,7 @@ export function Compass({
 
       // Cardinals last: they are recoverable from the ticks alone.
       ctx.font = "600 9px ui-monospace, monospace";
-      ctx.fillStyle = "rgba(226,232,240,0.72)";
+      ctx.fillStyle = "rgba(240,223,174,0.78)";
       for (let b = 0; b < 360; b += 90) {
         const x = at(b);
         if (x === null) continue;
@@ -163,7 +163,7 @@ export function Compass({
       }
 
       // The centre line: what you are actually facing.
-      ctx.strokeStyle = "#f2f6f7";
+      ctx.strokeStyle = "#f6ecd4";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(width / 2, 2);

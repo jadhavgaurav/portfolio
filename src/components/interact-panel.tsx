@@ -16,7 +16,7 @@ import { dayToLabel } from "@/world/telemetry";
  * all four the same template would have meant padding three of them.
  */
 
-const line = "1px solid #2a2f32";
+const line = "1px solid #3a2c12";
 
 export function InteractPanel({
   target,
@@ -70,7 +70,7 @@ export function InteractPanel({
       aria-label={target.title}
       tabIndex={-1}
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-10"
-      style={{ background: "rgba(6,8,9,0.97)" }}
+      style={{ background: "rgba(16,11,5,0.97)" }}
     >
       <div className="mx-auto max-w-[46rem]">
         <div className="flex items-start justify-between gap-6">
@@ -92,18 +92,18 @@ export function InteractPanel({
             </div>
             <h2
               className="u-display mt-2 break-words text-[clamp(1.5rem,5vw,2.6rem)] leading-[1.06]"
-              style={{ color: "#e2e8f0" }}
+              style={{ color: "#f3e9d2" }}
             >
               {target.title}
             </h2>
-            <p className="mt-2 text-[0.92rem]" style={{ color: "#8b979c" }}>
+            <p className="mt-2 text-[0.92rem]" style={{ color: "#b8a678" }}>
               {target.kicker}
             </p>
           </div>
           <button
             onClick={onClose}
             className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
-            style={{ borderColor: "#2a2f32", color: "#9eaab0" }}
+            style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
           >
             Close
           </button>
@@ -113,7 +113,7 @@ export function InteractPanel({
         {target.entity && (
           <dl
             className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-6 sm:grid-cols-4"
-            style={{ borderColor: "#2a2f32" }}
+            style={{ borderColor: "#3a2c12" }}
           >
             {[
               ["Commits", String(target.entity.commits)],
@@ -124,11 +124,11 @@ export function InteractPanel({
               <div key={k}>
                 <dt
                   className="u-mono text-[0.58rem] uppercase tracking-[0.18em]"
-                  style={{ color: "#69757a" }}
+                  style={{ color: "#8a7a52" }}
                 >
                   {k}
                 </dt>
-                <dd className="u-mono mt-1 text-[0.9rem]" style={{ color: "#e2e8f0" }}>
+                <dd className="u-mono mt-1 text-[0.9rem]" style={{ color: "#f3e9d2" }}>
                   {v}
                 </dd>
               </div>
@@ -137,7 +137,7 @@ export function InteractPanel({
         )}
 
         {fact?.description && (
-          <p className="mt-6 text-[0.98rem] leading-[1.6]" style={{ color: "#b9c4c9" }}>
+          <p className="mt-6 text-[0.98rem] leading-[1.6]" style={{ color: "#d9c9a0" }}>
             {fact.description}
           </p>
         )}
@@ -145,7 +145,7 @@ export function InteractPanel({
         {/* A case study, in full. */}
         {target.project && (
           <div className="mt-8 space-y-8">
-            <p className="text-[0.98rem] leading-[1.62]" style={{ color: "#b9c4c9" }}>
+            <p className="text-[0.98rem] leading-[1.62]" style={{ color: "#d9c9a0" }}>
               {target.project.description}
             </p>
 
@@ -159,11 +159,11 @@ export function InteractPanel({
                   <div key={g.category} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span
                       className="u-mono w-[6rem] shrink-0 text-[0.58rem] uppercase tracking-[0.16em]"
-                      style={{ color: "#69757a" }}
+                      style={{ color: "#8a7a52" }}
                     >
                       {g.category}
                     </span>
-                    <span className="u-mono text-[0.78rem]" style={{ color: "#cfd6d3" }}>
+                    <span className="u-mono text-[0.78rem]" style={{ color: "#e8dcb8" }}>
                       {g.stack.join(" · ")}
                     </span>
                   </div>
@@ -180,17 +180,17 @@ export function InteractPanel({
                     <li
                       key={n.id}
                       className="border px-3 py-2"
-                      style={{ borderColor: "#2a2f32" }}
+                      style={{ borderColor: "#3a2c12" }}
                     >
                       <div
                         className="u-mono text-[0.72rem]"
-                        style={{ color: "#e2e8f0" }}
+                        style={{ color: "#f3e9d2" }}
                       >
                         {n.data.title}
                       </div>
                       <div
                         className="u-mono text-[0.6rem] uppercase tracking-[0.14em]"
-                        style={{ color: "#8b979c" }}
+                        style={{ color: "#b8a678" }}
                       >
                         {n.data.label}
                       </div>
@@ -205,12 +205,12 @@ export function InteractPanel({
                 <H>Decisions</H>
                 <div className="mt-3 space-y-5">
                   {target.project.engineeringDecisions.map((d) => (
-                    <div key={d.decision} className="border-l pl-4" style={{ borderColor: "#2a2f32" }}>
-                      <div className="text-[0.92rem]" style={{ color: "#e2e8f0" }}>
+                    <div key={d.decision} className="border-l pl-4" style={{ borderColor: "#3a2c12" }}>
+                      <div className="text-[0.92rem]" style={{ color: "#f3e9d2" }}>
                         {d.decision}
                       </div>
-                      <p className="mt-1 text-[0.86rem] leading-[1.55]" style={{ color: "#8b979c" }}>
-                        {d.why} <span style={{ color: "#b9c4c9" }}>{d.impact}</span>
+                      <p className="mt-1 text-[0.86rem] leading-[1.55]" style={{ color: "#b8a678" }}>
+                        {d.why} <span style={{ color: "#d9c9a0" }}>{d.impact}</span>
                       </p>
                     </div>
                   ))}
@@ -231,7 +231,7 @@ export function InteractPanel({
                 <span
                   key={t}
                   className="u-mono border px-3 py-1 text-[0.6rem] uppercase tracking-[0.14em]"
-                  style={{ borderColor: "#2a2f32", color: "#9eaab0" }}
+                  style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
                 >
                   {t}
                 </span>
@@ -244,7 +244,7 @@ export function InteractPanel({
         )}
 
         {target.kind === "CORE" && (
-          <p className="mt-7 text-[0.98rem] leading-[1.62]" style={{ color: "#b9c4c9" }}>
+          <p className="mt-7 text-[0.98rem] leading-[1.62]" style={{ color: "#d9c9a0" }}>
             {subject.role}. {subject.employer}. {subject.located}. Everything in
             this world is verifiable: every structure is a repository, its mass
             is its commit count, its decay is the time since it was last
@@ -255,7 +255,7 @@ export function InteractPanel({
         {/* Links out. The whole point of walking to a thing. */}
         <div
           className="mt-9 flex flex-wrap items-center gap-3 border-t pt-6"
-          style={{ borderColor: "#2a2f32" }}
+          style={{ borderColor: "#3a2c12" }}
         >
           {fact?.homepage && (
             <Link href={fact.homepage} primary>
@@ -292,7 +292,7 @@ function H({ children }: { children: React.ReactNode }) {
   return (
     <h3
       className="u-mono border-b pb-2 text-[0.58rem] uppercase tracking-[0.2em]"
-      style={{ color: "#69757a", borderBottom: line }}
+      style={{ color: "#8a7a52", borderBottom: line }}
     >
       {children}
     </h3>
@@ -306,7 +306,7 @@ function Section({ title, items }: { title: string; items: string[] }) {
       <H>{title}</H>
       <ul className="mt-3 space-y-2">
         {items.map((s) => (
-          <li key={s} className="text-[0.92rem] leading-[1.55]" style={{ color: "#b9c4c9" }}>
+          <li key={s} className="text-[0.92rem] leading-[1.55]" style={{ color: "#d9c9a0" }}>
             {s}
           </li>
         ))}
@@ -333,8 +333,8 @@ function Link({
       className="u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.62rem] uppercase tracking-[0.16em]"
       style={
         primary
-          ? { borderColor: "#8cbcae", background: "#8cbcae", color: "#0b0e10" }
-          : { borderColor: "#2a2f32", color: "#cfd6d3" }
+          ? { borderColor: "#ffb703", background: "#ffb703", color: "#241a08" }
+          : { borderColor: "#3a2c12", color: "#e8dcb8" }
       }
     >
       {children}
