@@ -40,6 +40,7 @@ export default function GameCanvas({
   return (
     <Canvas
       dpr={tier === "high" ? [1, 1.6] : [0.6, 1]}
+      shadows={tier === "high"}
       gl={{
         antialias: false,
         powerPreference: "high-performance",

@@ -166,6 +166,17 @@ export function Scene({
     o.position.set(...LIGHT.keyTarget);
     return o;
   }, []);
+  /* The offset from target to light position, held constant so the sun's
+     apparent direction never changes as the pair is re-centred on the
+     player every frame (below) — only its shadow camera's coverage area
+     moves. A directional light's shadow frustum is a fixed-size box around
+     its target; anchored at the old cinematic's single fixed point it would
+     have covered one corner of a world that is now a 250-unit-radius ring
+     of districts, leaving shadows only near that one forgotten spot. */
+  const keyOffset = useMemo(
+    () => new THREE.Vector3(...LIGHT.keyPos).sub(new THREE.Vector3(...LIGHT.keyTarget)),
+    [],
+  );
 
   /** ORIGIN is the SIGNAL. Continuity of that one object across the whole
    *  opening is the spine of the sequence — Bible constraint, §3. */
@@ -188,6 +199,12 @@ export function Scene({
       // The key light arrives with the world.
       const want = phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.5 : LIGHT.keyIntensity;
       keyRef.current.intensity += (want - keyRef.current.intensity) * 0.03;
+      if (quality === "high") {
+        target.position.copy(state.camera.position);
+        target.position.y = 0;
+        target.updateMatrixWorld();
+        keyRef.current.position.copy(target.position).add(keyOffset);
+      }
     }
   });
 
@@ -213,14 +230,26 @@ export function Scene({
         intensity={phase === "VOID" ? 0 : phase === "SIGNAL" ? 0.5 : LIGHT.keyIntensity}
         position={LIGHT.keyPos as unknown as [number, number, number]}
         target={target}
+        castShadow={quality === "high"}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-120}
+        shadow-camera-right={120}
+        shadow-camera-top={120}
+        shadow-camera-bottom={-120}
+        shadow-camera-near={1}
+        shadow-camera-far={300}
+        shadow-bias={-0.0015}
       />
 
       {/* Ground. Grass, so structures stand somewhere rather than on a
-          drafting-table plane. */}
+          drafting-table plane. Shadows are what actually sells that —
+          without a contact shadow every structure reads as pasted onto the
+          ground rather than standing on it. */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, -WORLD.depth / 2]}
         material={groundMaterial}
+        receiveShadow={quality === "high"}
       >
         <planeGeometry args={[900, WORLD.depth + 700]} />
       </mesh>
@@ -242,6 +271,7 @@ export function Scene({
               rotation={[-Math.PI / 2, 0, 0]}
               position={[cx, 0.05, cz]}
               material={padMaterials.get(d.language)}
+              receiveShadow={quality === "high"}
             >
               <circleGeometry args={[d.spread + 16, 44]} />
             </mesh>
@@ -300,8 +330,8 @@ export function Scene({
           key={family}
           geometry={geometry}
           material={familyMaterials.get(family)}
-          castShadow={false}
-          receiveShadow={false}
+          castShadow={quality === "high"}
+          receiveShadow={quality === "high"}
         />
       ))}
 
@@ -384,7 +414,7 @@ export function Scene({
           gem it always had, now floating above a building instead of being
           the only thing there. */}
       <group position={[core.x, 0, core.z]}>
-        <mesh position={[0, 1, 0]} material={coreMaterial}>
+        <mesh position={[0, 1, 0]} material={coreMaterial} receiveShadow={quality === "high"}>
           <cylinderGeometry args={[10, 11, 2, 12]} />
         </mesh>
         {Array.from({ length: 6 }).map((_, i) => {
@@ -395,12 +425,14 @@ export function Scene({
               key={i}
               position={[Math.cos(a) * r, 7, Math.sin(a) * r]}
               material={coreMaterial}
+              castShadow={quality === "high"}
+              receiveShadow={quality === "high"}
             >
               <cylinderGeometry args={[0.6, 0.7, 10, 8]} />
             </mesh>
           );
         })}
-        <mesh position={[0, 15, 0]}>
+        <mesh position={[0, 15, 0]} castShadow={quality === "high"}>
           <coneGeometry args={[11.5, 6, 12]} />
           <meshToonMaterial
             color={SURFACE.constructed}

@@ -143,8 +143,12 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
         </mesh>
       </group>
 
-      {/* Contact shadow. There are no shadow maps in this scene, and a figure
-          with nothing under it floats no matter how well it walks. */}
+      {/* A soft blob directly underfoot, on top of whatever the real shadow
+          map is doing. On the low-quality tier there is no shadow map at
+          all, and a figure with nothing under it floats no matter how well
+          it walks; on the high tier the real shadow can go faint or vanish
+          at a low sun angle, and the blob is what keeps the character
+          looking planted regardless of where the light happens to be. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <circleGeometry args={[0.5, 20]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.34} depthWrite={false} />
