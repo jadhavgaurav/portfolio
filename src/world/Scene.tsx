@@ -9,7 +9,7 @@ import {
   LIGHT,
   SURFACE,
 } from "./palette";
-import { WORLD, core, entities } from "./telemetry";
+import { WORLD, CORE_PLINTH, core, entities } from "./telemetry";
 import { BEATS, type Phase } from "./sequence";
 import { DISTRICTS, districtCentre, styleFor } from "./language";
 import { Dust, Sky } from "./Atmosphere";
@@ -363,13 +363,19 @@ export function Scene({
       )}
 
       {/* COLLABORATION: the line through eight attempts at one idea, drawn
-          across the world. Visible from wherever the visitor is standing. */}
+          across the world. Visible from wherever the visitor is standing.
+          "Visible" used to mean a blazing full-intensity beam: correct when
+          this was a corridor and the line ran a few units beside the path
+          already underfoot, wrong now that the eight repos it connects are
+          scattered across distant districts and the same tube arcs across
+          open sky between them. Dialed down to a thread you can notice and
+          follow rather than a bug you can't miss. */}
       {has("COLLABORATION") && (
         <mesh geometry={world.conduits}>
           <meshStandardMaterial
             color={EMISSIVE.phaseJoint}
             emissive={EMISSIVE.reward}
-            emissiveIntensity={1.5}
+            emissiveIntensity={0.5}
             roughness={0.3}
             metalness={0.4}
           />
@@ -414,8 +420,14 @@ export function Scene({
           gem it always had, now floating above a building instead of being
           the only thing there. */}
       <group position={[core.x, 0, core.z]}>
-        <mesh position={[0, 1, 0]} material={coreMaterial} receiveShadow={quality === "high"}>
-          <cylinderGeometry args={[10, 11, 2, 12]} />
+        <mesh
+          position={[0, CORE_PLINTH.height / 2, 0]}
+          material={coreMaterial}
+          receiveShadow={quality === "high"}
+        >
+          <cylinderGeometry
+            args={[CORE_PLINTH.topRadius, CORE_PLINTH.bottomRadius, CORE_PLINTH.height, 12]}
+          />
         </mesh>
         {Array.from({ length: 6 }).map((_, i) => {
           const a = (i / 6) * Math.PI * 2;

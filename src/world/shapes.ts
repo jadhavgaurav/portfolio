@@ -44,9 +44,36 @@ export const slab = (
 ) => place(new THREE.BoxGeometry(w, h, d), x, y, z, ry, rz);
 
 /** A peaked or hipped roof — a low-sided cone/pyramid sat on a body. Four
- *  sides reads as a hip roof, more as a cone. */
-export const roof = (r: number, h: number, x: number, y: number, z: number, sides = 4, ry = 0) =>
-  place(new THREE.ConeGeometry(r, h, sides), x, y, z, ry);
+ *  sides reads as a hip roof, more as a cone.
+ *
+ *  A four-sided cone is a square pyramid: one radius, so its eave sits the
+ *  same distance out on every side. Sat over a rectangular hut body (width
+ *  and depth never equal — `landmarkShape`, `dormantShape`) that overhangs
+ *  evenly along the short axis and cuts back into the wall along the long
+ *  one, reading as a roof that doesn't fit. Passing `depthR` turns the same
+ *  pyramid into a rectangular hip roof instead: it is built with corners on
+ *  the axes as usual, given the 45° turn that puts its flat faces there —
+ *  parallel to a box's walls — and only then stretched along that turned
+ *  frame's depth axis, so the eave clears both wall pairs by the same
+ *  margin. Leave it out for the round cones (RELIC, MONOLITH) sat on a
+ *  circular tower, where one radius already fits on every side. */
+export const roof = (
+  r: number,
+  h: number,
+  x: number,
+  y: number,
+  z: number,
+  sides = 4,
+  ry = 0,
+  depthR?: number,
+) => {
+  const g = new THREE.ConeGeometry(r, h, sides);
+  if (depthR != null) {
+    g.rotateY(Math.PI / 4);
+    g.scale(1, 1, depthR / r);
+  }
+  return place(g, x, y, z, ry);
+};
 
 /** A tapered cylindrical body — a tower or a silo. */
 export const barrel = (

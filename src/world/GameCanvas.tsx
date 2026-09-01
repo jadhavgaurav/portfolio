@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, PerformanceMonitor, Preload } from "@react-three/drei";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar } from "./Avatar";
 import { Markers } from "./Markers";
 import { NPCs } from "./NPC";
@@ -27,6 +27,7 @@ export default function GameCanvas({
   enabled,
   activeId,
   visited,
+  engagedId,
 }: {
   input: React.MutableRefObject<Input>;
   state: React.MutableRefObject<PlayerState>;
@@ -35,8 +36,21 @@ export default function GameCanvas({
   /** The interactable currently in reach. */
   activeId: string | null;
   visited: string[];
+  /** Whose panel is open, so that person holds the conversation instead of
+   *  wandering off while the player is reading it. */
+  engagedId: React.MutableRefObject<string | null>;
 }) {
   const [tier, setTier] = useState<"high" | "low">(quality);
+
+  /* `quality` is the device's ceiling and `tier` is what is actually being
+     drawn, which PerformanceMonitor may hold below it. Seeding the state
+     from the prop only captures the ceiling as it stood on the first frame,
+     so when the ceiling is raised later — the window widened past the
+     small-screen threshold — the tier has to be released up to meet it, or
+     the resize grants the high tier everywhere except the renderer. */
+  useEffect(() => {
+    setTier(quality);
+  }, [quality]);
 
   return (
     <Canvas
@@ -73,7 +87,7 @@ export default function GameCanvas({
       <PlayerRig input={input} state={state} enabled={enabled} />
       <Avatar state={state} />
       <Markers activeId={activeId} visited={visited} />
-      <NPCs playerState={state} />
+      <NPCs playerState={state} engagedId={engagedId} />
       <Post quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />

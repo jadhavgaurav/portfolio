@@ -100,14 +100,14 @@ export function TitleScreen({
           <button
             onClick={onStart}
             autoFocus
-            className="u-mono inline-flex min-h-[52px] items-center border px-8 text-[0.7rem] uppercase tracking-[0.22em] transition-colors"
+            className="u-btn u-mono inline-flex min-h-[52px] items-center border px-8 text-[0.7rem] uppercase tracking-[0.22em]"
             style={{ borderColor: "#ffb703", color: "#241a08", background: "#ffb703" }}
           >
             Enter the world
           </button>
           <button
             onClick={onRead}
-            className="u-mono inline-flex min-h-[52px] items-center border px-6 text-[0.65rem] uppercase tracking-[0.18em]"
+            className="u-btn u-mono inline-flex min-h-[52px] items-center border px-6 text-[0.65rem] uppercase tracking-[0.18em]"
             style={{ borderColor: "#4a3a1c", color: "#c9b98a" }}
           >
             Read it instead
@@ -128,7 +128,7 @@ export function TitleScreen({
                   ["Left thumb", "Walk — push further to run"],
                   ["Right thumb", "Look around"],
                   ["Jump", "Bottom-right button"],
-                  ["Open", "Tap the prompt when it appears"],
+                  ["Open · Talk", "Tap the prompt when it appears"],
                   ["Map / Log", "Top-right buttons"],
                 ] as const)
               : ([
@@ -137,6 +137,7 @@ export function TitleScreen({
                   ["Space", "Jump"],
                   ["Drag", "Look around"],
                   ["E", "Open what you are near"],
+                  ["I", "Talk to whoever you walk up to"],
                   ["M", "Open the map"],
                   ["O", "Open the log"],
                   ["Esc", "Back to this screen"],

@@ -34,6 +34,19 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
   /** The walk phase advances with distance covered, not with wall time, so
    *  the feet never skate: stop moving and the cycle stops with you. */
   const phase = useRef(0);
+  /** Landing squash-and-stretch. `groundedPrev` catches the edge the same
+   *  way Player.tsx's own landing sound does; `maxFall` tracks the hardest
+   *  downward speed seen since the last time the ground was underfoot, so
+   *  the squash on impact is scaled to how far the fall actually was —
+   *  stepping off a curb barely registers, missing the plinth's edge does.
+   *  Self-contained rather than reading anything Player.tsx computes: the
+   *  two components only share a read-only PlayerState, and duplicating one
+   *  small edge-detector here is simpler than growing that shared shape for
+   *  a value only the avatar's own animation needs. */
+  const groundedPrev = useRef(true);
+  const maxFall = useRef(0);
+  const squashT = useRef(1);
+  const squashMag = useRef(0);
 
   useFrame((_, rawDelta) => {
     const dt = Math.min(0.05, rawDelta);
@@ -42,6 +55,22 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
 
     root.current.position.set(s.position.x, s.position.y, s.position.z);
     root.current.rotation.y = s.yaw;
+
+    if (!s.grounded) {
+      maxFall.current = Math.max(maxFall.current, -s.velocity.y);
+    } else if (!groundedPrev.current) {
+      squashMag.current = Math.min(1, maxFall.current / 13);
+      squashT.current = 0;
+      maxFall.current = 0;
+    }
+    groundedPrev.current = s.grounded;
+
+    // Hardest right on impact, one small rebound past neutral, settled by
+    // ~240ms — the ordinary shape of a squash-and-stretch bounce.
+    squashT.current = Math.min(1, squashT.current + dt / 0.24);
+    const st = squashT.current;
+    const squash = squashMag.current * (1 - st) * Math.cos(st * Math.PI * 1.3);
+    root.current.scale.set(1 + squash * 0.16, 1 - squash * 0.26, 1 + squash * 0.16);
 
     const speed = Math.hypot(s.velocity.x, s.velocity.z);
     phase.current += speed * dt * 1.35;

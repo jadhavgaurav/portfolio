@@ -59,7 +59,22 @@ const PALETTE: [jacket: string, jacketDark: string, accent: string][] = [
 
 /** A name tag, billboarded to face the camera. Canvas texture, same reason
  *  Markers.tsx gives for not using drei's Text: no network font dependency. */
-function NameTag({ text, color }: { text: string; color: string }) {
+/** `anchorY` is how far above this NPC's own local origin its head or top
+ *  actually sits. It used to be a bare constant (1.98) baked into this
+ *  component — correct for the ~1.7-tall human figure it was written
+ *  against, and silently wrong for anyone shorter: Jules is a sphere
+ *  centred 1.1 units up with a radius of 0.24, and the crab's shell tops
+ *  out under 0.6, so both were getting their name tag rendered a metre or
+ *  more above their own body, floating with nothing under it. */
+function NameTag({
+  text,
+  color,
+  anchorY,
+}: {
+  text: string;
+  color: string;
+  anchorY: number;
+}) {
   const ref = useRef<THREE.Group>(null);
   const texture = useMemo(() => {
     const w = 512;
@@ -86,10 +101,20 @@ function NameTag({ text, color }: { text: string; color: string }) {
   });
 
   return (
-    <group ref={ref} position={[0, 1.62, 0]}>
-      <mesh>
+    /* Drawn without a depth test, clear of whatever it is labelling. It used
+       to sit at a fixed y=1.62 — exactly the human figure's own height — so
+       the head it was meant to label was drawn straight through it and the
+       name was invisible from every angle except side-on. */
+    <group ref={ref} position={[0, anchorY, 0]} renderOrder={19}>
+      <mesh renderOrder={19}>
         <planeGeometry args={[1.7, 0.32]} />
-        <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          map={texture}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
@@ -112,6 +137,32 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+/** A rounded rectangle path. `CanvasRenderingContext2D.roundRect` only
+ *  landed in Safari 16.4, and this runs inside a useMemo during render —
+ *  a throw here would take the whole scene down rather than degrade one
+ *  bubble's corners, so the arc fallback is not optional. */
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  const rad = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+}
+
 /** The meetup bubble — what shows above someone's head once they notice
  *  you. Opacity and scale are driven imperatively from the parent's own
  *  useFrame via the `visible` ref (0..1), not React state, so a greeting
@@ -121,42 +172,92 @@ function GreetBubble({
   text,
   accent,
   visible,
+  anchorY,
 }: {
   text: string;
   accent: string;
   visible: React.MutableRefObject<number>;
+  /** How far above this NPC's own local origin the bubble's tail should
+   *  sit — see the note on NameTag's `anchorY`. */
+  anchorY: number;
 }) {
   const ref = useRef<THREE.Group>(null);
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  const W = 640;
-  const H = 220;
 
-  const texture = useMemo(() => {
+  /* The panel is measured before it is drawn, so the canvas is exactly as
+     tall as the text in it. The old one was a fixed 640x220 whatever it
+     held: a one-line greeting rendered as a small caption adrift in a
+     mostly-empty plane, with its tail pointing at nothing, and the whole
+     thing was anchored by its centre so its height changed where it sat.
+     Now it is anchored by the tip of its tail, which is pinned just above
+     the speaker's head, and it grows upward from there. */
+  const bubble = useMemo(() => {
+    const FONT = "500 52px ui-monospace, 'SFMono-Regular', Menlo, monospace";
+    const W = 1024;
+    const LINE_H = 66;
+    const PAD_X = 32;
+    const PAD_Y = 40;
+    const TAIL = 26;
+    /** Room for the drop shadow to fall inside the texture. */
+    const MARGIN = 20;
+    /** World-space width of the plane. The old 2.3 put a three-line
+     *  paragraph at about the height of a doorframe seen across a street. */
+    const PLANE_W = 3.4;
+
+    const measure = document.createElement("canvas").getContext("2d");
+    if (!measure) throw new Error("GreetBubble: 2D canvas context unavailable");
+    measure.font = FONT;
+    const lines = wrapText(measure, text, W - PAD_X * 2 - 76).slice(0, 3);
+
+    const boxW = W - PAD_X * 2;
+    const boxH = lines.length * LINE_H + PAD_Y * 2;
+    const H = Math.ceil(MARGIN * 2 + boxH + TAIL * 1.4);
+
     const c = document.createElement("canvas");
     c.width = W;
     c.height = H;
-    const ctx = c.getContext("2d")!;
-    ctx.font = "500 32px ui-monospace, 'SFMono-Regular', Menlo, monospace";
-    const lines = wrapText(ctx, text, W - 80).slice(0, 3);
-    const lineH = 42;
-    const pad = 28;
-    const boxH = lines.length * lineH + pad * 2;
-    const boxY = (H - boxH) / 2;
-    ctx.fillStyle = "rgba(10,8,4,0.85)";
-    ctx.fillRect(24, boxY, W - 48, boxH);
+    const ctx = c.getContext("2d");
+    if (!ctx) throw new Error("GreetBubble: 2D canvas context unavailable");
+    ctx.font = FONT;
+
+    const boxX = PAD_X;
+    const boxY = MARGIN;
+
+    /* A drop shadow under the whole bubble. Without it the panel sat flat
+       against whatever was behind it, and against a bright sky or a sunlit
+       wall the dark fill lost its edge entirely. */
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 26;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = "rgba(12,9,5,0.94)";
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 18);
+    ctx.fill();
+    // The tail, pointing down at whoever is speaking.
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - TAIL, boxY + boxH - 1);
+    ctx.lineTo(W / 2 + TAIL, boxY + boxH - 1);
+    ctx.lineTo(W / 2, boxY + boxH + TAIL * 1.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
     ctx.strokeStyle = accent;
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(24, boxY, W - 48, boxH);
-    ctx.fillStyle = "#f3e9d2";
+    ctx.lineWidth = 4;
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 18);
+    ctx.stroke();
+
+    ctx.fillStyle = "#fbf4e2";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     lines.forEach((l, i) => {
-      ctx.fillText(l, W / 2, boxY + pad + lineH * i + lineH / 2 - 4);
+      ctx.fillText(l, W / 2, boxY + PAD_Y + LINE_H * i + LINE_H / 2 - 4);
     });
-    const t = new THREE.CanvasTexture(c);
-    t.anisotropy = 4;
-    t.needsUpdate = true;
-    return t;
+
+    const texture = new THREE.CanvasTexture(c);
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+    return { texture, planeW: PLANE_W, planeH: (PLANE_W * H) / W };
   }, [text, accent]);
 
   useFrame((state) => {
@@ -164,18 +265,25 @@ function GreetBubble({
     ref.current.quaternion.copy(state.camera.quaternion);
     const v = visible.current;
     ref.current.visible = v > 0.01;
-    ref.current.scale.setScalar(0.75 + v * 0.25);
+    // Scaled about the tail tip, so it pops up out of the speaker's head
+    // rather than swelling around its own middle.
+    ref.current.scale.setScalar(0.82 + v * 0.18);
     if (matRef.current) matRef.current.opacity = v;
   });
 
   return (
-    <group ref={ref} position={[0, 2.12, 0]} visible={false}>
-      <mesh>
-        <planeGeometry args={[2.3, (2.3 * H) / W]} />
+    /* Anchored at the tail tip, clear of the name tag below it. depthTest
+       off and a high renderOrder: what someone says has to be readable from
+       wherever the player is standing, and the bubble was being clipped by
+       the buildings, banners and district pads it floats in front of. */
+    <group ref={ref} position={[0, anchorY, 0]} renderOrder={20} visible={false}>
+      <mesh position={[0, bubble.planeH / 2, 0]} renderOrder={20}>
+        <planeGeometry args={[bubble.planeW, bubble.planeH]} />
         <meshBasicMaterial
           ref={matRef}
-          map={texture}
+          map={bubble.texture}
           transparent
+          depthTest={false}
           depthWrite={false}
           toneMapped={false}
           opacity={0}
@@ -185,54 +293,109 @@ function GreetBubble({
   );
 }
 
-/** How close is "noticed", how long the greeting holds, and the shape of
- *  its fade — shared by every NPC kind so a meetup always feels the same
- *  length regardless of who or what it is. */
+/** A ring of light at someone's feet, the instant they notice you — the
+ *  same edge that fires the greeting chime, so what you hear and what you
+ *  see happen on the same frame. Reuses the exact visual grammar a
+ *  collected marker already uses (an expanding, fading ring) rather than
+ *  inventing a second one: meeting someone and finding something are both
+ *  "you discovered this," and this world already has a way to say that. */
+function NoticeRing({ accent, t }: { accent: string; t: React.MutableRefObject<number> }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  useFrame(() => {
+    const age = t.current / NOTICE_DURATION;
+    if (!ref.current || !matRef.current) return;
+    if (age >= 1) {
+      ref.current.visible = false;
+      return;
+    }
+    ref.current.visible = true;
+    ref.current.scale.setScalar(0.4 + age * 2.6);
+    matRef.current.opacity = Math.max(0, 1 - age);
+  });
+
+  return (
+    <mesh ref={ref} position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+      <ringGeometry args={[0.34, 0.48, 22]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color={accent}
+        transparent
+        opacity={0}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+/** How close is "noticed", how far you can drift while actually talking to
+ *  someone, and the shape of the bubble's fade — shared by every NPC kind
+ *  so a meetup always behaves the same regardless of who or what it is. */
 const GREET_RADIUS = 7.5;
-const GREET_DURATION = 4.5;
+/** While their panel is open they hold the conversation over a wider ring,
+ *  so standing on the edge of the greet radius cannot end it from under you. */
+const ENGAGED_RADIUS = 16;
 const GREET_FADE_IN = 0.35;
 const GREET_FADE_OUT = 0.7;
+/** How long the ground pulse takes to expand and fade, in seconds. */
+const NOTICE_DURATION = 0.7;
 
 interface GreetState {
   greeting: React.MutableRefObject<boolean>;
-  greetT: React.MutableRefObject<number>;
   wasNear: React.MutableRefObject<boolean>;
   opacity: React.MutableRefObject<number>;
+  /** Seconds since this person last noticed the player arriving — the same
+   *  edge that fires the chime. Starts past NOTICE_DURATION so nothing
+   *  pulses on mount, before anyone has actually walked up. */
+  noticeT: React.MutableRefObject<number>;
 }
 
 function useGreetState(): GreetState {
   return {
     greeting: useRef(false),
-    greetT: useRef(0),
     wasNear: useRef(false),
     opacity: useRef(0),
+    noticeT: useRef(NOTICE_DURATION + 1),
   };
 }
 
-/** Edge-triggered: a greeting starts the moment the player crosses into
- *  range, runs for a fixed duration, and won't fire again until the player
- *  leaves and comes back — so lingering nearby doesn't replay it on a loop.
+/** A greeting lasts as long as you are actually standing there.
+ *
+ *  It used to run on a fixed 4.5-second timer, which meant anyone you walked
+ *  up to turned their back and wandered off mid-conversation while you were
+ *  still reading what they said. The chime is still edge-triggered on
+ *  arrival, so it sounds once per encounter rather than on a loop, but the
+ *  stop-and-face and the bubble now simply track presence: they hold while
+ *  you are in range and release when you leave.
+ *
+ *  `engaged` is set while this person's own panel is open, which both widens
+ *  the ring and keeps them there even if the player nudges past its edge.
  *  `seed` identifies who's greeting, purely to pitch their chime. */
-function tickGreet(g: GreetState, dt: number, dist: number, seed: string) {
-  const near = dist < GREET_RADIUS;
+function tickGreet(
+  g: GreetState,
+  dt: number,
+  dist: number,
+  seed: string,
+  engaged: boolean,
+) {
+  const near = dist < (engaged ? ENGAGED_RADIUS : GREET_RADIUS);
   if (near && !g.wasNear.current) {
-    g.greeting.current = true;
-    g.greetT.current = 0;
     audio.greet(seed);
+    g.noticeT.current = 0;
+  } else {
+    g.noticeT.current += dt;
   }
   g.wasNear.current = near;
-  if (g.greeting.current) {
-    g.greetT.current += dt;
-    if (g.greetT.current > GREET_DURATION || !near) g.greeting.current = false;
-  }
-  const t = g.greetT.current;
-  g.opacity.current = !g.greeting.current
-    ? 0
-    : t < GREET_FADE_IN
-      ? t / GREET_FADE_IN
-      : t > GREET_DURATION - GREET_FADE_OUT
-        ? Math.max(0, (GREET_DURATION - t) / GREET_FADE_OUT)
-        : 1;
+  g.greeting.current = near || engaged;
+
+  // Ease toward the target rather than snapping, so leaving is a fade and
+  // not a disappearance. Asymmetric on purpose: quick to appear, slower to go.
+  const target = g.greeting.current ? 1 : 0;
+  const delta = target - g.opacity.current;
+  const rate = dt / (delta > 0 ? GREET_FADE_IN : GREET_FADE_OUT);
+  g.opacity.current += Math.sign(delta) * Math.min(Math.abs(delta), rate);
 }
 
 /** Two waypoints inside a disk, deterministic from a seed — the same short
@@ -248,14 +411,21 @@ function wanderPoints(seed: string, cx: number, cz: number, radius: number) {
   ] as const;
 }
 
+/** Whose panel is currently open, or null. A ref rather than a prop value
+ *  because it is read inside useFrame: engaging someone must not re-render
+ *  every NPC in the world. */
+type EngagedRef = React.MutableRefObject<string | null>;
+
 function HumanNPC({
   id,
   seed,
   playerState,
+  engagedId,
 }: {
   id: string;
   seed: string;
   playerState: React.MutableRefObject<PlayerState>;
+  engagedId: EngagedRef;
 }) {
   const it = useMemo(() => INTERACTABLES.find((x) => x.id === id), [id]);
   const [jacket, jacketDark, accent] = PALETTE[Math.floor(hash(seed) * PALETTE.length)];
@@ -282,7 +452,7 @@ function HumanNPC({
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer, seed);
+    tickGreet(greet, dt, distToPlayer, seed, engagedId.current === id);
 
     let speed01 = 0;
     if (greet.greeting.current) {
@@ -402,8 +572,9 @@ function HumanNPC({
         <meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} />
       </mesh>
 
-      <NameTag text={it.title} color={accent} />
-      <GreetBubble text={greetText} accent={accent} visible={greet.opacity} />
+      <NameTag text={it.title} color={accent} anchorY={h + 0.36} />
+      <GreetBubble text={greetText} accent={accent} visible={greet.opacity} anchorY={h + 0.58} />
+      <NoticeRing accent={accent} t={greet.noticeT} />
     </group>
   );
 }
@@ -415,7 +586,15 @@ const CRAB_CLAW = "#f2864a";
 /** Claude, as a crab — the player's own idea. Scuttles a short loop near the
  *  core rather than standing in one district: it touched code across the
  *  record, not one ecosystem. */
-function Crab({ id, playerState }: { id: string; playerState: React.MutableRefObject<PlayerState> }) {
+function Crab({
+  id,
+  playerState,
+  engagedId,
+}: {
+  id: string;
+  playerState: React.MutableRefObject<PlayerState>;
+  engagedId: EngagedRef;
+}) {
   const it = useMemo(() => INTERACTABLES.find((x) => x.id === id), [id]);
   const greetText = useMemo(() => {
     const a = aiTools.find((x) => x.tool === "Claude");
@@ -439,7 +618,7 @@ function Crab({ id, playerState }: { id: string; playerState: React.MutableRefOb
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer, "claude-crab");
+    tickGreet(greet, dt, distToPlayer, "claude-crab", engagedId.current === id);
 
     let moving = false;
     if (greet.greeting.current) {
@@ -537,8 +716,9 @@ function Crab({ id, playerState }: { id: string; playerState: React.MutableRefOb
         <circleGeometry args={[0.42, 16]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.28} depthWrite={false} />
       </mesh>
-      <NameTag text="Claude" color="#ffb08c" />
-      <GreetBubble text={greetText} accent="#ffb08c" visible={greet.opacity} />
+      <NameTag text="Claude" color="#ffb08c" anchorY={0.85} />
+      <GreetBubble text={greetText} accent="#ffb08c" visible={greet.opacity} anchorY={1.05} />
+      <NoticeRing accent="#ffb08c" t={greet.noticeT} />
     </group>
   );
 }
@@ -553,7 +733,15 @@ const JULES_RING4 = "#34a853";
  *  contributor in the commit data. Deliberately not a second crab: it
  *  hovers rather than walks, so the two AI collaborators never read as the
  *  same character from a distance. */
-function JulesBot({ id, playerState }: { id: string; playerState: React.MutableRefObject<PlayerState> }) {
+function JulesBot({
+  id,
+  playerState,
+  engagedId,
+}: {
+  id: string;
+  playerState: React.MutableRefObject<PlayerState>;
+  engagedId: EngagedRef;
+}) {
   const it = useMemo(() => INTERACTABLES.find((x) => x.id === id), [id]);
   const greetText = useMemo(() => {
     const a = aiTools.find((x) => x.tool === "Jules");
@@ -576,7 +764,7 @@ function JulesBot({ id, playerState }: { id: string; playerState: React.MutableR
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer, "jules-bot");
+    tickGreet(greet, dt, distToPlayer, "jules-bot", engagedId.current === id);
 
     if (greet.greeting.current) {
       // Holds still and faces the player rather than drifting — the fixed
@@ -622,13 +810,20 @@ function JulesBot({ id, playerState }: { id: string; playerState: React.MutableR
           </mesh>
         ))}
       </group>
-      <NameTag text="Jules" color="#8ab4f8" />
-      <GreetBubble text={greetText} accent="#8ab4f8" visible={greet.opacity} />
+      <NameTag text="Jules" color="#8ab4f8" anchorY={0.54} />
+      <GreetBubble text={greetText} accent="#8ab4f8" visible={greet.opacity} anchorY={0.74} />
+      <NoticeRing accent="#8ab4f8" t={greet.noticeT} />
     </group>
   );
 }
 
-export function NPCs({ playerState }: { playerState: React.MutableRefObject<PlayerState> }) {
+export function NPCs({
+  playerState,
+  engagedId,
+}: {
+  playerState: React.MutableRefObject<PlayerState>;
+  engagedId: EngagedRef;
+}) {
   return (
     <>
       {contributors.map((c) => (
@@ -637,13 +832,24 @@ export function NPCs({ playerState }: { playerState: React.MutableRefObject<Play
           id={`npc:${c.login ?? c.name}`}
           seed={c.login ?? c.name}
           playerState={playerState}
+          engagedId={engagedId}
         />
       ))}
       {aiTools.map((a) =>
         a.tool === "Claude" ? (
-          <Crab key={a.tool} id={`ai:${a.tool}`} playerState={playerState} />
+          <Crab
+            key={a.tool}
+            id={`ai:${a.tool}`}
+            playerState={playerState}
+            engagedId={engagedId}
+          />
         ) : (
-          <JulesBot key={a.tool} id={`ai:${a.tool}`} playerState={playerState} />
+          <JulesBot
+            key={a.tool}
+            id={`ai:${a.tool}`}
+            playerState={playerState}
+            engagedId={engagedId}
+          />
         ),
       )}
     </>

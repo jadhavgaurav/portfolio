@@ -31,7 +31,10 @@ export function InteractPanel({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.code === "KeyE") {
+      // I opens a person's panel the same way E opens everything else's, so
+      // it has to close one too — without this, walking up to someone with
+      // I and then pressing I again (the obvious thing to try) did nothing.
+      if (e.key === "Escape" || e.code === "KeyE" || e.code === "KeyI") {
         e.preventDefault();
         close.current();
       }
@@ -73,7 +76,7 @@ export function InteractPanel({
       aria-modal="true"
       aria-label={target.title}
       tabIndex={-1}
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-10"
+      className="u-panel-in fixed inset-0 z-50 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-10"
       style={{ background: "rgba(16,11,5,0.97)" }}
     >
       <div className="mx-auto max-w-[46rem]">
@@ -110,7 +113,7 @@ export function InteractPanel({
           </div>
           <button
             onClick={onClose}
-            className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
+            className="u-btn u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
             style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
           >
             Close

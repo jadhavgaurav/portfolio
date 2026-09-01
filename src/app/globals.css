@@ -114,6 +114,50 @@ body:has(main#record) {
   outline-offset: 3px;
 }
 
+/* ── Panel entrance ─────────────────────────────────────────────────────── */
+
+/* Every full-screen panel — the interact panel, the map, the log — used to
+   simply appear, the same hard cut a re-render gives any other conditional
+   element. Nothing else in the game does that any more: a marker pulses
+   before you reach it, a bubble fades in when someone notices you, an
+   achievement pops rather than blinking into existence. A dialog opening is
+   the single most frequent interaction in the whole game and it was the one
+   moment left with no motion in it at all. */
+@keyframes null-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.u-panel-in {
+  animation: null-panel-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+/* One shared feel for every button in the interface, regardless of its own
+   colour scheme — `filter` brightens or dims whatever is already there
+   rather than requiring a hand-picked hover colour per button, which is why
+   this works the same on the map's dark chrome and the achievement banner's
+   pale gold without either needing its own rule. Every button in the game
+   had a border and a background and nothing that responded to a mouse being
+   over it at all; on a trackpad or a controller-less desktop that reads as
+   the interface not noticing you, not as restraint. */
+.u-btn {
+  transition: filter 0.12s ease-out, transform 0.08s ease-out;
+}
+.u-btn:hover {
+  filter: brightness(1.16);
+}
+.u-btn:active {
+  filter: brightness(0.92);
+  transform: scale(0.97);
+}
+
 /* ── Preferences ────────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

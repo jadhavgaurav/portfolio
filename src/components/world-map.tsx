@@ -53,6 +53,11 @@ export function WorldMap({
   const [hover, setHover] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  /** Only true while a drag is actually in progress — a scroll-wheel zoom
+   *  transitions smoothly (see the terrain group's own style below), and a
+   *  pan has to track the pointer exactly, not ease toward it a frame late.
+   *  Same transform, so it needed a way to tell the two apart. */
+  const [dragging, setDragging] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const svg = useRef<SVGSVGElement>(null);
   const dot = useRef<SVGGElement>(null);
@@ -110,6 +115,7 @@ export function WorldMap({
   const onDown = (e: React.PointerEvent) => {
     drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
     moved.current = false;
+    setDragging(true);
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const onMove = (e: React.PointerEvent) => {
@@ -126,6 +132,7 @@ export function WorldMap({
   const onUp = (e: React.PointerEvent) => {
     const wasDrag = moved.current;
     drag.current = null;
+    setDragging(false);
     // A drag pans; a click marks. Distinguishing them by distance is what
     // stops every pan from dropping a waypoint.
     if (wasDrag) return;
@@ -144,7 +151,7 @@ export function WorldMap({
       aria-modal="true"
       aria-label="World map"
       tabIndex={-1}
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6"
+      className="u-panel-in fixed inset-0 z-50 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6"
       style={{ background: "rgba(16,11,5,0.985)" }}
     >
       <div className="mx-auto max-w-[74rem]">
@@ -161,7 +168,7 @@ export function WorldMap({
             {waypoint && (
               <button
                 onClick={() => onWaypoint(null)}
-                className="u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
+                className="u-btn u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
                 style={{ borderColor: "#a3771f", color: "#ffb703" }}
               >
                 Clear waypoint
@@ -172,14 +179,14 @@ export function WorldMap({
                 setZoom(1);
                 setPan({ x: 0, y: 0 });
               }}
-              className="u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
+              className="u-btn u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
               style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
             >
               Reset view
             </button>
             <button
               onClick={onClose}
-              className="u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
+              className="u-btn u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
               style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
             >
               Close · Esc
@@ -205,6 +212,7 @@ export function WorldMap({
               onPointerUp={onUp}
               onPointerCancel={() => {
                 drag.current = null;
+                setDragging(false);
               }}
               role="img"
               aria-label="Map of the world"
@@ -222,7 +230,10 @@ export function WorldMap({
                 </pattern>
               </defs>
 
-              <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
+              <g
+                transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}
+                style={dragging ? undefined : { transition: "transform 0.15s ease-out" }}
+              >
                 {/* Terrain. A landmass with an edge, so the world has a shape
                     rather than being an infinite black field — grass, to
                     match the ground the game itself now stands on, not a
@@ -485,7 +496,7 @@ export function WorldMap({
                         }}
                         onMouseEnter={() => setHover(d.language)}
                         onMouseLeave={() => setHover(null)}
-                        className="flex min-h-[52px] flex-1 items-center gap-3 text-left"
+                        className="u-btn flex min-h-[52px] flex-1 items-center gap-3 text-left"
                       >
                         <span
                           className="block h-3 w-3 shrink-0 rounded-full"
@@ -507,7 +518,7 @@ export function WorldMap({
                           onWaypoint({ x: cx, z: cz, label: `${style.label} district` })
                         }
                         aria-label={`Set waypoint to ${style.label}`}
-                        className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-2.5 text-[0.52rem] uppercase tracking-[0.12em]"
+                        className="u-btn u-mono inline-flex min-h-[44px] shrink-0 items-center border px-2.5 text-[0.52rem] uppercase tracking-[0.12em]"
                         style={{ borderColor: "#3a2c12", color: "#8a7a52" }}
                       >
                         Mark
@@ -522,7 +533,7 @@ export function WorldMap({
                     onTravel(0, 0);
                     onClose();
                   }}
-                  className="flex min-h-[52px] w-full items-center gap-3 text-left"
+                  className="u-btn flex min-h-[52px] w-full items-center gap-3 text-left"
                 >
                   <span
                     className="block h-3 w-3 shrink-0 rounded-full"

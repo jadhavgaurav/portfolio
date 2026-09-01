@@ -126,19 +126,24 @@ function landmarkShape(e: Entity, n: (i: number) => number): Part[] {
   const bodyD = e.mass * 1.1;
   const bodyH = e.height * 0.6;
   out.push(slab(bodyW, bodyH, bodyD, 0, bodyH / 2, 0, e.rot));
-  const roofR = Math.max(bodyW, bodyD) * 0.76;
   const roofH = e.height * 0.4;
-  out.push(roof(roofR, roofH, 0, bodyH + roofH / 2, 0, 4, e.rot + Math.PI / 4));
+  out.push(roof(bodyW * 0.76, roofH, 0, bodyH + roofH / 2, 0, 4, e.rot, bodyD * 0.76));
   // A chimney or dormer, only on the more built-up ones — reads as character
-  // rather than noise on the many small huts.
+  // rather than noise on the many small huts. Sat near the eave, where the
+  // roof is still close to full width, rather than partway up the slope
+  // where a four-sided cone has already tapered to a sliver too narrow to
+  // hold a box this wide — the previous height clipped it through the roof
+  // face instead of sitting on top of it.
   if (e.phases > 2) {
+    const chimW = bodyW * 0.16;
+    const chimH = roofH * 0.5;
     out.push(
       slab(
-        bodyW * 0.16,
-        roofH * 0.9,
-        bodyW * 0.16,
-        Math.sign(n(2) || 1) * bodyW * 0.26,
-        bodyH + roofH * 0.62,
+        chimW,
+        chimH,
+        chimW,
+        Math.sign(n(2) || 1) * bodyW * 0.22,
+        bodyH + roofH * 0.24,
         bodyD * 0.12,
         e.rot,
       ),
@@ -178,8 +183,13 @@ function dormantShape(e: Entity, n: (i: number) => number): Part[] {
   const bodyD = e.mass * 0.98;
   const bodyH = e.height * 0.52;
   out.push(slab(bodyW, bodyH, bodyD, 0, bodyH / 2, 0, e.rot, lean * Math.sign(n(4) || 1)));
-  const roofR = Math.max(bodyW, bodyD) * 0.72;
-  out.push(roof(roofR, e.height * 0.3, 0, bodyH + e.height * 0.15, 0, 4, e.rot + 0.5));
+  // The 0.5 rad offset from the body's own rotation is deliberate — the roof
+  // sits askew on the walls below it, per the shape's name — but it is a
+  // twist applied on top of a roof that otherwise properly fits bodyW by
+  // bodyD, not a substitute for fitting it.
+  out.push(
+    roof(bodyW * 0.72, e.height * 0.3, 0, bodyH + e.height * 0.15, 0, 4, e.rot + 0.5, bodyD * 0.72),
+  );
   // A fallen support, leant against the wall.
   out.push(limb(bodyW * 0.09, bodyW * 0.09, e.height * 0.46, bodyW * 0.56, 0, n(5) * bodyD * 0.2, e.rot, 0.55));
   return out;
@@ -301,14 +311,25 @@ export function buildWorld(): WorldGeometry {
   /* Conduits: the eight attempts at one assistant, drawn as one line through
      the world. This is the relationship the record most clearly supports. */
   const byId = new Map(entities.map((e) => [e.id, e]));
+  // `lineage` is already the real order these eight attempts happened in —
+  // the z-sort this used to have was inherited from the old corridor world,
+  // where time ran down -z and re-sorting by it was harmless because it
+  // matched chronology anyway. In the district ring z means nothing (a
+  // district is a place, not a date), so that sort was quietly replacing
+  // "attempt 1 → 2 → ... → 8" with an arbitrary geometric ordering.
   const chain = lineage
     .map((a) => byId.get(a.name.split(" · ")[0]))
-    .filter((e): e is Entity => Boolean(e))
-    .sort((a, b) => b.z - a.z);
+    .filter((e): e is Entity => Boolean(e));
   const conduitParts: Part[] = [];
   if (chain.length > 1) {
     const pts = chain.map((e) => new THREE.Vector3(e.x, e.height * 0.55 + 2, e.z));
-    conduitParts.push(conduit(pts, 0.24));
+    // Thinner than the old 0.24: in the corridor world this line ran close
+    // beside the path you were already walking, so its thickness barely
+    // registered. Eight districts apart, the same tube arcs high across
+    // open sky between them — the emissive intensity below has to come down
+    // to match, or a real relationship the record supports reads as a
+    // rendering glitch instead of a line worth noticing.
+    conduitParts.push(conduit(pts, 0.13));
   }
   const conduits = conduitParts.length ? merge(conduitParts) : new THREE.BufferGeometry();
 

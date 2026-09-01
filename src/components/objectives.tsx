@@ -40,7 +40,7 @@ export function Objectives({
       aria-modal="true"
       aria-label="The log"
       tabIndex={-1}
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain px-5 py-8 sm:px-10 sm:py-14"
+      className="u-panel-in fixed inset-0 z-50 overflow-y-auto overscroll-contain px-5 py-8 sm:px-10 sm:py-14"
       style={{ background: "rgba(16,11,5,0.97)" }}
     >
       <div className="mx-auto max-w-[38rem]">
@@ -61,7 +61,7 @@ export function Objectives({
           </div>
           <button
             onClick={onClose}
-            className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
+            className="u-btn u-mono inline-flex min-h-[44px] shrink-0 items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
             style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
           >
             Close · O

@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { LIGHT } from "./palette";
-import { WORLD, entities } from "./telemetry";
+import { entities } from "./telemetry";
 import type { Phase } from "./sequence";
 
 /**
@@ -137,20 +137,5 @@ export function Dust({ quality }: { quality: "high" | "low" }) {
         depthWrite={false}
       />
     </points>
-  );
-}
-
-/** Ground haze: a soft band that hides where the ground plane ends. */
-export function GroundHaze() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, -WORLD.depth / 2]}>
-      <planeGeometry args={[900, WORLD.depth + 700]} />
-      <meshBasicMaterial
-        color={LIGHT.aerial}
-        transparent
-        opacity={0.22}
-        depthWrite={false}
-      />
-    </mesh>
   );
 }

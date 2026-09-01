@@ -15,6 +15,7 @@ import { nearestInteractable, type Interactable } from "@/world/interactables";
 import { Compass } from "./compass";
 import type { Waypoint } from "@/world/mapdata";
 import { nearestDistrictLanguage } from "@/world/mapdata";
+import { styleFor } from "@/world/language";
 import * as audio from "@/audio/engine";
 import { computeProgress } from "@/world/progress";
 import { Objectives } from "./objectives";
@@ -37,6 +38,20 @@ function Booting() {
     </div>
   );
 }
+
+/** The on-screen control reminder. Ordered by how soon a new player needs
+ *  each one: move, then look, then the two things you do to the world, then
+ *  the two panels. */
+const CONTROLS: { keys: string[]; label: string }[] = [
+  { keys: ["W", "A", "S", "D"], label: "Move" },
+  { keys: ["Shift"], label: "Run" },
+  { keys: ["Space"], label: "Jump" },
+  { keys: ["Drag"], label: "Look" },
+  { keys: ["E"], label: "Open" },
+  { keys: ["I"], label: "Talk" },
+  { keys: ["M"], label: "Map" },
+  { keys: ["O"], label: "Log" },
+];
 
 function probe(): { webgl: boolean; software: boolean } {
   try {
@@ -81,9 +96,35 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [muted, setMuted] = useState(false);
   const [enteredDistricts, setEnteredDistricts] = useState<string[]>([]);
   const [objectivesOpen, setObjectivesOpen] = useState(false);
-  const [toast, setToast] = useState<{ key: string; label: string } | null>(null);
+  /* A queue, not a single slot. A category completing used to call
+     setToast() directly, which meant two categories completing on the same
+     tick — every category can already be complete the instant progress is
+     first computed after loading a save with everything found — silently
+     dropped every banner but the last one React happened to commit. Each
+     banner now gets its own turn instead of racing the others out. */
+  const [toastQueue, setToastQueue] = useState<{ id: number; key: string; label: string }[]>([]);
+  const toastId = useRef(0);
+  const pushToast = (key: string, label: string) => {
+    toastId.current += 1;
+    setToastQueue((q) => [...q, { id: toastId.current, key, label }]);
+  };
   const lastDistrict = useRef<string | null>(null);
   const prevComplete = useRef<Record<string, boolean>>({});
+  /* Kept in sync with `enteredDistricts` state but read from inside a
+     requestAnimationFrame loop below whose effect never re-subscribes when
+     districts change — a plain closure over the state array there would see
+     whatever it was when the loop started, forever. */
+  const enteredSet = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    enteredSet.current = new Set(enteredDistricts);
+  }, [enteredDistricts]);
+
+  /* Who the player is currently talking to. Held as a ref and read inside
+     the world's own frame loop, so opening someone's panel does not
+     re-render forty NPCs to tell one of them to stand still. Written from
+     an effect rather than during render: a render React discards must not
+     leave the world holding someone in a conversation that never opened. */
+  const engagedId = useRef<string | null>(null);
 
   const input = useRef<Input>(makeInput());
   const state = useRef<PlayerState>({
@@ -113,10 +154,42 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     }
     const coarse = window.matchMedia("(pointer: coarse)");
     const cap = probe();
-    setTouch(coarse.matches);
-    setQuality(cap.software || coarse.matches || window.innerWidth < 900 ? "low" : "high");
     setSupported(cap.webgl);
+
+    /* The tier is re-derived whenever the inputs to it change, not once at
+       mount. Two of the three are not fixed for the life of the session:
+       a window can be widened past the small-screen threshold, and the
+       pointer can go from coarse to fine when a tablet is docked to a
+       mouse. Deciding once meant a window that happened to be narrow on
+       the first frame stayed on the low tier forever — no shadow map,
+       reduced resolution, the lighter post stack — on hardware with plenty
+       of headroom for the high one. Only the GPU probe is genuinely
+       fixed, so it is taken once and reused. */
+    const settle = () => {
+      setTouch(coarse.matches);
+      setQuality(cap.software || coarse.matches || window.innerWidth < 900 ? "low" : "high");
+    };
+    settle();
+
+    /* Debounced, so dragging a window across the threshold settles on one
+       tier rather than rebuilding the shadow map at every width in between. */
+    let timer = 0;
+    const onResize = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, 200);
+    };
+    window.addEventListener("resize", onResize);
+    coarse.addEventListener("change", settle);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
+      coarse.removeEventListener("change", settle);
+    };
   }, []);
+
+  useEffect(() => {
+    engagedId.current = open?.kind === "NPC" ? open.id : null;
+  }, [open]);
 
   /* The page itself never scrolls in game mode. */
   useEffect(() => {
@@ -153,17 +226,18 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       const was = prevComplete.current[c.key];
       if (c.complete && was === false) {
         audio.milestone();
-        setToast({ key: c.key, label: `${c.label} — complete` });
+        pushToast(c.key, `${c.label} — complete`);
       }
       prevComplete.current[c.key] = c.complete;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress]);
 
   useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3600);
+    if (!toastQueue.length) return;
+    const id = setTimeout(() => setToastQueue((q) => q.slice(1)), 3600);
     return () => clearTimeout(id);
-  }, [toast]);
+  }, [toastQueue]);
 
   /* Input is live only while the player has the world. With the title, the
      map or the document up, keys belong to those. */
@@ -224,11 +298,17 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     return () => cancelAnimationFrame(raf);
   }, [supported, mode]);
 
-  /* E opens what is in reach. */
+  /* E opens what is in reach, and I does the same for a person.
+   *
+   * One key would have been tidier, but E for a building and I for a person
+   * is what the prompt can actually say: walking up to someone and being
+   * told to press "E" reads as operating them rather than talking to them,
+   * and the greeting was landing with no visible way to answer it. Both are
+   * live for both kinds, so neither is a dead key wherever it is pressed. */
   useEffect(() => {
     if (!playing || !near) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "KeyE") return;
+      if (e.code !== "KeyE" && e.code !== "KeyI") return;
       e.preventDefault();
       audio.interactOpen();
       setOpen(near);
@@ -268,7 +348,12 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           if (lang === "CORE") audio.coreArrival();
           else if (lastDistrict.current !== "CORE") audio.districtEnter(lang);
         }
-        if (lang !== "CORE") {
+        if (lang !== "CORE" && !enteredSet.current.has(lang)) {
+          // First time in this district, specifically — not the chime that
+          // plays on every re-entry. Crossing in used to be silent past that
+          // one sound; nothing on screen ever said which district had just
+          // been added to the log.
+          pushToast("districts", `${styleFor(lang).label} district — entered`);
           setEnteredDistricts((prev) => (prev.includes(lang) ? prev : [...prev, lang]));
         }
         lastDistrict.current = lang;
@@ -306,6 +391,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           enabled={playing}
           activeId={near?.id ?? null}
           visited={visited}
+          engagedId={engagedId}
         />
       </div>
 
@@ -320,7 +406,11 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
         data-near={near?.id ?? ""}
         data-near-title={near?.title ?? ""}
       >
-        {near ? `${near.title}. ${near.kicker}. Press E to open.` : ""}
+        {near
+          ? `${near.title}. ${near.kicker}. ${
+              near.kind === "NPC" ? "Press I to talk." : "Press E to open."
+            }`
+          : ""}
       </div>
 
       {mode === "TITLE" && !reading && (
@@ -341,7 +431,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
         >
           <button
             onClick={() => setReading(false)}
-            className="u-mono fixed right-4 top-4 z-10 inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
+            className="u-btn u-mono fixed right-4 top-4 z-10 inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
             style={{ borderColor: "#2a2f32", color: "#9eaab0", background: "rgba(6,8,9,0.8)" }}
           >
             Back
@@ -389,7 +479,13 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
       {/* A category closing out, stated once and then gone — the log itself
           is where that state actually lives. */}
-      {toast && <AchievementBanner achievementKey={toast.key} label={toast.label} />}
+      {toastQueue[0] && (
+        <AchievementBanner
+          key={toastQueue[0].id}
+          achievementKey={toastQueue[0].key}
+          label={toastQueue[0].label}
+        />
+      )}
 
       {open && (
         <InteractPanel
@@ -414,7 +510,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
               setOpen(near);
               setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
             }}
-            className="u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
+            className="u-btn u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
             style={{
               borderColor: "rgba(240,223,174,0.4)",
               background: "rgba(20,14,6,0.85)",
@@ -424,7 +520,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
               className="u-mono shrink-0 border px-2 py-1 text-[0.58rem] uppercase tracking-[0.14em]"
               style={{ borderColor: "rgba(240,223,174,0.35)", color: "#e8dcb8" }}
             >
-              {touch ? "Open" : "E"}
+              {touch ? (near.kind === "NPC" ? "Talk" : "Open") : near.kind === "NPC" ? "I" : "E"}
             </span>
             <span className="min-w-0">
               <span
@@ -445,18 +541,47 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       )}
 
       {/* A reminder, not an instruction sheet — the title screen already gave
-          the full list. */}
+          the full list. It used to be one line of faint 0.6rem text at the
+          very bottom of the frame, the same weight as the ground it sat on,
+          and it was reliably missed: nobody knew there was a log, a map or a
+          way to talk to anyone. Keycaps on a solid ground read as controls
+          rather than as a caption. */}
       {playing && !touch && (
         <aside
-          aria-label="Controls reminder"
+          aria-label="Controls"
           className="pointer-events-none fixed inset-x-0 bottom-6 z-20 flex justify-center px-5"
         >
-          <p
-            className="u-mono text-[0.6rem] uppercase tracking-[0.2em]"
-            style={{ color: "#a3916a" }}
+          <div
+            className="flex max-w-[94vw] flex-wrap items-center justify-center gap-x-4 gap-y-2 border px-4 py-2.5"
+            style={{
+              borderColor: "rgba(240,223,174,0.22)",
+              background: "rgba(20,14,6,0.82)",
+            }}
           >
-            WASD · Shift to run · Space to jump · Drag to look · M for the map · O for the log
-          </p>
+            {CONTROLS.map((c) => (
+              <span key={c.label} className="flex items-center gap-1.5">
+                {c.keys.map((k) => (
+                  <kbd
+                    key={k}
+                    className="u-mono inline-flex min-w-[1.5rem] justify-center border px-1.5 py-0.5 text-[0.6rem] uppercase"
+                    style={{
+                      borderColor: "rgba(240,223,174,0.45)",
+                      color: "#f6ecd4",
+                      background: "rgba(240,223,174,0.08)",
+                    }}
+                  >
+                    {k}
+                  </kbd>
+                ))}
+                <span
+                  className="u-mono text-[0.62rem] uppercase tracking-[0.14em]"
+                  style={{ color: "#d3c39a" }}
+                >
+                  {c.label}
+                </span>
+              </span>
+            ))}
+          </div>
         </aside>
       )}
     </>

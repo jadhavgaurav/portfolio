@@ -1,59 +1,119 @@
-# The Record
+# NULL
 
-An evidence-led portfolio for **Gaurav Vijay Jadhav**.
+A 3D world generated from a real commit history, for **Gaurav Vijay Jadhav**.
 
-Every factual statement on the page carries the commit, file, DOI or published
-page that supports it. Statements that are interpretation are marked as
-interpretation. Claims a portfolio would normally make, that the underlying
-record cannot support, are named and left unmade.
+Everything you can walk up to is derived from actual GitHub data: 72
+repositories and 4,397 commits across ten language districts, arranged in a
+ring around a central hub. A structure's height and mass come from its own
+commit count. A district's colour is the language's own GitHub colour, not an
+invented palette. The people wandering the districts are real collaborators
+with real, verifiable commits on the repositories they stand near. Nothing on
+screen is placed to look good; it is placed because the record says it
+belongs there.
 
-## The idea
+This replaced an earlier version of the site, "The Record" — a scrollable,
+citation-first document. The idea underneath both versions is the same: don't
+claim more than the evidence supports. The 3D world is that same discipline
+applied to a place instead of a page.
 
-The concept was derived from the work rather than chosen for it. Across three
-years and forty repositories the same structural preoccupation recurs: a system
-should be able to account for what it did.
+## Controls
 
-- The phishing classifier ships with SHAP and LIME so a prediction can be argued with
-- The kidney-CT model versions its data with DVC and logs runs to MLflow so results can be re-derived
-- `PROJECT-VICTUS` routes tool calls through a policy engine that can answer `REQUIRE_APPROVAL`, and persists a trace of every step
-- `NULL` gates implementation behind fourteen visual studies, each with binding rules and a recorded verdict
-- The published paper is titled *A Framework to Make Voting System **Transparent** Using Blockchain Technology*
+| Key | Does |
+| --- | --- |
+| `W A S D` | Move |
+| `Shift` | Run |
+| `Space` | Jump |
+| Drag | Look around |
+| `E` | Open whatever structure or marker you're near |
+| `I` | Talk to whoever you've walked up to |
+| `M` | Open the world map |
+| `O` | Open the log (districts / case studies / certifications / repositories found) |
+| `Esc` | Back to the title screen |
 
-So the site is built the same way: as an audited record.
+On a touch device the left half of the screen is a walk stick, the right half
+looks around, and a button handles jump; tapping the prompt that appears near
+something takes the place of `E`/`I`.
+
+A browser that can't run WebGL (or a screen reader) gets [text-fallback.tsx](src/components/text-fallback.tsx)
+instead: the same content — the work, what the world's seven lenses show, the
+eight attempts at one idea, what isn't claimed, and contact details — as a
+plain document.
+
+## How the world is built
+
+- **Districts** ([src/world/language.ts](src/world/language.ts)) — one per
+  language that has real commits behind it, arranged on a ring around the
+  hub. Order follows the order the subject actually arrived at each
+  ecosystem; radius and spread follow how much real work is in each one.
+- **Structures** ([src/world/geometry.ts](src/world/geometry.ts),
+  [shapes.ts](src/world/shapes.ts)) — every repository becomes a shape chosen
+  by what kind of work it is (an origin shrine, a relic tower, a monolith, an
+  ordinary hut, a tree for something that grew slowly, a leaning hut for
+  something dormant, a small crate pile for an abandoned fragment), sized
+  from its real commit count and lifespan.
+- **The core** ([src/world/telemetry.ts](src/world/telemetry.ts):
+  `CORE_PLINTH`) — the hub every district rings: a stone plinth you walk (not
+  jump) onto, topped by a small gazebo and a floating gem.
+- **People** ([src/world/NPC.tsx](src/world/NPC.tsx),
+  [src/data/contributors.ts](src/data/contributors.ts)) — real collaborators
+  who committed to the same repositories, walking their home district, plus
+  Claude and Jules as the two AI tools with a measurable hand in the commit
+  history. Walk up to one and they'll name a real repo you both touched.
+- **Achievements** ([src/world/Markers.tsx](src/world/Markers.tsx)) — eight
+  of the eleven written case studies sit over a real repository and become a
+  marker in the world, alongside the two employers; each gets its own shape
+  (drawn from the case study's own authored category — Flagship, SaaS,
+  Blockchain, Mobile...) and colour (the language of the repository behind
+  it), so no two read as the same thing from a distance.
 
 ## Structure
 
 ```
 src/
-├── lib/provenance.ts      The evidence model: Claim, Source, evidence classes
+├── lib/provenance.ts       The evidence model this world's data still honours
 ├── data/
-│   ├── record.ts          Identity, the finding and its evidence, verified
-│   │                      biography, and the not-claimed list
-│   ├── ledger.ts          433 authored commits as day-offsets, plus named eras
-│   ├── exhibits.ts        Six projects, each with the apparatus it is shown through
-│   └── lineage.ts         Eight attempts at one idea
-├── components/
-│   ├── primitives.tsx     Reveal, Rule, ClaimBlock, Cite, ChapterHead, Shell
-│   ├── arrival.tsx        01 · the title plate
-│   ├── finding.tsx        02 · the argument, its evidence and the case against
-│   ├── ledger.tsx         03 · the chronology, drawn to canvas
-│   ├── exhibits.tsx       04 · the six exhibits and their apparatus
-│   ├── recursion.tsx      05 · the eight attempts
-│   ├── unclaimed.tsx      06 · what the record does not show
-│   └── colophon.tsx       07 · biography, contact, method
-└── app/
-    ├── globals.css        The whole visual system as tokens
-    ├── layout.tsx         Fonts and metadata
-    ├── page.tsx           The document in reading order
-    └── api/send/          Contact form (nodemailer)
+│   ├── record.ts           Identity, the finding and its evidence
+│   ├── ledger.ts           4,397 authored commits, day-offset from EPOCH
+│   ├── repo-facts.ts       Per-repository facts: homepage, stars, description
+│   ├── contributors.ts     Real collaborators and the two AI tools, by repo
+│   ├── projects.ts         The eleven case studies and two employers, in full
+│   ├── certifications.ts   The seven certifications
+│   └── lineage.ts          Eight attempts at one idea
+├── audio/engine.ts          Every sound in the game, synthesised — no audio files
+├── world/
+│   ├── telemetry.ts        Real commit data → Entity objects (mass, height, position)
+│   ├── language.ts         District layout and GitHub's own language colours
+│   ├── geometry.ts          Entities → merged per-language building geometry
+│   ├── shapes.ts            The primitive vocabulary geometry.ts builds from
+│   ├── interactables.ts     Everything you can walk up to and open
+│   ├── mapdata.ts           What the full map and minimap draw from
+│   ├── discovery.ts         The seven lenses and the discoveries that grant them
+│   ├── Player.tsx           Movement, camera, ground/collision physics
+│   ├── NPC.tsx              Collaborators, Claude, Jules — wandering and meetups
+│   ├── Markers.tsx          Floating markers, achievement identity, collect bursts
+│   ├── Scene.tsx            The assembled world: ground, structures, lights, districts
+│   ├── GameCanvas.tsx       The R3F canvas, quality tiers, camera setup
+│   └── Atmosphere.tsx       Sky, dust, ambient particulate
+└── components/
+    ├── game.tsx             Game state: title/playing, panels, progress, controls UI
+    ├── title-screen.tsx     What plays before you enter the world
+    ├── interact-panel.tsx   What opens when you interact with something
+    ├── world-map.tsx        The full, pannable/zoomable map
+    ├── minimap.tsx          The corner map, drawn to canvas every frame
+    ├── compass.tsx          The heading strip across the top of the screen
+    ├── objectives.tsx       The log: four categories, found/total, a bar each
+    ├── achievement-banner.tsx  The toast when a category closes out
+    ├── joystick.tsx         Touch movement/look/jump
+    └── text-fallback.tsx    The no-WebGL / screen-reader document
 ```
 
 ## Editing the content
 
 All copy and data live in `src/data`. Nothing factual is hard-coded into a
-component, so the record can be updated without touching the layout.
+world or UI component, so the record can be updated without touching either.
 
-When adding a claim, choose its evidence class honestly:
+When adding a claim to `src/data/record.ts` or `lineage.ts`, choose its
+evidence class honestly (from [src/lib/provenance.ts](src/lib/provenance.ts)):
 
 | Class | Meaning |
 | --- | --- |
@@ -62,31 +122,39 @@ When adding a claim, choose its evidence class honestly:
 | `unclaimed` | The record does not support it, so it is not asserted. Say why in `note`. |
 
 Refreshing the chronology means re-running the GitHub commit search for
-`user:jadhavgaurav author:jadhavgaurav`, converting each commit date to a day
-offset from `EPOCH`, and replacing `lanes` in `src/data/ledger.ts`.
+`user:jadhavgaurav author:jadhavgaurav` (and, for the digibranders
+repositories, the org's own commit history), converting each commit date to
+a day offset from `EPOCH`, and updating `src/data/ledger.ts` — `telemetry.ts`
+derives every structure, district population and mass from that data alone.
 
 ## Design notes
 
 **Two typefaces.** Newsreader for display and reading text; JetBrains Mono
-restricted to data — paths, counts, dates, enum values — so it never becomes
-decoration.
+restricted to data — paths, counts, dates, commit numbers — so it never
+becomes decoration.
 
-**Two pigments on a bone ground.** Iron-oxide red for what is attested, ochre
-for what is interpreted, and an outline with nothing inside it for what is not
-claimed. Colour carries meaning here; it is not a mood.
+**Real colour, not invented colour.** Every district's hue is the language's
+own GitHub colour — Python's blue, TypeScript's blue-grey, the Notebook
+orange — because anyone who has looked at a repository page has already
+learned them. A structure's material family (foundation, constructed,
+active, organic, ruined) follows real state: how it was built, whether it's
+still touched, whether it grew slowly or was built in a burst.
 
-**No 3D.** A WebGL scene was considered for the chronology and rejected. The
-record is a dense two-dimensional time series, and a canvas plate reads it more
-precisely, loads faster and survives on a mid-range phone.
+**Toon-shaded, warm, legible from a distance.** Four-step toon shading with a
+fresnel rim light, tuned so a district reads by flat colour and a bright edge
+rather than by heavy ambient occlusion pulling a moody scene together.
 
-**One inversion.** The chronology is the only dark section, because a dense
-instrument trace reads better as light marks on dark — and because an effect
-used once means something.
+**No slope you can't see.** The one deliberate exception to a flat world is
+the core's own plinth — a real two-unit rise the player physically climbs by
+walking into its tapered stone, matched exactly between the render geometry
+and the ground-height function in [Player.tsx](src/world/Player.tsx) so the
+two never drift apart.
 
-**Accessibility.** Semantic sectioning, a keyboard-operable chronology with a
-live readout and a full tabular equivalent, visible focus, AA contrast for all
-text including the small labels, and a reduced-motion path that renders the
-document complete and still.
+**Accessibility.** Semantic landmarks, a keyboard-operable interface with
+every panel closeable by the key that opened it (or `Esc`), visible focus,
+AA contrast, and a text-and-screen-reader path
+([text-fallback.tsx](src/components/text-fallback.tsx)) that carries the same
+content as the 3D world rather than a reduced summary of it.
 
 ## Running it
 
@@ -97,6 +165,4 @@ npm run build
 npm start
 ```
 
-The contact form needs `GMAIL_USER` and `GMAIL_APP_PASSWORD`. Without them the
-form reports a failure and shows the direct address instead, which is always
-visible beside it.
+No environment variables are required.

@@ -179,7 +179,7 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
             input.current.jump = true;
           }}
           aria-label="Jump"
-          className="u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
+          className="u-btn u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
           style={{
             borderColor: "rgba(240,223,174,0.35)",
             color: "#e8dcb8",

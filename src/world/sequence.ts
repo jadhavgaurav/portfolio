@@ -1,4 +1,4 @@
-import { WORLD, core, entities, origin } from "./telemetry";
+import { WORLD, origin } from "./telemetry";
 
 /**
  * The opening sequence and the camera contract.
@@ -96,110 +96,6 @@ export function openingPose(phase: Phase, t: number) {
 
 function ease(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-/** Player traversal: scroll walks the spine, first commit to CORE. */
-export function traversalPose(scroll: number) {
-  const startZ = ARRIVAL_POSE.position[2];
-  const endZ = core.z + 34;
-  const z = startZ + (endZ - startZ) * scroll;
-
-  // Rise gently over the traverse so the CORE is met from above, and the
-  // final pull-back shows the whole world at once.
-  const lift = scroll > 0.86 ? (scroll - 0.86) / 0.14 : 0;
-  const y = WORLD.eyeHeight + Math.sin(scroll * Math.PI) * 2.4 + lift * lift * 30;
-
-  // Yaw toward the nearest significant structure ahead. Approach and pass —
-  // never orbit. The held variant, so the camera does not swap its subject
-  // mid-approach when two structures trade places for nearest.
-  const near = nearestOnRoute(z);
-  // The weave has to stay inside the corridor the layout reserves.
-  const lateral = near ? near.x * 0.1 : 0;
-  const x = lateral * (1 - lift);
-
-  const lookZ = z - 46;
-  const lookX = near ? near.x * 0.34 * (1 - lift) : 0;
-  const lookY = WORLD.eyeHeight + (near ? Math.min(near.height * 0.3, 26) : 0) + lift * 22;
-
-  // Long lens at range, wider close in.
-  const d = near ? Math.hypot(near.x - x, near.z - z) : 200;
-  const fov = THREE_clamp(70 - (d / 90) * 15, 55, 70);
-
-  return {
-    position: [x, y, z] as [number, number, number],
-    lookAt: [lookX, lookY, lookZ] as [number, number, number],
-    fov,
-  };
-}
-
-function THREE_clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-const SIGNIFICANT = entities
-  .filter((e) => e.type !== "FRAGMENT")
-  .sort((a, b) => b.z - a.z);
-
-/**
- * The structure the visitor is currently passing.
- *
- * `hold` is hysteresis, and it is not optional: without it the readout
- * changed eight times across a quarter of the traverse, because two
- * structures either side of the route trade places for the nearest position
- * on almost every frame. A candidate must be meaningfully closer than the one
- * already held before it takes over.
- */
-export function nearest(z: number, held?: string | null) {
-  let best: (typeof SIGNIFICANT)[number] | null = null;
-  let bestD = Infinity;
-  let heldD = Infinity;
-
-  for (const e of SIGNIFICANT) {
-    const d = Math.abs(e.z - (z - NEAREST_LEAD));
-    if (e.id === held) heldD = d;
-    if (d < bestD) {
-      bestD = d;
-      best = e;
-    }
-  }
-
-  // Keep what we have while it is still in range and not clearly beaten.
-  if (held && heldD < 90 && heldD < bestD + 22) {
-    return SIGNIFICANT.find((e) => e.id === held) ?? null;
-  }
-  return bestD < 90 ? best : null;
-}
-
-/**
- * The route's own memory of what it is passing.
- *
- * The camera and the readout have to name the same structure, and neither may
- * change its mind sixty times a second, so the held id lives here rather than
- * in either caller.
- */
-let routeHeld: string | null = null;
-
-export function nearestOnRoute(z: number) {
-  const e = nearest(z, routeHeld);
-  routeHeld = e?.id ?? null;
-  return e;
-}
-
-/**
- * Inverse of the traverse: the scroll value at which the camera stands a
- * given distance before an entity. Passages are positioned with this rather
- * than by hand, so the text always describes the structure actually in front
- * of the visitor.
- */
-export const NEAREST_LEAD = 30;
-
-export function scrollAtEntity(id: string, lead = NEAREST_LEAD): number {
-  const e = entities.find((x) => x.id === id);
-  if (!e) return 0;
-  const startZ = ARRIVAL_POSE.position[2];
-  const endZ = core.z + 34;
-  const targetZ = e.z + lead;
-  return Math.min(0.94, Math.max(0, (targetZ - startZ) / (endZ - startZ)));
 }
 
 /** Which beat a given elapsed time falls in. */

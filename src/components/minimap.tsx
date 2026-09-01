@@ -19,9 +19,6 @@ import type { PlayerState } from "@/world/Player";
  * north mark keeps the orientation recoverable.
  */
 
-/** Everything fits inside this radius, in world units. */
-export const WORLD_RADIUS = 400;
-
 const SIZE = 158;
 const PAD = 6;
 
@@ -290,7 +287,7 @@ export function Minimap({
       <div className="flex gap-2">
         <button
           onClick={onOpenMap}
-          className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center border px-4 text-[0.58rem] uppercase tracking-[0.18em]"
+          className="u-btn u-mono inline-flex min-h-[44px] flex-1 items-center justify-center border px-4 text-[0.58rem] uppercase tracking-[0.18em]"
           style={{
             borderColor: "rgba(240,223,174,0.35)",
             color: "#e8dcb8",
@@ -301,7 +298,7 @@ export function Minimap({
         </button>
         <button
           onClick={onOpenLog}
-          className="u-mono inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 border px-3 text-[0.58rem] uppercase tracking-[0.14em]"
+          className="u-btn u-mono inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 border px-3 text-[0.58rem] uppercase tracking-[0.14em]"
           style={{
             borderColor: progress.complete ? "#a3771f" : "rgba(240,223,174,0.35)",
             color: progress.complete ? "#ffb703" : "#e8dcb8",
@@ -317,7 +314,7 @@ export function Minimap({
           onClick={onToggleMute}
           aria-label={muted ? "Unmute" : "Mute"}
           aria-pressed={muted}
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center border"
+          className="u-btn inline-flex min-h-[44px] min-w-[44px] items-center justify-center border"
           style={{
             borderColor: "rgba(240,223,174,0.35)",
             background: "rgba(20,14,6,0.65)",

@@ -285,6 +285,22 @@ export const core = {
   z: 0,
 } as const;
 
+/** The core's own plinth — a stone frustum you stand on, not just past. Its
+ *  radii and height must match the cylinder Scene.tsx actually draws, so the
+ *  ground the player walks on and the stone they see are the same shape.
+ *  Physics has no notion of terrain height anywhere else in this world (the
+ *  ground is flat y=0 everywhere but here), which is exactly why this was
+ *  unwalkable until Player.tsx's ground clamp learned about it: the plinth
+ *  rendered two units tall with a flat floor hardcoded at y=0 underneath it,
+ *  so a player who reached the top fell straight through, and one jumping
+ *  from the ground (max apex ≈1.36 units, well under the 2-unit wall) could
+ *  never reach it under their own power either way. */
+export const CORE_PLINTH = {
+  topRadius: 10,
+  bottomRadius: 11,
+  height: 2,
+} as const;
+
 /**
  * Position → date.
  *

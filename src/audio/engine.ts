@@ -214,6 +214,18 @@ export function greet(seed: string) {
   tone({ freq: base * 1.5, duration: 0.36, gain: 0.11, type: "sine", detune: -4 });
 }
 
+/** A case study or a job opened for the first time — the two kinds of
+ *  marker that get the full flash-and-shatter treatment in Markers.tsx,
+ *  because they are the achievements the log actually counts by name, not
+ *  one of forty-odd repository coins. A short rising arpeggio rather than
+ *  collect()'s two notes: bigger than picking something up, still well
+ *  short of milestone()'s full category fanfare. */
+export function reveal() {
+  [523.2, 659.3, 784, 1046.5].forEach((f, i) => {
+    tone({ freq: f, duration: 0.22, gain: 0.1, type: "triangle", detune: i * 2 });
+  });
+}
+
 export function coreArrival() {
   [261.6, 329.6, 392, 523.2].forEach((f, i) => {
     tone({ freq: f, duration: 1.6, gain: 0.05, type: "sine", detune: i * 2 });

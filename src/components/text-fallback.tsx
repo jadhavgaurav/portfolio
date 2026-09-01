@@ -1,4 +1,4 @@
-import { exhibits } from "@/data/exhibits";
+import { projects } from "@/data/projects";
 import { lineage } from "@/data/lineage";
 import { subject, unclaimed } from "@/data/record";
 import { DISCOVERIES } from "@/world/discovery";
@@ -67,13 +67,11 @@ export function TextFallback({ interactive = true }: { interactive?: boolean }) 
 
       <h2 style={{ fontSize: "1.15rem", marginTop: "2.5rem" }}>Work</h2>
       <ul style={{ paddingLeft: "1.1rem" }}>
-        {exhibits.map((e) => (
-          <li key={e.id} style={{ marginTop: "1rem" }}>
-            <strong>{e.title}</strong> — {e.standfirst}
+        {projects.map((p) => (
+          <li key={p.slug} style={{ marginTop: "1rem" }}>
+            <strong>{p.title}</strong> — {p.subtitle}
             <br />
-            <span style={{ color: "#9eaab0", fontSize: "0.92rem" }}>
-              {e.period}. {e.reading[0]?.a}
-            </span>
+            <span style={{ color: "#9eaab0", fontSize: "0.92rem" }}>{p.description}</span>
           </li>
         ))}
       </ul>

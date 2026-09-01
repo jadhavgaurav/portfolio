@@ -1,16 +1,20 @@
-import { entities, type Entity } from "./telemetry";
-
 /**
  * The discovery loop.
  *
  *   EXPLORE → NOTICE → INVESTIGATE → DISCOVER → REWARD → WORLD CHANGES
  *
- * Implemented as the state machine the design specifies rather than as a
- * decoration on top of scrolling. Salience is the single scalar that drives
- * NOTICE, computed per entity per tick in this layer with no renderer input,
- * using the weights the game-loop document fixes.
+ * This originally implemented that whole state machine — salience scored
+ * per entity against the camera's position and gaze, a notice threshold, a
+ * dwell timer to resolve a discovery. It only ever drove the old scroll-rail
+ * camera (World.tsx/CameraRig.tsx, both since removed as dead code once the
+ * free-roam Player took over): a discovery was something you scrolled past
+ * and the camera noticed on your behalf. A player who walks and opens things
+ * themselves doesn't need a proximity-and-gaze score to decide that for
+ * them, which is why every lens is simply granted from the first frame now
+ * (GameCanvas.tsx) rather than earned through this loop.
  *
- * Two rules from that document constrain everything here:
+ * What's left is the two rules from that document this file's data still
+ * has to honour:
  *
  *   NOTICE is world-side, not UI-side. No outlines, markers, icons or
  *   tooltips — an entity announces itself by how it takes light.
@@ -32,30 +36,6 @@ export const LENS_ORDER: Lens[] = [
   "VOID",
   "DNA",
 ];
-
-/** Tuning constants, kept together rather than scattered through the code. */
-export const TUNING: Record<string, number> & {
-  investigateSeconds: number;
-  awarenessRadius: number;
-} = {
-  w_prox: 0.35,
-  w_gaze: 0.3,
-  w_sig: 0.25,
-  w_seen: 0.4,
-  noticeThreshold: 0.42,
-  investigateThreshold: 0.62,
-  /**
-   * Sustained attention required to resolve.
-   *
-   * 2.4s was measured against the actual interaction: the visitor moves by
-   * scrolling, so dwelling means stopping, and nothing invited them to stop.
-   * Most visitors reached the end with nothing resolved. 1.3s is reachable by
-   * slowing down, which people already do when something appears.
-   */
-  investigateSeconds: 1.3,
-  awarenessRadius: 92,
-  relaxSeconds: 1.2,
-};
 
 export interface Discovery {
   entity: string;
@@ -116,71 +96,3 @@ export const DISCOVERIES: Discovery[] = [
   },
 ];
 
-const BY_ID = new Map(entities.map((e) => [e.id, e]));
-
-export const DISCOVERY_TARGETS: { discovery: Discovery; entity: Entity }[] = DISCOVERIES
-  .map((d) => ({ discovery: d, entity: BY_ID.get(d.entity)! }))
-  .filter((x) => x.entity);
-
-/**
- * Salience for one entity, from the camera's position and heading.
- * Monotonic in proximity and in alignment; discovered entities recede.
- */
-export function salience(
-  e: Entity,
-  camX: number,
-  camZ: number,
-  headingX: number,
-  headingZ: number,
-  discovered: boolean,
-): number {
-  const dx = e.x - camX;
-  const dz = e.z - camZ;
-  const dist = Math.hypot(dx, dz);
-  if (dist > TUNING.awarenessRadius) return 0;
-
-  const proximity = 1 - dist / TUNING.awarenessRadius;
-
-  // Cosine falloff between the view vector and the entity.
-  const len = Math.hypot(dx, dz) || 1;
-  const gaze = Math.max(0, (dx / len) * headingX + (dz / len) * headingZ);
-
-  return (
-    TUNING.w_prox * proximity +
-    TUNING.w_gaze * gaze +
-    TUNING.w_sig * e.significance -
-    (discovered ? TUNING.w_seen : 0)
-  );
-}
-
-/**
- * The most salient discoverable entity in range, if any crosses the notice
- * threshold.
- *
- * Deliberately scoped to the works that carry a discovery. Ranking every
- * entity and then testing whether the winner happens to be discoverable means
- * the loop almost never fires, because the nearest structure is usually an
- * ordinary one — which is what the first implementation got wrong.
- */
-export function mostSalient(
-  camX: number,
-  camZ: number,
-  headingX: number,
-  headingZ: number,
-  discoveredIds: Set<string>,
-): { entity: Entity; salience: number } | null {
-  let best: Entity | null = null;
-  let bestS: number = TUNING.noticeThreshold;
-  for (const { entity } of DISCOVERY_TARGETS) {
-    if (discoveredIds.has(entity.id)) continue;
-    const s = salience(entity, camX, camZ, headingX, headingZ, false);
-    if (s > bestS) {
-      bestS = s;
-      best = entity;
-    }
-  }
-  return best ? { entity: best, salience: bestS } : null;
-}
-
-export const discoveryFor = (id: string) =>
-  DISCOVERIES.find((d) => d.entity === id) ?? null;
