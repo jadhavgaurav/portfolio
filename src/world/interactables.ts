@@ -2,6 +2,7 @@ import { entities, type Entity } from "./telemetry";
 import { factByName } from "@/data/repo-facts";
 import { projects, type Project } from "@/data/projects";
 import { certifications, type Certification } from "@/data/certifications";
+import { contributors, aiTools, homeDistrictFor, type Contributor, type AITool } from "@/data/contributors";
 import { DISTRICTS, districtCentre } from "./language";
 
 /**
@@ -23,14 +24,19 @@ import { DISTRICTS, districtCentre } from "./language";
  *            that is what they are close to.
  *   CERT     the seven certifications, standing in the district of the
  *            ecosystem they certify.
+ *   NPC      a real person or AI tool who actually committed to a repository
+ *            here, walking their home district rather than standing on it.
+ *            Unlike the other four kinds, an NPC's x/z are live: NPC.tsx
+ *            mutates this exact object every frame as it wanders, so the
+ *            proximity check below always reads where it currently is.
  */
 
-export type InteractKind = "REPO" | "PROJECT" | "WORK" | "CERT" | "CORE";
+export type InteractKind = "REPO" | "PROJECT" | "WORK" | "CERT" | "CORE" | "NPC";
 
 export interface Interactable {
   id: string;
   kind: InteractKind;
-  /** Where the prompt is offered from. */
+  /** Where the prompt is offered from. Live, not fixed, for kind NPC. */
   x: number;
   z: number;
   /** How high the marker floats. */
@@ -43,6 +49,8 @@ export interface Interactable {
   entity?: Entity;
   project?: Project;
   cert?: Certification;
+  contributor?: Contributor;
+  aiTool?: AITool;
 }
 
 /** Case study title → the repository it describes. */
@@ -174,7 +182,56 @@ function build(): Interactable[] {
     });
   }
 
+  /* The rest of the team, and the two AI tools, walking their home
+     district rather than standing on it. Starting point is a deterministic
+     hash-jitter off the district centre — NPC.tsx takes it from here every
+     frame, wandering a short loop and writing its live x/z back into this
+     same object. */
+  for (const c of contributors) {
+    const d = homeDistrictFor(c);
+    const [cx, cz] = districtCentre(d);
+    const h = hash(c.name);
+    const a = h * Math.PI * 2;
+    const r = d.spread * 0.4;
+    out.push({
+      id: `npc:${c.login ?? c.name}`,
+      kind: "NPC",
+      x: cx + Math.sin(a) * r,
+      z: cz + Math.cos(a) * r,
+      y: 1.5,
+      reach: 9,
+      title: c.login ? `@${c.login}` : c.name,
+      kicker: `${c.totalCommits} commits · ${c.repos.length} repo${c.repos.length === 1 ? "" : "s"}`,
+      contributor: c,
+    });
+  }
+  for (const a of aiTools) {
+    // Both stand near the core rather than in a single district — Claude and
+    // Jules both touched several ecosystems, not just one.
+    const angle = a.tool === "Claude" ? 0.9 : -0.9;
+    out.push({
+      id: `ai:${a.tool}`,
+      kind: "NPC",
+      x: Math.sin(angle) * 22,
+      z: Math.cos(angle) * 22,
+      y: 1.2,
+      reach: 9,
+      title: a.tool,
+      kicker: `AI collaborator · ${a.totalCommits} commits · ${a.repos.length} repos`,
+      aiTool: a,
+    });
+  }
+
   return out;
+}
+
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
 }
 
 export const INTERACTABLES = build();

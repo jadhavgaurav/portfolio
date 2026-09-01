@@ -3,11 +3,17 @@
  * derived world so the two can be checked against each other. Language is
  * what colours a structure; homepage is what makes it visitable.
  *
- * 46 repositories. The world had forty; six were simply missing.
+ * 46 personal repositories, plus 32 from the digibranders org that clear the
+ * activity bar (10+ commits, or 2+ real contributors beyond Gaurav's own
+ * three git identities) — 24 more digibranders repos exist but are too thin
+ * (often a single solo commit) to earn a place, the same standard the
+ * personal record was already held to.
  */
 
 export interface RepoFact {
   name: string;
+  /** Absent means the personal record: jadhavgaurav. Set for the org merge. */
+  owner?: "digibranders";
   language: string;
   /** A deployed URL, where one exists. Six of these are live. */
   homepage: string | null;
@@ -16,6 +22,9 @@ export interface RepoFact {
   forks: number;
   /** Kilobytes, as GitHub reports it. */
   size: number;
+  /** Set on digibranders entries; absent (not false) on the personal record,
+   *  which is entirely public. */
+  private?: boolean;
   url: string;
 }
 
@@ -66,6 +75,45 @@ export const repoFacts: RepoFact[] = [
   { name: "victus-frontend", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 159, url: "https://github.com/jadhavgaurav/victus-frontend" },
   { name: "Vision-X", language: "Python", homepage: null, description: null, stars: 0, forks: 0, size: 7018, url: "https://github.com/jadhavgaurav/Vision-X" },
   { name: "YOLO_practice", language: "Python", homepage: null, description: null, stars: 0, forks: 0, size: 756747, url: "https://github.com/jadhavgaurav/YOLO_practice" },
+
+  /* digibranders — the org account, merged in once the personal record was
+     found to be missing his own company's product work entirely. Fetched
+     2026-09-01, filtered to the 32 of 56 repos that clear the activity bar.
+     Two of those 32 — eventus_report_backend and eventus_report_frontend —
+     are real, active repos with real contributors, but have zero commits
+     from any of Gaurav's own three git identities. Since every structure
+     here is built from his own commit record, they don't get one; the
+     people who built them are still in the world, in contributors.ts. */
+  { name: "adobe-mcp", owner: "digibranders", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 115, private: false, url: "https://github.com/digibranders/adobe-mcp" },
+  { name: "alfeco-foundation-web", owner: "digibranders", language: "TypeScript", homepage: "https://alfecofoundation.vercel.app/", description: null, stars: 1, forks: 0, size: 56560, private: false, url: "https://github.com/digibranders/alfeco-foundation-web" },
+  { name: "alsonotify-backend", owner: "digibranders", language: "TypeScript", homepage: null, description: "Alsonotify Backend for new frontend", stars: 0, forks: 0, size: 4101, private: true, url: "https://github.com/digibranders/alsonotify-backend" },
+  { name: "alsonotify-landing-page", owner: "digibranders", language: "TypeScript", homepage: "https://alsonotify.com", description: "Alsonotify Website", stars: 0, forks: 0, size: 3962, private: true, url: "https://github.com/digibranders/alsonotify-landing-page" },
+  { name: "alsonotify-next-app-frontend", owner: "digibranders", language: "TypeScript", homepage: "https://app.alsonotify.com", description: null, stars: 0, forks: 0, size: 21539, private: false, url: "https://github.com/digibranders/alsonotify-next-app-frontend" },
+  { name: "alsonotify_backend-yusuf", owner: "digibranders", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 421, private: true, url: "https://github.com/digibranders/alsonotify_backend-yusuf" },
+  { name: "alsonotify_frontend_nextjs_v14.2.14", owner: "digibranders", language: "TypeScript", homepage: "https://alsonotify-frontend.vercel.app", description: null, stars: 0, forks: 0, size: 1703, private: true, url: "https://github.com/digibranders/alsonotify_frontend_nextjs_v14.2.14" },
+  { name: "alsonotify_website_new", owner: "digibranders", language: "TypeScript", homepage: "https://alsonotify-website-new.vercel.app", description: null, stars: 0, forks: 0, size: 39686, private: true, url: "https://github.com/digibranders/alsonotify_website_new" },
+  { name: "cleanstart-email-signatures", owner: "digibranders", language: "HTML", homepage: "https://digibranders.github.io/cleanstart-email-signatures/", description: null, stars: 0, forks: 0, size: 1882, private: false, url: "https://github.com/digibranders/cleanstart-email-signatures" },
+  { name: "cleanstart-v3-next", owner: "digibranders", language: "TypeScript", homepage: "https://cleanstart-v3-next.vercel.app", description: null, stars: 0, forks: 0, size: 338781, private: false, url: "https://github.com/digibranders/cleanstart-v3-next" },
+  { name: "cleanstart-web", owner: "digibranders", language: "TypeScript", homepage: "https://cleanstart-tau.vercel.app", description: null, stars: 1, forks: 0, size: 274809, private: false, url: "https://github.com/digibranders/cleanstart-web" },
+  { name: "cleanstart_repo_ui_temp", owner: "digibranders", language: "TypeScript", homepage: "https://cleanstart-repo-ui-temp.vercel.app", description: null, stars: 0, forks: 0, size: 488, private: true, url: "https://github.com/digibranders/cleanstart_repo_ui_temp" },
+  { name: "cleanstart_ui", owner: "digibranders", language: "TypeScript", homepage: "https://celanstart-ui.vercel.app", description: null, stars: 0, forks: 0, size: 831, private: true, url: "https://github.com/digibranders/cleanstart_ui" },
+  { name: "currycook_backend", owner: "digibranders", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 7672, private: true, url: "https://github.com/digibranders/currycook_backend" },
+  { name: "currycook_frontend", owner: "digibranders", language: "TypeScript", homepage: "https://currycook.vercel.app", description: null, stars: 0, forks: 0, size: 2761, private: true, url: "https://github.com/digibranders/currycook_frontend" },
+  { name: "eventus-partner-portal-frontend", owner: "digibranders", language: "TypeScript", homepage: "https://eventus-partner-portal.vercel.app", description: null, stars: 0, forks: 0, size: 40761, private: true, url: "https://github.com/digibranders/eventus-partner-portal-frontend" },
+  { name: "eventus-security-v1", owner: "digibranders", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 1379, private: true, url: "https://github.com/digibranders/eventus-security-v1" },
+  { name: "fynix-digital-v2", owner: "digibranders", language: "TypeScript", homepage: "https://fynix-digital-v2.vercel.app", description: null, stars: 1, forks: 0, size: 79506, private: false, url: "https://github.com/digibranders/fynix-digital-v2" },
+  { name: "fynix-digital-web-legacy", owner: "digibranders", language: "TypeScript", homepage: "https://www.fynix.digital", description: null, stars: 0, forks: 0, size: 770418, private: true, url: "https://github.com/digibranders/fynix-digital-web-legacy" },
+  { name: "gkrhospitality-website", owner: "digibranders", language: "TypeScript", homepage: "https://garrett-ronan-web.vercel.app", description: null, stars: 1, forks: 0, size: 392507, private: false, url: "https://github.com/digibranders/gkrhospitality-website" },
+  { name: "oye-chat-landing-age", owner: "digibranders", language: "HTML", homepage: "https://oye-chat-landing-age.vercel.app", description: null, stars: 0, forks: 0, size: 466, private: true, url: "https://github.com/digibranders/oye-chat-landing-age" },
+  { name: "oye-chats-platform", owner: "digibranders", language: "Python", homepage: "https://oye-chats-platform.vercel.app", description: null, stars: 1, forks: 0, size: 23416, private: false, url: "https://github.com/digibranders/oye-chats-platform" },
+  { name: "oyechats-admin", owner: "digibranders", language: "HTML", homepage: "https://oyechats-admin.vercel.app", description: null, stars: 0, forks: 0, size: 821, private: true, url: "https://github.com/digibranders/oyechats-admin" },
+  { name: "oyechats-mobile-app", owner: "digibranders", language: "TypeScript", homepage: null, description: null, stars: 0, forks: 0, size: 5546, private: true, url: "https://github.com/digibranders/oyechats-mobile-app" },
+  { name: "oyechats-status", owner: "digibranders", language: "TypeScript", homepage: "https://oyechats-status.vercel.app", description: "GitHub-style public status page for OyeChats (status.oyechats.com), hosted independently of the DO droplet.", stars: 0, forks: 0, size: 89, private: true, url: "https://github.com/digibranders/oyechats-status" },
+  { name: "oyechats-website", owner: "digibranders", language: "TypeScript", homepage: "https://oyechats.com", description: null, stars: 1, forks: 0, size: 4110, private: false, url: "https://github.com/digibranders/oyechats-website" },
+  { name: "oyechats-website-v2", owner: "digibranders", language: "TypeScript", homepage: "https://oyechats-website-v2.vercel.app", description: null, stars: 0, forks: 0, size: 3466, private: false, url: "https://github.com/digibranders/oyechats-website-v2" },
+  { name: "partner_portal_backend", owner: "digibranders", language: "Go", homepage: null, description: null, stars: 0, forks: 0, size: 265, private: true, url: "https://github.com/digibranders/partner_portal_backend" },
+  { name: "photonmatters-26", owner: "digibranders", language: "TypeScript", homepage: "https://photonmatters-26.vercel.app", description: null, stars: 0, forks: 0, size: 18105, private: false, url: "https://github.com/digibranders/photonmatters-26" },
+  { name: "stylobliss-SAAS-landing-page", owner: "digibranders", language: "TypeScript", homepage: "https://stylobliss-landing-page.vercel.app", description: null, stars: 0, forks: 0, size: 4443, private: false, url: "https://github.com/digibranders/stylobliss-SAAS-landing-page" },
 ];
 
 export const factByName = new Map(repoFacts.map((r) => [r.name, r]));

@@ -6,6 +6,7 @@ import { AdaptiveDpr, AdaptiveEvents, PerformanceMonitor, Preload } from "@react
 import { useState } from "react";
 import { Avatar } from "./Avatar";
 import { Markers } from "./Markers";
+import { NPCs } from "./NPC";
 import { PlayerRig, makeInput, type Input, type PlayerState } from "./Player";
 import { Post } from "./Post";
 import { Scene } from "./Scene";
@@ -72,6 +73,7 @@ export default function GameCanvas({
       <PlayerRig input={input} state={state} enabled={enabled} />
       <Avatar state={state} />
       <Markers activeId={activeId} visited={visited} />
+      <NPCs />
       <Post quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />

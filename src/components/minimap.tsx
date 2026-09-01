@@ -20,7 +20,7 @@ import type { PlayerState } from "@/world/Player";
  */
 
 /** Everything fits inside this radius, in world units. */
-export const WORLD_RADIUS = 268;
+export const WORLD_RADIUS = 400;
 
 const SIZE = 158;
 const PAD = 6;

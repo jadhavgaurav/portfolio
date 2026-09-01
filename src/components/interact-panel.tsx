@@ -59,7 +59,11 @@ export function InteractPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const style = target.entity ? styleFor(target.entity.language) : styleFor("Other");
+  const style = target.entity
+    ? styleFor(target.entity.language)
+    : target.contributor
+      ? styleFor(target.contributor.primaryLanguage)
+      : styleFor("Other");
   const fact = target.entity ? factByName.get(target.entity.name) : undefined;
 
   return (
@@ -87,7 +91,11 @@ export function InteractPanel({
                     ? "Certification"
                     : target.kind === "CORE"
                       ? "The core"
-                      : "Repository"}
+                      : target.kind === "NPC"
+                        ? target.aiTool
+                          ? "AI collaborator"
+                          : "Collaborator"
+                        : "Repository"}
               {target.entity ? ` · ${styleFor(target.entity.language).label}` : ""}
             </div>
             <h2
@@ -252,6 +260,38 @@ export function InteractPanel({
           </p>
         )}
 
+        {/* A real collaborator or AI tool — commit history across the
+            digibranders repositories they actually touched, not a bio. */}
+        {(target.contributor || target.aiTool) && (
+          <div className="mt-8">
+            <p className="text-[0.92rem] leading-[1.6]" style={{ color: "#d9c9a0" }}>
+              {target.contributor
+                ? "One of the people who built digibranders' own products alongside him — real commits, on real repositories in this world."
+                : "An AI tool with a real, measurable hand in digibranders' commit history — not a decoration."}
+            </p>
+            <H>Repositories</H>
+            <ul className="mt-3 space-y-2">
+              {(target.contributor?.repos ?? target.aiTool?.repos ?? []).map((r) => (
+                <li
+                  key={r.repo}
+                  className="flex items-center justify-between gap-3 text-[0.88rem]"
+                  style={{ color: "#d9c9a0" }}
+                >
+                  <span className="u-mono truncate" style={{ color: "#f3e9d2" }}>
+                    {r.repo}
+                  </span>
+                  <span
+                    className="u-mono shrink-0 text-[0.72rem]"
+                    style={{ color: "#8a7a52" }}
+                  >
+                    {r.commits} commits · {r.language}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Links out. The whole point of walking to a thing. */}
         <div
           className="mt-9 flex flex-wrap items-center gap-3 border-t pt-6"
@@ -263,6 +303,11 @@ export function InteractPanel({
             </Link>
           )}
           {fact?.url && <Link href={fact.url}>View on GitHub</Link>}
+          {target.contributor?.login && (
+            <Link href={`https://github.com/${target.contributor.login}`} primary>
+              View on GitHub
+            </Link>
+          )}
           {target.cert && <Link href={target.cert.credentialLink} primary>Verify credential</Link>}
           {target.kind === "CORE" && (
             <>

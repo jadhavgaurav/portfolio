@@ -108,8 +108,11 @@ export const DISTRICT_GATES = DISTRICTS.map((d) => {
   };
 });
 
-/** How far out the world goes, for framing and for the scale bar. */
-export const MAP_EXTENT = 300;
+/** How far out the world goes, for framing and for the scale bar. TypeScript's
+ *  district (radius 279 + spread 100) is the furthest reach after the
+ *  digibranders merge and the overlap fix that followed it, so this needs
+ *  headroom past 379. */
+export const MAP_EXTENT = 400;
 
 export interface Waypoint {
   x: number;

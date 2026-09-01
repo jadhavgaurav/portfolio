@@ -35,6 +35,13 @@ export const LANGUAGE_STYLE: Record<string, LanguageStyle> = {
   PHP: { ui: "#7A86B8", surface: "#8F9BD1", emissive: "#B4BEEA", label: "PHP" },
   Dart: { ui: "#00B4AB", surface: "#2CD1C6", emissive: "#6FEAE1", label: "Dart" },
   Other: { ui: "#8b979c", surface: "#A3AFB4", emissive: "#C6D0D3", label: "Other" },
+  /* Arrived with the digibranders merge — the org's own product work brought
+     two ecosystems the personal record never touched. (A third, EJS, showed
+     up too, but its one qualifying repo turned out to have zero commits from
+     Gaurav himself — see repo-facts.ts — so it never became a district: a
+     colour with no building under it is worse than no colour at all.) */
+  HTML: { ui: "#E34C26", surface: "#EA6E4D", emissive: "#F5977C", label: "HTML" },
+  Go: { ui: "#00ADD8", surface: "#2CC0E6", emissive: "#6FDAF5", label: "Go" },
 };
 
 export const styleFor = (language: string): LanguageStyle =>
@@ -45,11 +52,18 @@ export const styleFor = (language: string): LanguageStyle =>
  *
  * Order is deliberate rather than alphabetical: it is the order the subject
  * arrived at each ecosystem, so walking the ring outward from the hub is
- * still walking the history, and the two readings do not contradict.
+ * still walking the history, and the two readings do not contradict. The
+ * three digibranders-only ecosystems (HTML, Go, EJS) are appended after the
+ * personal record's eight, since the org merge is what brought them in.
  *
  * `angle` is where the district sits on the ring, `radius` how far out. The
- * two busiest get the most room; the single-repository ones sit closer in so
+ * busiest get the most room; the single-repository ones sit closer in so
  * the walk between them is short.
+ *
+ * TypeScript's spread nearly doubled when the digibranders merge landed 26
+ * more repositories in it (9 → 35) — the district reads as visibly denser
+ * than the rest now, which is honest: it really is where most of the
+ * agency's product work happened, not an artifact of the layout.
  */
 export interface District {
   language: string;
@@ -61,24 +75,24 @@ export interface District {
 
 const TAU = Math.PI * 2;
 
-/* Evenly spaced round the ring. Hand-picked angles bunched Other against
-   Java and Dart against JavaScript closely enough that their labels collided
-   on the map and their pads nearly touched in the world. An eighth of a turn
-   each guarantees the separation; the variety comes from radius and spread,
-   which are sized by how many repositories each district actually holds. */
+/* Evenly spaced round the ring — a tenth of a turn each, now that the
+   digibranders merge brought the district count from eight to ten. */
 export const DISTRICTS: District[] = [
-  { language: "Python", angle: TAU * 0.0, radius: 186, spread: 62 },
-  { language: "Jupyter Notebook", angle: TAU * 0.125, radius: 176, spread: 54 },
-  { language: "TypeScript", angle: TAU * 0.25, radius: 182, spread: 58 },
-  { language: "JavaScript", angle: TAU * 0.375, radius: 138, spread: 30 },
-  { language: "Java", angle: TAU * 0.5, radius: 142, spread: 32 },
-  { language: "Other", angle: TAU * 0.625, radius: 132, spread: 28 },
-  { language: "PHP", angle: TAU * 0.75, radius: 118, spread: 20 },
-  { language: "Dart", angle: TAU * 0.875, radius: 116, spread: 20 },
+  { language: "Python", angle: TAU * (0 / 10), radius: 205, spread: 66 },
+  { language: "Jupyter Notebook", angle: TAU * (1 / 10), radius: 228, spread: 54 },
+  { language: "TypeScript", angle: TAU * (2 / 10), radius: 279, spread: 100 },
+  { language: "JavaScript", angle: TAU * (3 / 10), radius: 138, spread: 30 },
+  { language: "Java", angle: TAU * (4 / 10), radius: 142, spread: 32 },
+  { language: "Other", angle: TAU * (5 / 10), radius: 132, spread: 28 },
+  { language: "PHP", angle: TAU * (6 / 10), radius: 118, spread: 20 },
+  { language: "Dart", angle: TAU * (7 / 10), radius: 116, spread: 20 },
+  { language: "HTML", angle: TAU * (8 / 10), radius: 124, spread: 26 },
+  { language: "Go", angle: TAU * (9 / 10), radius: 118, spread: 20 },
 ];
 
 export const districtFor = (language: string): District =>
-  DISTRICTS.find((d) => d.language === language) ?? DISTRICTS[DISTRICTS.length - 1];
+  DISTRICTS.find((d) => d.language === language) ??
+  DISTRICTS.find((d) => d.language === "Other")!;
 
 /** Where a district's centre lands on the ground. */
 export function districtCentre(d: District): [number, number] {

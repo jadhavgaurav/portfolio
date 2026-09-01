@@ -66,6 +66,9 @@ const KIND_COLOR: Record<Interactable["kind"], string> = {
   WORK: "#e8834a",
   CERT: "#7fd1c4",
   REPO: "#f2c94c",
+  /* Unused — NPCs are filtered out of this marker loop below. A walking
+     figure is its own marker; a diamond hovering over it would be redundant. */
+  NPC: "#ffffff",
 };
 
 /** Plain repositories get a smaller, dimmer mark: there are thirty-odd of
@@ -76,6 +79,7 @@ const KIND_SCALE: Record<Interactable["kind"], number> = {
   WORK: 1.05,
   CERT: 0.85,
   REPO: 0.55,
+  NPC: 1,
 };
 
 export function Markers({
@@ -102,6 +106,7 @@ export function Markers({
       PROJECT: new THREE.OctahedronGeometry(0.62, 0),
       WORK: new THREE.OctahedronGeometry(0.62, 0),
       CORE: new THREE.OctahedronGeometry(0.62, 0),
+      NPC: new THREE.OctahedronGeometry(0.62, 0), // unused, see KIND_COLOR.NPC
     }),
     [],
   );
@@ -183,7 +188,7 @@ export function Markers({
   return (
     <>
       <group ref={group}>
-        {INTERACTABLES.map((it, i) => (
+        {INTERACTABLES.filter((it) => it.kind !== "NPC").map((it, i) => (
           <mesh
             key={it.id}
             geometry={geoByKind[it.kind]}
