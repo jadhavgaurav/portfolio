@@ -1,4 +1,5 @@
 import { districtFor } from "@/world/language";
+import { lanes } from "./ledger";
 
 /**
  * The other real people (and AI tools) in the record.
@@ -74,3 +75,53 @@ export const aiTools: AITool[] = [
   { tool: "Claude", label: "Claude", totalCommits: 164, repos: [{ repo: "oye-chats-platform", commits: 51, language: "Python" }, { repo: "fynix-digital-v2", commits: 36, language: "TypeScript" }, { repo: "oyechats-mobile-app", commits: 19, language: "TypeScript" }, { repo: "alsonotify-next-app-frontend", commits: 11, language: "TypeScript" }, { repo: "alsonotify-backend", commits: 10, language: "TypeScript" }, { repo: "cleanstart-v3-next", commits: 9, language: "TypeScript" }, { repo: "alfeco-foundation-web", commits: 8, language: "TypeScript" }, { repo: "oyechats-website", commits: 7, language: "TypeScript" }, { repo: "cleanstart-web", commits: 5, language: "TypeScript" }, { repo: "oyechats-admin", commits: 4, language: "HTML" }, { repo: "oyechats-website-v2", commits: 2, language: "TypeScript" }, { repo: "cleanstart-email-signatures", commits: 1, language: "HTML" }, { repo: "stylobliss-SAAS-landing-page", commits: 1, language: "TypeScript" }] },
   { tool: "Jules", label: "Jules", totalCommits: 137, repos: [{ repo: "alsonotify-next-app-frontend", commits: 42, language: "TypeScript" }, { repo: "alsonotify-landing-page", commits: 40, language: "TypeScript" }, { repo: "alsonotify-backend", commits: 26, language: "TypeScript" }, { repo: "fynix-digital-web-legacy", commits: 15, language: "TypeScript" }, { repo: "gkrhospitality-website", commits: 14, language: "TypeScript" }] },
 ];
+
+/**
+ * The meetup.
+ *
+ * repo-facts.ts and ledger.ts only carry commits Gaurav made himself — a
+ * repo can be in a contributor's own history without him ever having
+ * touched it (see eventus_report_backend / eventus_report_frontend, which
+ * exist and have real contributors but no building, because he has zero
+ * commits on either). "Shared" here means the narrower, truer thing: a repo
+ * where both of them actually have commits, not just the same org.
+ */
+const LANE_REPOS = new Set(lanes.map((l) => l.r));
+
+export function sharedRepos(c: Contributor): RepoCredit[] {
+  return c.repos.filter((r) => LANE_REPOS.has(r.repo));
+}
+
+function listRepos(names: string[]): string {
+  const extra = names.length > 2 ? ` +${names.length - 2} more` : "";
+  return names.slice(0, 2).join(" and ") + extra;
+}
+
+/** What a contributor's speech bubble says on a meetup. First person,
+ *  because it is a speech bubble — and never a fabricated overlap: the one
+ *  collaborator with no shared repo (Abdulrahim2000-1, whose only credited
+ *  repo is one of the two Gaurav never touched) gets an honest line
+ *  instead of an invented shared project. */
+export function greetingLine(c: Contributor): string {
+  const shared = sharedRepos(c);
+  if (shared.length === 0) {
+    return `We've never shared a repo directly — I built ${c.primaryRepo} for the same team.`;
+  }
+  const names = shared.map((r) => r.repo);
+  return names.length === 1
+    ? `We worked on ${names[0]} together.`
+    : `We crossed paths on ${listRepos(names)}.`;
+}
+
+/** Same idea for the two AI tools — both happen to overlap with Gaurav's
+ *  own commits on every repo they touched, so the honest-fallback branch
+ *  here is dead in practice today, but kept correct rather than assumed. */
+export function aiGreetingLine(a: AITool): string {
+  const shared = a.repos.filter((r) => LANE_REPOS.has(r.repo));
+  const build = (repos: string) =>
+    a.tool === "Claude" ? `I wrote code on ${repos} with you.` : `I helped build ${repos} alongside you.`;
+  if (shared.length === 0) {
+    return `We've never shared a repo directly — I worked on ${a.repos[0]?.repo ?? "digibranders' work"} for the same team.`;
+  }
+  return build(listRepos(shared.map((r) => r.repo)));
+}

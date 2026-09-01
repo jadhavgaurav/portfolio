@@ -73,7 +73,7 @@ export default function GameCanvas({
       <PlayerRig input={input} state={state} enabled={enabled} />
       <Avatar state={state} />
       <Markers activeId={activeId} visited={visited} />
-      <NPCs />
+      <NPCs playerState={state} />
       <Post quality={tier} />
       <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />
