@@ -83,7 +83,7 @@ export function Minimap({
       ctx.arc(c, c, r, 0, Math.PI * 2);
       ctx.clip();
 
-      ctx.fillStyle = "#0b0e10";
+      ctx.fillStyle = "#3b8f2a";
       ctx.fillRect(0, 0, SIZE, SIZE);
 
       ctx.save();
@@ -91,7 +91,7 @@ export function Minimap({
       ctx.rotate(rot);
 
       // Paths from the hub outward, so the routes read even off the edge.
-      ctx.strokeStyle = "rgba(226,232,240,0.14)";
+      ctx.strokeStyle = "rgba(240,223,174,0.55)";
       ctx.lineWidth = 1.5;
       for (const d of DISTRICTS) {
         const [dx, dz] = districtCentre(d);
@@ -169,8 +169,8 @@ export function Minimap({
         const wx = (w.x - px) * k;
         const wy = (w.z - pz) * k;
         const d = Math.hypot(wx, wy);
-        ctx.fillStyle = "#8cbcae";
-        ctx.strokeStyle = "#8cbcae";
+        ctx.fillStyle = "#ffb703";
+        ctx.strokeStyle = "#ffb703";
         ctx.lineWidth = 1.6;
         if (d < r - 8) {
           ctx.beginPath();
@@ -219,13 +219,13 @@ export function Minimap({
       // Rim and north.
       ctx.beginPath();
       ctx.arc(c, c, r, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(226,232,240,0.3)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#8a6d3f";
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       const nx = c + Math.sin(rot) * (r - 8);
       const ny = c - Math.cos(rot) * (r - 8);
-      ctx.fillStyle = "rgba(226,232,240,0.72)";
+      ctx.fillStyle = "#3a2c12";
       ctx.font = "600 9px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

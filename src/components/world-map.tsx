@@ -188,8 +188,9 @@ export function WorldMap({
               viewBox={`${-VIEW / 2} ${-VIEW / 2} ${VIEW} ${VIEW}`}
               className="w-full touch-none select-none"
               style={{
-                background: "#080b0d",
-                border: "1px solid #2a2f32",
+                background: "#3b8f2a",
+                border: "3px solid #8a6d3f",
+                borderRadius: "4px",
                 cursor: drag.current ? "grabbing" : "crosshair",
               }}
               onWheel={onWheel}
@@ -204,31 +205,44 @@ export function WorldMap({
             >
               <defs>
                 <radialGradient id="ground" cx="50%" cy="50%">
-                  <stop offset="0%" stopColor="#182228" />
-                  <stop offset="70%" stopColor="#101619" />
-                  <stop offset="100%" stopColor="#080b0d" />
+                  <stop offset="0%" stopColor="#6fc24a" />
+                  <stop offset="70%" stopColor="#4fa838" />
+                  <stop offset="100%" stopColor="#3b8f2a" />
                 </radialGradient>
-                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1b2429" strokeWidth="0.7" />
+                <pattern id="grass" width="42" height="42" patternUnits="userSpaceOnUse">
+                  <circle cx="10" cy="12" r="7" fill="#5cb63f" opacity="0.35" />
+                  <circle cx="31" cy="30" r="9" fill="#458f2e" opacity="0.3" />
+                  <circle cx="24" cy="6" r="5" fill="#7fce55" opacity="0.28" />
                 </pattern>
               </defs>
 
               <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
                 {/* Terrain. A landmass with an edge, so the world has a shape
-                    rather than being an infinite black field. */}
+                    rather than being an infinite black field — grass, to
+                    match the ground the game itself now stands on, not a
+                    technical grid on black. */}
                 <circle cx={0} cy={0} r={MAP_EXTENT} fill="url(#ground)" />
-                <circle cx={0} cy={0} r={MAP_EXTENT} fill="url(#grid)" opacity={0.5} />
+                <circle cx={0} cy={0} r={MAP_EXTENT} fill="url(#grass)" />
                 <circle
                   cx={0}
                   cy={0}
                   r={MAP_EXTENT}
                   fill="none"
-                  stroke="#2f3a40"
-                  strokeWidth={2 / zoom}
+                  stroke="#8a6d3f"
+                  strokeWidth={5 / zoom}
+                />
+                <circle
+                  cx={0}
+                  cy={0}
+                  r={MAP_EXTENT}
+                  fill="none"
+                  stroke="#e8d9a6"
+                  strokeWidth={1.4 / zoom}
                 />
 
-                {/* Roads: a casing and an inner line, which is what makes a
-                    line read as a road rather than as a connection. */}
+                {/* Roads: a dirt casing and a bright travelled centre-line,
+                    the same sandy-path-with-a-glowing-line the world itself
+                    draws underfoot. */}
                 {ROADS.map((r, i) => (
                   <g key={i}>
                     <line
@@ -236,8 +250,17 @@ export function WorldMap({
                       y1={r.z1}
                       x2={r.x2}
                       y2={r.z2}
-                      stroke="#222c31"
-                      strokeWidth={r.language === "ring" ? 7 : 9}
+                      stroke="#a3814a"
+                      strokeWidth={r.language === "ring" ? 8 : 10}
+                      strokeLinecap="round"
+                    />
+                    <line
+                      x1={r.x1}
+                      y1={r.z1}
+                      x2={r.x2}
+                      y2={r.z2}
+                      stroke="#f0dfae"
+                      strokeWidth={r.language === "ring" ? 4 : 5}
                       strokeLinecap="round"
                     />
                     <line
@@ -246,14 +269,16 @@ export function WorldMap({
                       x2={r.x2}
                       y2={r.z2}
                       stroke={r.color}
-                      strokeOpacity={r.language === "ring" ? 0.3 : 0.5}
-                      strokeWidth={r.language === "ring" ? 3 : 4}
+                      strokeOpacity={r.language === "ring" ? 0.55 : 0.85}
+                      strokeWidth={r.language === "ring" ? 1.8 : 2.4}
                       strokeLinecap="round"
+                      strokeDasharray={`${2 / zoom} ${5 / zoom}`}
                     />
                   </g>
                 ))}
 
-                {/* Districts. */}
+                {/* Districts: filled territories, the way a fantasy map
+                    colours a region rather than tracing it in wireframe. */}
                 {DISTRICT_GATES.map(({ d, cx, cz, style }) => {
                   const on = hover === d.language;
                   const known = entities.some(
@@ -269,29 +294,21 @@ export function WorldMap({
                         cx={cx}
                         cy={cz}
                         r={d.spread + 16}
-                        fill={style.ui + (on ? "30" : "16")}
+                        fill={style.ui}
+                        fillOpacity={on ? 0.62 : 0.42}
                         stroke={style.ui}
-                        strokeOpacity={on ? 1 : 0.75}
-                        strokeWidth={(on ? 2.6 : 1.6) / zoom}
-                      />
-                      <circle
-                        cx={cx}
-                        cy={cz}
-                        r={d.spread + 8}
-                        fill="none"
-                        stroke={style.ui}
-                        strokeOpacity={0.22}
-                        strokeWidth={1 / zoom}
-                        strokeDasharray={`${6 / zoom} ${5 / zoom}`}
+                        strokeOpacity={1}
+                        strokeWidth={(on ? 4 : 2.6) / zoom}
                       />
                       <text
                         x={cx}
                         y={cz - d.spread - 24}
-                        fill={style.ui}
-                        fontSize={15 / Math.max(0.85, zoom * 0.72)}
+                        fill="#3a2c12"
+                        fontSize={16 / Math.max(0.85, zoom * 0.72)}
                         textAnchor="middle"
                         fontFamily="ui-monospace, monospace"
-                        style={{ letterSpacing: 1.4 }}
+                        fontWeight={700}
+                        style={{ letterSpacing: 1.4, paintOrder: "stroke", stroke: "#f6ecc9", strokeWidth: 3 }}
                       >
                         {style.label.toUpperCase()}
                         {known ? "" : " ·"}
@@ -300,22 +317,30 @@ export function WorldMap({
                   );
                 })}
 
-                {/* Buildings. Footprints, not dots. */}
+                {/* Buildings: a little roof and a wall, not a bare rectangle
+                    — the same silhouette the world builds them from. */}
                 {FOOTPRINTS.map((f) => (
-                  <rect
+                  <g
                     key={f.id}
-                    x={-f.w}
-                    y={-f.h}
-                    width={f.w * 2}
-                    height={f.h * 2}
                     transform={`translate(${f.x} ${f.z}) rotate(${(f.rot * 180) / Math.PI})`}
-                    fill={f.color}
-                    fillOpacity={seen.has(`repo:${f.id}`) ? 0.95 : 0.55}
-                    stroke="#05080a"
-                    strokeWidth={0.8 / zoom}
+                    opacity={seen.has(`repo:${f.id}`) ? 1 : 0.6}
                   >
                     <title>{`${f.name} · ${f.commits} commits`}</title>
-                  </rect>
+                    <rect
+                      x={-f.w}
+                      y={-f.h * 0.3}
+                      width={f.w * 2}
+                      height={f.h * 1.3}
+                      fill={f.color}
+                      stroke="#3a2c12"
+                      strokeWidth={0.7 / zoom}
+                    />
+                    <path
+                      d={`M ${-f.w * 1.15} ${-f.h * 0.3} L 0 ${-f.h * 1.3} L ${f.w * 1.15} ${-f.h * 0.3} Z`}
+                      fill="#3a2c12"
+                      fillOpacity={0.75}
+                    />
+                  </g>
                 ))}
 
                 {/* Points of interest, typed by shape as well as colour. */}
@@ -337,64 +362,69 @@ export function WorldMap({
                 {/* The waypoint, and the line to it from the player. */}
                 {waypoint && (
                   <g transform={`translate(${waypoint.x} ${waypoint.z})`}>
-                    <circle r={11 / zoom} fill="none" stroke="#8cbcae" strokeWidth={2 / zoom} />
-                    <circle r={3 / zoom} fill="#8cbcae" />
+                    <circle r={11 / zoom} fill="none" stroke="#ffb703" strokeWidth={2.4 / zoom} />
+                    <circle r={3 / zoom} fill="#ffb703" />
                     <line
                       x1={-16 / zoom}
                       y1={0}
                       x2={16 / zoom}
                       y2={0}
-                      stroke="#8cbcae"
-                      strokeWidth={1 / zoom}
+                      stroke="#ffb703"
+                      strokeWidth={1.4 / zoom}
                     />
                     <line
                       x1={0}
                       y1={-16 / zoom}
                       x2={0}
                       y2={16 / zoom}
-                      stroke="#8cbcae"
-                      strokeWidth={1 / zoom}
+                      stroke="#ffb703"
+                      strokeWidth={1.4 / zoom}
                     />
                   </g>
                 )}
 
                 <g ref={dot}>
-                  <circle r={9} fill="#ffffff" fillOpacity={0.14} />
-                  <path d="M 0 -9 L 6.5 7.5 L 0 3.5 L -6.5 7.5 Z" fill="#ffffff" />
+                  <circle r={10} fill="#3a2c12" fillOpacity={0.3} />
+                  <path d="M 0 -9 L 6.5 7.5 L 0 3.5 L -6.5 7.5 Z" fill="#ffffff" stroke="#3a2c12" strokeWidth={1} />
                 </g>
               </g>
 
               {/* Compass and scale sit outside the panned group: they belong
                   to the frame, not to the terrain. */}
-              <g transform={`translate(${VIEW / 2 - 46} ${-VIEW / 2 + 46})`}>
-                <circle r={22} fill="rgba(6,8,9,0.7)" stroke="#2f3a40" strokeWidth={1} />
-                <path d="M 0 -15 L 4 0 L 0 -4 L -4 0 Z" fill="#cfd6d3" />
+              <g transform={`translate(${VIEW / 2 - 48} ${-VIEW / 2 + 48})`}>
+                <circle r={26} fill="#f6ecc9" stroke="#8a6d3f" strokeWidth={2} />
+                <path d="M 0 -18 L 5 0 L 0 -5 L -5 0 Z" fill="#c73a2f" />
+                <path d="M 0 18 L 5 0 L 0 5 L -5 0 Z" fill="#3a2c12" />
+                <path d="M -18 0 L 0 5 L -5 0 L 0 -5 Z" fill="#3a2c12" opacity={0.6} />
+                <path d="M 18 0 L 0 5 L 5 0 L 0 -5 Z" fill="#3a2c12" opacity={0.6} />
                 <text
-                  y={-17}
-                  fill="#8b979c"
-                  fontSize={8}
+                  y={-21}
+                  fill="#3a2c12"
+                  fontSize={9}
+                  fontWeight={700}
                   textAnchor="middle"
                   fontFamily="ui-monospace, monospace"
                 >
                   N
                 </text>
               </g>
-              <g transform={`translate(${-VIEW / 2 + 26} ${VIEW / 2 - 26})`}>
-                <line x1={0} y1={0} x2={50 * zoom} y2={0} stroke="#8b979c" strokeWidth={2} />
-                <line x1={0} y1={-4} x2={0} y2={4} stroke="#8b979c" strokeWidth={2} />
+              <g transform={`translate(${-VIEW / 2 + 28} ${VIEW / 2 - 28})`}>
+                <line x1={0} y1={0} x2={50 * zoom} y2={0} stroke="#3a2c12" strokeWidth={2.4} />
+                <line x1={0} y1={-4} x2={0} y2={4} stroke="#3a2c12" strokeWidth={2.4} />
                 <line
                   x1={50 * zoom}
                   y1={-4}
                   x2={50 * zoom}
                   y2={4}
-                  stroke="#8b979c"
-                  strokeWidth={2}
+                  stroke="#3a2c12"
+                  strokeWidth={2.4}
                 />
                 <text
                   x={0}
                   y={-8}
-                  fill="#8b979c"
-                  fontSize={9}
+                  fill="#3a2c12"
+                  fontSize={10}
+                  fontWeight={700}
                   fontFamily="ui-monospace, monospace"
                 >
                   50m
