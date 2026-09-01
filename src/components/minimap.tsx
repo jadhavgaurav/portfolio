@@ -142,7 +142,9 @@ export function Minimap({
               ? "#e8834a"
               : p.kind === "CERT"
                 ? "#7fd1c4"
-                : "#ffb703";
+                : p.kind === "NPC"
+                  ? "#f3e9d2"
+                  : "#ffb703";
         ctx.globalAlpha = seen.current.has(p.id) ? 0.45 : 1;
         ctx.beginPath();
         ctx.moveTo(0, -4);

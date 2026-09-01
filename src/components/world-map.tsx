@@ -444,6 +444,7 @@ export function WorldMap({
                   ["PROJECT", "Case study"],
                   ["WORK", "Employment"],
                   ["CERT", "Certification"],
+                  ["NPC", "The team"],
                   ["CORE", "The core"],
                 ] as const
               ).map(([k, label]) => (
@@ -569,12 +570,17 @@ function Poi({ kind, seen }: { kind: string; seen: boolean }) {
         ? "#e8834a"
         : kind === "CERT"
           ? "#7fd1c4"
-          : "#8cbcae";
+          : kind === "NPC"
+            ? "#f3e9d2"
+            : "#8cbcae";
   const o = seen ? 0.5 : 1;
   const common = { fill: color, fillOpacity: o, stroke: "#05080a", strokeWidth: 1.1 };
   if (kind === "PROJECT") return <path d="M 0 -7 L 7 0 L 0 7 L -7 0 Z" {...common} />;
   if (kind === "WORK") return <rect x={-5.6} y={-5.6} width={11.2} height={11.2} {...common} />;
   if (kind === "CERT")
     return <path d="M 0 -7 L 6 -3.5 L 6 3 L 0 7.5 L -6 3 L -6 -3.5 Z" {...common} />;
+  // A person, not a landmark — a circle reads as "someone standing here"
+  // where every other kind's shape reads as "a fixed thing to find".
+  if (kind === "NPC") return <circle r={5.4} {...common} />;
   return <path d="M 0 -8 L 7 -4 L 7 4 L 0 8 L -7 4 L -7 -4 Z" {...common} />;
 }
