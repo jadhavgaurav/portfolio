@@ -18,6 +18,7 @@ import { nearestDistrictLanguage } from "@/world/mapdata";
 import * as audio from "@/audio/engine";
 import { computeProgress } from "@/world/progress";
 import { Objectives } from "./objectives";
+import { AchievementBanner } from "./achievement-banner";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -80,7 +81,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [muted, setMuted] = useState(false);
   const [enteredDistricts, setEnteredDistricts] = useState<string[]>([]);
   const [objectivesOpen, setObjectivesOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ key: string; label: string } | null>(null);
   const lastDistrict = useRef<string | null>(null);
   const prevComplete = useRef<Record<string, boolean>>({});
 
@@ -152,7 +153,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       const was = prevComplete.current[c.key];
       if (c.complete && was === false) {
         audio.milestone();
-        setToast(`${c.label} — complete`);
+        setToast({ key: c.key, label: `${c.label} — complete` });
       }
       prevComplete.current[c.key] = c.complete;
     }
@@ -388,24 +389,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
       {/* A category closing out, stated once and then gone — the log itself
           is where that state actually lives. */}
-      {toast && (
-        <aside
-          aria-label="Milestone"
-          className="pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center px-5"
-        >
-          <div
-            role="status"
-            className="u-mono border px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.14em]"
-            style={{
-              borderColor: "#43665e",
-              color: "#8cbcae",
-              background: "rgba(6,8,9,0.88)",
-            }}
-          >
-            {toast}
-          </div>
-        </aside>
-      )}
+      {toast && <AchievementBanner achievementKey={toast.key} label={toast.label} />}
 
       {open && (
         <InteractPanel
