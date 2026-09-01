@@ -201,9 +201,14 @@ export function Minimap({
       // The player, always at the centre, always pointing up.
       ctx.save();
       ctx.translate(c, c);
-      // Facing relative to the camera, so the arrow shows which way the
-      // character is turned inside a view that is already rotated.
-      ctx.rotate(s.yaw + rot + Math.PI);
+      /* Facing relative to the camera, so the arrow shows which way the
+         character is turned inside a view that is already rotated by `rot`.
+         canvas rotate() is clockwise, which mirrors east-west if the facing
+         angle is added directly rather than subtracted — the arrow pointed
+         the player's true left when they faced right. π − yaw + rot is the
+         rotation that actually lands the tip on the world-space facing
+         direction after the world's own `rot` twist is accounted for. */
+      ctx.rotate(Math.PI - s.yaw + rot);
       ctx.beginPath();
       ctx.moveTo(0, -7);
       ctx.lineTo(5, 6);

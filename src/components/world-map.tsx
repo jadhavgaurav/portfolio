@@ -73,9 +73,15 @@ export function WorldMap({
     let raf = 0;
     const tick = () => {
       const s = state.current;
+      /* The arrow points "screen up" (world -Z) unrotated. SVG's rotate()
+         is clockwise in this y-down coordinate system, which mirrors the
+         east-west component if the facing angle is added directly — the
+         arrow pointed the player's true left when they faced right.
+         180 − yaw is the rotation that actually lands the tip on
+         (sin(yaw), cos(yaw)), the avatar's real world-space facing. */
       dot.current?.setAttribute(
         "transform",
-        `translate(${s.position.x} ${s.position.z}) rotate(${(s.yaw * 180) / Math.PI + 180})`,
+        `translate(${s.position.x} ${s.position.z}) rotate(${180 - (s.yaw * 180) / Math.PI})`,
       );
       raf = requestAnimationFrame(tick);
     };
