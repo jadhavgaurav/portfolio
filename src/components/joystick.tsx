@@ -140,8 +140,8 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
             style={{
               width: RADIUS * 2,
               height: RADIUS * 2,
-              borderColor: "rgba(226,232,240,0.28)",
-              background: "rgba(6,8,9,0.28)",
+              borderColor: "rgba(255,183,3,0.32)",
+              background: "rgba(20,14,6,0.32)",
             }}
           />
           <div
@@ -151,8 +151,8 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
               height: 46,
               left: RADIUS - 23 + stick.dx,
               top: RADIUS - 23 + stick.dy,
-              background: "rgba(226,232,240,0.55)",
-              boxShadow: "0 0 18px rgba(226,232,240,0.28)",
+              background: "rgba(255,183,3,0.6)",
+              boxShadow: "0 0 18px rgba(255,183,3,0.4)",
             }}
           />
         </div>
@@ -165,7 +165,7 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
         >
           <span
             className="u-mono text-[0.58rem] uppercase tracking-[0.18em]"
-            style={{ color: "#8b979c" }}
+            style={{ color: "#b8a678" }}
           >
             Left thumb to walk · right to look
           </span>
@@ -181,9 +181,9 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
           aria-label="Jump"
           className="u-mono fixed bottom-24 right-6 z-30 flex h-[68px] w-[68px] items-center justify-center rounded-full border text-[0.55rem] uppercase tracking-[0.14em]"
           style={{
-            borderColor: "rgba(226,232,240,0.3)",
-            color: "#cfd6d3",
-            background: "rgba(6,8,9,0.42)",
+            borderColor: "rgba(240,223,174,0.35)",
+            color: "#e8dcb8",
+            background: "rgba(20,14,6,0.48)",
           }}
         >
           Jump

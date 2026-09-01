@@ -145,15 +145,15 @@ export function WorldMap({
       aria-label="World map"
       tabIndex={-1}
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6"
-      style={{ background: "rgba(5,7,8,0.985)" }}
+      style={{ background: "rgba(16,11,5,0.985)" }}
     >
       <div className="mx-auto max-w-[74rem]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="u-display text-[clamp(1.4rem,4vw,2rem)]" style={{ color: "#e2e8f0" }}>
+            <h2 className="u-display text-[clamp(1.4rem,4vw,2rem)]" style={{ color: "#f3e9d2" }}>
               World map
             </h2>
-            <p className="u-mono mt-1 text-[0.6rem] uppercase tracking-[0.16em]" style={{ color: "#69757a" }}>
+            <p className="u-mono mt-1 text-[0.6rem] uppercase tracking-[0.16em]" style={{ color: "#8a7a52" }}>
               Drag to pan · scroll to zoom · click to set a waypoint
             </p>
           </div>
@@ -162,7 +162,7 @@ export function WorldMap({
               <button
                 onClick={() => onWaypoint(null)}
                 className="u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
-                style={{ borderColor: "#43665e", color: "#8cbcae" }}
+                style={{ borderColor: "#a3771f", color: "#ffb703" }}
               >
                 Clear waypoint
               </button>
@@ -173,14 +173,14 @@ export function WorldMap({
                 setPan({ x: 0, y: 0 });
               }}
               className="u-mono inline-flex min-h-[44px] items-center border px-4 text-[0.58rem] uppercase tracking-[0.16em]"
-              style={{ borderColor: "#2a2f32", color: "#9eaab0" }}
+              style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
             >
               Reset view
             </button>
             <button
               onClick={onClose}
               className="u-mono inline-flex min-h-[44px] items-center border px-5 text-[0.6rem] uppercase tracking-[0.18em]"
-              style={{ borderColor: "#2a2f32", color: "#9eaab0" }}
+              style={{ borderColor: "#3a2c12", color: "#c9b98a" }}
             >
               Close · Esc
             </button>
@@ -453,7 +453,7 @@ export function WorldMap({
                   </svg>
                   <span
                     className="u-mono text-[0.58rem] uppercase tracking-[0.14em]"
-                    style={{ color: "#8b979c" }}
+                    style={{ color: "#b8a678" }}
                   >
                     {label}
                   </span>
@@ -465,7 +465,7 @@ export function WorldMap({
           <div>
             <h3
               className="u-mono border-b pb-2 text-[0.6rem] uppercase tracking-[0.2em]"
-              style={{ color: "#8b979c", borderColor: "#2a2f32" }}
+              style={{ color: "#b8a678", borderColor: "#3a2c12" }}
             >
               Travel
             </h3>
@@ -475,7 +475,7 @@ export function WorldMap({
                 const live = here.filter((e) => factByName.get(e.name)?.homepage).length;
                 const found = here.filter((e) => seen.has(`repo:${e.id}`)).length;
                 return (
-                  <li key={d.language} style={{ borderBottom: "1px solid #2a2f32" }}>
+                  <li key={d.language} style={{ borderBottom: "1px solid #3a2c12" }}>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
@@ -490,12 +490,12 @@ export function WorldMap({
                           className="block h-3 w-3 shrink-0 rounded-full"
                           style={{ background: style.ui }}
                         />
-                        <span className="u-mono flex-1 text-[0.78rem]" style={{ color: "#e2e8f0" }}>
+                        <span className="u-mono flex-1 text-[0.78rem]" style={{ color: "#f3e9d2" }}>
                           {style.label}
                         </span>
                         <span
                           className="u-mono text-[0.58rem] uppercase tracking-[0.12em]"
-                          style={{ color: "#8b979c" }}
+                          style={{ color: "#b8a678" }}
                         >
                           {found}/{here.length}
                           {live > 0 ? ` · ${live} live` : ""}
@@ -507,7 +507,7 @@ export function WorldMap({
                         }
                         aria-label={`Set waypoint to ${style.label}`}
                         className="u-mono inline-flex min-h-[44px] shrink-0 items-center border px-2.5 text-[0.52rem] uppercase tracking-[0.12em]"
-                        style={{ borderColor: "#2a2f32", color: "#69757a" }}
+                        style={{ borderColor: "#3a2c12", color: "#8a7a52" }}
                       >
                         Mark
                       </button>
@@ -515,7 +515,7 @@ export function WorldMap({
                   </li>
                 );
               })}
-              <li style={{ borderBottom: "1px solid #2a2f32" }}>
+              <li style={{ borderBottom: "1px solid #3a2c12" }}>
                 <button
                   onClick={() => {
                     onTravel(0, 0);
@@ -527,12 +527,12 @@ export function WorldMap({
                     className="block h-3 w-3 shrink-0 rounded-full"
                     style={{ background: "#8cbcae" }}
                   />
-                  <span className="u-mono flex-1 text-[0.78rem]" style={{ color: "#e2e8f0" }}>
+                  <span className="u-mono flex-1 text-[0.78rem]" style={{ color: "#f3e9d2" }}>
                     The core
                   </span>
                   <span
                     className="u-mono text-[0.58rem] uppercase tracking-[0.12em]"
-                    style={{ color: "#8b979c" }}
+                    style={{ color: "#b8a678" }}
                   >
                     Who this is
                   </span>
@@ -542,11 +542,11 @@ export function WorldMap({
 
             <h3
               className="u-mono mt-7 border-b pb-2 text-[0.6rem] uppercase tracking-[0.2em]"
-              style={{ color: "#8b979c", borderColor: "#2a2f32" }}
+              style={{ color: "#b8a678", borderColor: "#3a2c12" }}
             >
               Found · {progress.found} of {progress.total}
             </h3>
-            <p className="mt-3 text-[0.82rem] leading-[1.55]" style={{ color: "#69757a" }}>
+            <p className="mt-3 text-[0.82rem] leading-[1.55]" style={{ color: "#8a7a52" }}>
               Districts you have not walked into are marked with a dot and their
               buildings are drawn faint. Click any point on the map, or Mark a
               district, and the compass will hold the bearing until you get
