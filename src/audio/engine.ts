@@ -203,6 +203,17 @@ export function collect() {
   tone({ freq: 1318.5, duration: 0.16, gain: 0.09, type: "triangle", detune: 3 });
 }
 
+/** Plays once, the instant someone in the world notices you and the meetup
+ *  bubble opens — a warm two-note "hey, I know you" chime, pitched a little
+ *  differently per person so no two collaborators sound identical but the
+ *  same one always sounds the same. Softer and shorter than milestone()
+ *  so a meetup never reads as a bigger event than finishing a district. */
+export function greet(seed: string) {
+  const base = 440 + hash(seed) * 220;
+  tone({ freq: base, duration: 0.18, gain: 0.13, type: "sine" });
+  tone({ freq: base * 1.5, duration: 0.36, gain: 0.11, type: "sine", detune: -4 });
+}
+
 export function coreArrival() {
   [261.6, 329.6, 392, 523.2].forEach((f, i) => {
     tone({ freq: f, duration: 1.6, gain: 0.05, type: "sine", detune: i * 2 });

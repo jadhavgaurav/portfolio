@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { INTERACTABLES } from "./interactables";
 import type { PlayerState } from "./Player";
 import { contributors, aiTools, greetingLine, aiGreetingLine } from "@/data/contributors";
+import * as audio from "@/audio/engine";
 
 /**
  * The rest of the team.
@@ -210,12 +211,14 @@ function useGreetState(): GreetState {
 
 /** Edge-triggered: a greeting starts the moment the player crosses into
  *  range, runs for a fixed duration, and won't fire again until the player
- *  leaves and comes back — so lingering nearby doesn't replay it on a loop. */
-function tickGreet(g: GreetState, dt: number, dist: number) {
+ *  leaves and comes back — so lingering nearby doesn't replay it on a loop.
+ *  `seed` identifies who's greeting, purely to pitch their chime. */
+function tickGreet(g: GreetState, dt: number, dist: number, seed: string) {
   const near = dist < GREET_RADIUS;
   if (near && !g.wasNear.current) {
     g.greeting.current = true;
     g.greetT.current = 0;
+    audio.greet(seed);
   }
   g.wasNear.current = near;
   if (g.greeting.current) {
@@ -279,7 +282,7 @@ function HumanNPC({
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer);
+    tickGreet(greet, dt, distToPlayer, seed);
 
     let speed01 = 0;
     if (greet.greeting.current) {
@@ -436,7 +439,7 @@ function Crab({ id, playerState }: { id: string; playerState: React.MutableRefOb
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer);
+    tickGreet(greet, dt, distToPlayer, "claude-crab");
 
     let moving = false;
     if (greet.greeting.current) {
@@ -573,7 +576,7 @@ function JulesBot({ id, playerState }: { id: string; playerState: React.MutableR
 
     const pp = playerState.current.position;
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
-    tickGreet(greet, dt, distToPlayer);
+    tickGreet(greet, dt, distToPlayer, "jules-bot");
 
     if (greet.greeting.current) {
       // Holds still and faces the player rather than drifting — the fixed
