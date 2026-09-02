@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { INTERACTABLES } from "./interactables";
 import { CharacterRig, type CharacterMotion } from "./characters/CharacterRig";
 import { bodyFor, hairFor, heightFor } from "./characters/appearance";
+import { CreatureRig, preloadCreature, type CreatureState } from "./characters/CreatureRig";
 import type { PlayerState } from "./Player";
 import { contributors, aiTools, greetingLine, aiGreetingLine } from "@/data/contributors";
 import * as audio from "@/audio/engine";
@@ -520,9 +521,19 @@ function HumanNPC({
   );
 }
 
-const CRAB_SHELL = "#d9622f";
-const CRAB_SHELL_DARK = "#a8431d";
-const CRAB_CLAW = "#f2864a";
+/** Claude's crab. A real rigged model now rather than a sphere with box
+ *  claws, from Quaternius's CC0 enemies pack with its teeth removed —
+ *  the mesh is a good crab, the scowl was the only thing making it an
+ *  enemy, and CC0 explicitly permits the edit. */
+const CRAB_URL = "/characters/crab.glb";
+const CRAB_CLIPS = {
+  idle: "MonsterArmature|Idle",
+  walk: "MonsterArmature|Walk",
+  /** "Yes" is a whole-body nod, which is as close to a wave as a crab gets. */
+  greet: "MonsterArmature|Yes",
+} as const;
+const CRAB_ACCENT = "#ffb08c";
+preloadCreature(CRAB_URL);
 
 /** Claude, as a crab — the player's own idea. Scuttles a short loop near the
  *  core rather than standing in one district: it touched code across the
@@ -542,8 +553,7 @@ function Crab({
     return a ? aiGreetingLine(a) : "";
   }, []);
   const root = useRef<THREE.Group>(null);
-  const clawL = useRef<THREE.Group>(null);
-  const clawR = useRef<THREE.Group>(null);
+  const crab = useRef<CreatureState>({ moving: false, greeting: false });
   const t0 = useRef(Math.random() * 10);
   const greet = useGreetState();
 
@@ -565,7 +575,7 @@ function Crab({
     if (greet.greeting.current) {
       const dx = pp.x - cur.x;
       const dz = pp.z - cur.z;
-      if (Math.hypot(dx, dz) > 0.1) root.current.rotation.y = Math.atan2(dx, dz) + Math.PI / 2;
+      if (Math.hypot(dx, dz) > 0.1) root.current.rotation.y = Math.atan2(dx, dz);
     } else {
       const target = points[leg.current];
       const dx = target.x - cur.x;
@@ -578,97 +588,97 @@ function Crab({
         pause.current = 1.5 + hash(String(leg.current) + t) * 1.5;
       } else {
         const step = Math.min(dist, 0.7 * dt);
-        // Crabs walk sideways: face perpendicular to the direction of travel.
         cur.x += (dx / dist) * step;
         cur.z += (dz / dist) * step;
-        root.current.rotation.y = Math.atan2(dx, dz) + Math.PI / 2;
+        root.current.rotation.y = Math.atan2(dx, dz);
         moving = true;
       }
     }
     it.x = cur.x;
     it.z = cur.z;
 
-    root.current.position.y = Math.abs(Math.sin(t * 6)) * 0.05 * (moving ? 1 : 0.3);
-    if (greet.greeting.current) {
-      // Both claws thrown up and waved — the crab's version of a wave.
-      const wave = Math.sin(t * 7) * 0.3;
-      if (clawL.current) clawL.current.rotation.z = 1.5 + wave;
-      if (clawR.current) clawR.current.rotation.z = -1.5 - wave;
-    } else {
-      const pinch = Math.sin(t * 3) * 0.25;
-      if (clawL.current) clawL.current.rotation.z = 0.5 + pinch;
-      if (clawR.current) clawR.current.rotation.z = -0.5 - pinch;
-    }
+    crab.current.moving = moving;
+    crab.current.greeting = greet.greeting.current;
   });
 
   if (!it) return null;
 
   return (
     <group ref={root} position={[it.x, 0, it.z]}>
-      <mesh position={[0, 0.22, 0]} scale={[1, 0.55, 0.8]} castShadow>
-        <sphereGeometry args={[0.38, 16, 12]} />
-        <meshStandardMaterial color={CRAB_SHELL} roughness={0.55} />
-      </mesh>
-      <mesh position={[0, 0.24, 0]} scale={[0.94, 0.4, 0.72]}>
-        <sphereGeometry args={[0.38, 16, 12]} />
-        <meshStandardMaterial color={CRAB_SHELL_DARK} roughness={0.6} />
-      </mesh>
-      {/* Eye stalks. */}
-      {[-0.14, 0.14].map((ox) => (
-        <group key={ox} position={[ox, 0.4, 0.28]}>
-          <mesh>
-            <cylinderGeometry args={[0.025, 0.025, 0.14, 6]} />
-            <meshStandardMaterial color={CRAB_SHELL_DARK} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.09, 0]}>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshStandardMaterial color="#1a1006" roughness={0.3} />
-          </mesh>
-        </group>
-      ))}
-      {/* Claws. */}
-      <group ref={clawL} position={[-0.36, 0.24, 0.12]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.22, 0.13, 0.16]} />
-          <meshStandardMaterial color={CRAB_CLAW} roughness={0.5} />
-        </mesh>
-      </group>
-      <group ref={clawR} position={[0.36, 0.24, 0.12]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.22, 0.13, 0.16]} />
-          <meshStandardMaterial color={CRAB_CLAW} roughness={0.5} />
-        </mesh>
-      </group>
-      {/* Legs, three a side. */}
-      {[-1, 1].map((side) =>
-        [-0.12, 0, 0.12].map((oz) => (
-          <mesh
-            key={`${side}-${oz}`}
-            position={[side * 0.3, 0.1, oz]}
-            rotation={[0, 0, side * 0.6]}
-            castShadow
-          >
-            <cylinderGeometry args={[0.018, 0.018, 0.24, 5]} />
-            <meshStandardMaterial color={CRAB_SHELL_DARK} roughness={0.7} />
-          </mesh>
-        )),
-      )}
+      <CreatureRig url={CRAB_URL} clips={CRAB_CLIPS} state={crab} height={0.62} />
+
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <circleGeometry args={[0.42, 16]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.28} depthWrite={false} />
       </mesh>
-      <NameTag text="Claude" color="#ffb08c" anchorY={0.85} />
-      <GreetBubble text={greetText} accent="#ffb08c" visible={greet.opacity} anchorY={1.05} />
-      <NoticeRing accent="#ffb08c" t={greet.noticeT} />
+      <NameTag text="Claude" color={CRAB_ACCENT} anchorY={0.85} />
+      <GreetBubble text={greetText} accent={CRAB_ACCENT} visible={greet.opacity} anchorY={1.05} />
+      <NoticeRing accent={CRAB_ACCENT} t={greet.noticeT} />
     </group>
   );
 }
 
 const JULES_BODY = "#e8eef2";
-const JULES_RING = "#4285f4"; // Google blue — the four brand colours, not invented.
-const JULES_RING2 = "#ea4335";
-const JULES_RING3 = "#fbbc05";
-const JULES_RING4 = "#34a853";
+const JULES_BODY_DARK = "#c3ccd6";
+/** Google's own four brand colours, not invented — the same reasoning that
+ *  puts real language colours on the districts. Eight tentacles, four
+ *  colours, so each is used twice. */
+const JULES_BRAND = ["#4285f4", "#ea4335", "#fbbc05", "#34a853"] as const;
+
+/** How many joints a tentacle bends at. Six is where it stops reading as a
+ *  hinged arm and starts reading as something boneless. */
+const TENTACLE_SEGMENTS = 6;
+const TENTACLE_LENGTH = 0.62;
+
+/**
+ * One tentacle, built as nested groups so each joint's rotation compounds
+ * onto the last — which is what makes the limb curl rather than kink. The
+ * wave travels outward by offsetting each joint's phase along its length,
+ * so the motion starts at the body and runs to the tip.
+ */
+function Tentacle({ phase, tip }: { phase: number; tip: string }) {
+  const segs = useRef<(THREE.Group | null)[]>([]);
+  const segLen = TENTACLE_LENGTH / TENTACLE_SEGMENTS;
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < TENTACLE_SEGMENTS; i++) {
+      const g = segs.current[i];
+      if (!g) continue;
+      g.rotation.x = Math.sin(t * 2.1 - i * 0.75 + phase) * 0.3 + (i === 0 ? 0.5 : 0.16);
+      g.rotation.z = Math.cos(t * 1.6 - i * 0.55 + phase) * 0.12;
+    }
+  });
+
+  const build = (i: number): React.ReactNode => {
+    if (i >= TENTACLE_SEGMENTS) return null;
+    const r0 = 0.052 * (1 - i / TENTACLE_SEGMENTS) + 0.012;
+    const r1 = 0.052 * (1 - (i + 1) / TENTACLE_SEGMENTS) + 0.012;
+    const last = i === TENTACLE_SEGMENTS - 1;
+    return (
+      <group
+        key={i}
+        ref={(el) => {
+          segs.current[i] = el;
+        }}
+        position={[0, i === 0 ? 0 : -segLen, 0]}
+      >
+        <mesh position={[0, -segLen / 2, 0]} castShadow>
+          <cylinderGeometry args={[r1, r0, segLen, 6]} />
+          <meshStandardMaterial
+            color={last ? tip : JULES_BODY_DARK}
+            emissive={last ? tip : "#000000"}
+            emissiveIntensity={last ? 0.6 : 0}
+            roughness={0.45}
+          />
+        </mesh>
+        {build(i + 1)}
+      </group>
+    );
+  };
+
+  return <>{build(0)}</>;
+}
 
 /** Jules — Google's own coding agent, found as a real, substantial
  *  contributor in the commit data. Deliberately not a second crab: it
@@ -689,7 +699,6 @@ function JulesBot({
     return a ? aiGreetingLine(a) : "";
   }, []);
   const root = useRef<THREE.Group>(null);
-  const ring = useRef<THREE.Group>(null);
   const home = useRef<[number, number] | null>(null);
   const t0 = useRef(Math.random() * 10);
   const greet = useGreetState();
@@ -726,33 +735,51 @@ function JulesBot({
 
     it.x = cur.x;
     it.z = cur.z;
-
-    if (ring.current) ring.current.rotation.z = t * (greet.greeting.current ? 4.5 : 1.6);
   });
 
   if (!it) return null;
 
   return (
     <group ref={root} position={[it.x, 1.1, it.z]}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.24, 20, 16]} />
-        <meshStandardMaterial color={JULES_BODY} roughness={0.3} metalness={0.15} />
+      {/* The mantle: a squashed dome, flattened underneath where the
+          tentacles leave it. */}
+      <mesh position={[0, 0.06, 0]} scale={[1, 0.82, 1]} castShadow>
+        <sphereGeometry args={[0.27, 20, 16]} />
+        <meshStandardMaterial color={JULES_BODY} roughness={0.32} metalness={0.12} />
       </mesh>
-      <mesh position={[0, 0, 0.2]}>
-        <sphereGeometry args={[0.08, 12, 12]} />
-        <meshStandardMaterial color="#1a1d21" roughness={0.2} />
-      </mesh>
-      {/* The four-colour ring — Google's own brand colours, quartered. */}
-      <group ref={ring} rotation={[Math.PI / 2, 0, 0]}>
-        {[JULES_RING, JULES_RING2, JULES_RING3, JULES_RING4].map((color, i) => (
-          <mesh key={color} rotation={[0, 0, (i / 4) * Math.PI * 2]}>
-            <torusGeometry args={[0.36, 0.025, 8, 10, (Math.PI * 2) / 4 - 0.08]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.4} />
+
+      {/* Eyes, set wide and forward, so it has a front to turn towards you. */}
+      {[-0.11, 0.11].map((ox) => (
+        <group key={ox} position={[ox, 0.04, 0.2]}>
+          <mesh>
+            <sphereGeometry args={[0.062, 12, 12]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.2} />
           </mesh>
-        ))}
-      </group>
-      <NameTag text="Jules" color="#8ab4f8" anchorY={0.54} />
-      <GreetBubble text={greetText} accent="#8ab4f8" visible={greet.opacity} anchorY={0.74} />
+          <mesh position={[0, 0, 0.045]}>
+            <sphereGeometry args={[0.03, 10, 10]} />
+            <meshStandardMaterial color="#1a1d21" roughness={0.15} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Eight tentacles, evenly round the mantle. Each is given its own
+          phase from its angle, so the whole ring of them ripples rather
+          than pulsing in unison. */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return (
+          <group
+            key={i}
+            position={[Math.cos(a) * 0.17, -0.02, Math.sin(a) * 0.17]}
+            rotation={[0, -a, 0]}
+          >
+            <Tentacle phase={i * 0.79} tip={JULES_BRAND[i % JULES_BRAND.length]} />
+          </group>
+        );
+      })}
+
+      <NameTag text="Jules" color="#8ab4f8" anchorY={0.62} />
+      <GreetBubble text={greetText} accent="#8ab4f8" visible={greet.opacity} anchorY={0.82} />
       <NoticeRing accent="#8ab4f8" t={greet.noticeT} />
     </group>
   );
