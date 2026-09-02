@@ -53,12 +53,129 @@ const PACE_COMPRESSION = 0.45;
  *  adds, and at fifty-odd metres nobody can see a gait anyway. */
 const ANIMATE_RADIUS = 45;
 
+/**
+ * A mark worn on the chest.
+ *
+ * Painted into the clothing atlas would be the obvious place, and it is
+ * the wrong one: Mixamo's atlases are auto-unwrapped, so the hoodie's
+ * chest is an island somewhere in a jumble of sleeves and trouser legs
+ * and there is no way to find it short of a UV editor. A quad parented
+ * to the chest bone instead. It rides with the spine through every clip,
+ * and where it sits is read off the rig's own bind matrices rather than
+ * guessed, so it lands on the chest of any body this is asked to mark.
+ */
+export interface ChestMark {
+  text: string;
+  color: string;
+}
+
+/** Mixamo's upper-chest bone, present on every humanoid it exports. The
+ *  colon is optional because it is not there at runtime: three's loader
+ *  strips it, as it strips every character that would be ambiguous in an
+ *  animation track path, so the bone is `mixamorigSpine2` in the scene
+ *  even though it is `mixamorig:Spine2` in the file. An exact match on
+ *  the file's spelling silently finds nothing. */
+const CHEST_BONE = /^mixamorig:?Spine2$/;
+
+/** How far the mark floats off the surface. Enough to clear z-fighting,
+ *  not enough to read as a separate object. */
+const MARK_LIFT = 0.012;
+
+function markTexture(text: string, color: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  ctx.font = "700 190px ui-monospace, 'SFMono-Regular', Menlo, monospace";
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, c.width / 2, c.height / 2 + 8);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/**
+ * Attach the mark to the chest bone. Returns a disposer.
+ *
+ * Everything is worked out in bind space, which is what the skeleton's
+ * `boneInverses` describe and what the geometry is authored in, so the
+ * current pose is irrelevant: the point in front of the chest is found on
+ * the unposed hoodie, moved into the bone's own frame with that bone's
+ * inverse bind matrix, and from then on the bone carries it.
+ */
+function attachChestMark(scene: THREE.Object3D, mark: ChestMark): () => void {
+  let skinned: THREE.SkinnedMesh | null = null;
+  let hoodie: THREE.Mesh | null = null;
+  scene.traverse((o) => {
+    const m = o as THREE.SkinnedMesh;
+    if (!m.isSkinnedMesh) return;
+    if (!skinned) skinned = m;
+    if (/hoodie|sweater|top|shirt|body/i.test(m.name) && !hoodie) hoodie = m;
+  });
+  if (!skinned) return () => {};
+  const skel = (skinned as THREE.SkinnedMesh).skeleton;
+  const idx = skel.bones.findIndex((b) => CHEST_BONE.test(b.name));
+  if (idx < 0) return () => {};
+  const bone = skel.bones[idx];
+  const inverseBind = skel.boneInverses[idx];
+  const bindWorld = inverseBind.clone().invert();
+
+  // Where the chest is, from the bone's bind pose; how far forward the
+  // surface is, from the unposed clothing mesh in front of it. The hood
+  // hangs at the back, so the geometry's far +Z is the front of the torso.
+  const chest = new THREE.Vector3().setFromMatrixPosition(bindWorld);
+  const surface = hoodie ?? skinned;
+  const geo = (surface as THREE.Mesh).geometry;
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  const frontZ = geo.boundingBox ? geo.boundingBox.max.z : chest.z + 0.15;
+  const point = new THREE.Vector3(0, chest.y - 0.025, frontZ + MARK_LIFT);
+
+  const texture = markTexture(mark.text, mark.color);
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    toneMapped: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+  // About a third of the chest's width, which is what the reference wore and
+  // what still reads at the distance the camera actually keeps.
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.13), material);
+  quad.renderOrder = 2;
+  quad.frustumCulled = false;
+
+  // Into the bone's frame: position via the inverse bind matrix, and a
+  // rotation that undoes the bone's own so the quad keeps facing +Z.
+  quad.position.copy(point).applyMatrix4(inverseBind);
+  quad.quaternion.setFromRotationMatrix(inverseBind);
+  bone.add(quad);
+
+  // A bone can carry a scale (Mixamo rigs often do). Undo it so the quad
+  // is the size it was drawn at in world units.
+  scene.updateMatrixWorld(true);
+  const ws = new THREE.Vector3();
+  bone.getWorldScale(ws);
+  quad.scale.set(1 / ws.x, 1 / ws.y, 1 / ws.z);
+
+  return () => {
+    bone.remove(quad);
+    quad.geometry.dispose();
+    material.dispose();
+    texture.dispose();
+  };
+}
+
 export function CharacterRig({
   body,
   height,
   hair,
   motion,
   castShadow = true,
+  chestMark,
 }: {
   body: BodyType;
   /** Wanted height in world units; the mesh is scaled to hit it. */
@@ -67,6 +184,8 @@ export function CharacterRig({
   hair: string;
   motion: React.MutableRefObject<CharacterMotion>;
   castShadow?: boolean;
+  /** Something worn on the chest. Only the player has one. */
+  chestMark?: ChestMark;
 }) {
   const scene = useBody(body);
   const clips = useClips();
@@ -119,8 +238,12 @@ export function CharacterRig({
         owned.push(mine);
       }
     });
-    return () => owned.forEach((m) => m.dispose());
-  }, [scene, hair, castShadow]);
+    const detachMark = chestMark ? attachChestMark(scene, chestMark) : null;
+    return () => {
+      owned.forEach((m) => m.dispose());
+      detachMark?.();
+    };
+  }, [scene, hair, castShadow, chestMark]);
 
   useEffect(
     () => () => {

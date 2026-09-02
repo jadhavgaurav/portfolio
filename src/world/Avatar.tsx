@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { PLAYER, type PlayerState } from "./Player";
-import { CharacterRig, type CharacterMotion } from "./characters/CharacterRig";
+import { CharacterRig, type CharacterMotion, type ChestMark } from "./characters/CharacterRig";
 
 /**
  * The avatar.
@@ -20,6 +20,13 @@ import { CharacterRig, type CharacterMotion } from "./characters/CharacterRig";
  * actually contain. What stays is everything the clips do not know about:
  * where the character is, which way it faces, and how hard it just landed.
  */
+
+/** The mark on the hoodie. The teal is the player's own colour from the
+ *  first box figure, so anyone who has seen the site before still reads
+ *  this as the same person. A module constant, not an inline literal: it
+ *  is an effect dependency in the rig, and a fresh object every render
+ *  would re-attach it every render. */
+const CHEST_MARK: ChestMark = { text: "</>", color: "#2fa89a" };
 
 export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }) {
   const root = useRef<THREE.Group>(null);
@@ -73,7 +80,13 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
       {/* The player's own body, not one of the crowd's two. Hair is left
           untinted: the mesh already carries the right black, and the
           per-person lift the NPCs use would only lighten it. */}
-      <CharacterRig body="player" height={PLAYER.height} hair="#ffffff" motion={motion} />
+      <CharacterRig
+        body="player"
+        height={PLAYER.height}
+        hair="#ffffff"
+        motion={motion}
+        chestMark={CHEST_MARK}
+      />
 
       {/* A soft blob directly underfoot, on top of whatever the real shadow
           map is doing. On the low-quality tier there is no shadow map at
