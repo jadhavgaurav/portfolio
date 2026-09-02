@@ -242,7 +242,11 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   /* Input is live only while the player has the world. With the title, the
      map or the document up, keys belong to those. */
   const playing = mode === "PLAYING" && !mapOpen && !reading && !open && !objectivesOpen;
-  useKeyboardAndPointer(input, supported === true && playing);
+  // Keyboard-and-mouse-drag only. On touch this ran alongside the Joystick,
+  // both reading every pointerdown/pointermove on the same finger — the
+  // stick still drove movement, but this hook's own `dragging` bookkeeping
+  // and stray lookX/lookY writes had no reason to be live at the same time.
+  useKeyboardAndPointer(input, supported === true && playing && !touch);
 
   /* M opens the map, O the log, Escape hands the world back to the title.
    *

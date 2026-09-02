@@ -28,7 +28,15 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
     (e: React.PointerEvent) => {
       if ((e.target as HTMLElement)?.closest("button, a, [role=dialog], nav")) return;
       const half = window.innerWidth / 2;
-      if (e.clientX < half && moveId.current === null) {
+      // A new touch on a side always takes it over, rather than only being
+      // accepted while that side's pointer id is still null. A release that
+      // never reaches us — the one mobile Pointer Events bug the capture and
+      // the window-level safety net below can't fully rule out — used to
+      // leave the old id parked here forever: every later touch on that
+      // side was silently ignored because the slot looked occupied, and the
+      // last real input (often mid-run) just kept being read. The thumb
+      // going down again is as clear a signal as a release ever was.
+      if (e.clientX < half) {
         moveId.current = e.pointerId;
         // Capture, so this pointer keeps reporting to us even if the thumb
         // slides over the jump button or off the edge of the screen. Without
@@ -36,7 +44,7 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
         // and the character keeps running with no way to stop it.
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         setStick({ ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 });
-      } else if (e.clientX >= half && lookId.current === null) {
+      } else {
         lookId.current = e.pointerId;
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         lookLast.current = { x: e.clientX, y: e.clientY };
@@ -60,8 +68,11 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
           const i = input.current;
           i.strafe = dx / RADIUS;
           i.forward = -dy / RADIUS;
-          // Push the stick past two thirds and you are running. No run button.
-          i.run = Math.hypot(dx, dy) / RADIUS > 0.66;
+          // Push the stick to the edge and you are running. No run button.
+          // Two thirds sounds generous but is well inside where an actual
+          // thumb rests once it's pressed down at all, so running was
+          // effectively the only speed the stick could reach.
+          i.run = Math.hypot(dx, dy) / RADIUS > 0.85;
           return { ...s, dx, dy };
         });
       } else if (e.pointerId === lookId.current && lookLast.current) {
@@ -126,6 +137,11 @@ export function Joystick({ input }: { input: React.MutableRefObject<Input> }) {
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
+        // Fires whenever this pointer's capture ends, including the cases
+        // where a mobile browser drops it without ever sending pointerup —
+        // the specific gap the takeover in onDown otherwise has to wait for
+        // a second touch to notice.
+        onLostPointerCapture={onUp}
         aria-hidden="true"
       />
 
