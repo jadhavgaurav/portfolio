@@ -36,6 +36,39 @@ export interface CreatureClips {
 const KEYS = ["idle", "walk", "greet"] as const;
 type Key = (typeof KEYS)[number];
 
+/**
+ * World-space height of everything drawable under `root`.
+ *
+ * Built by hand instead of using `Box3.setFromObject`, which returns an
+ * empty box for these meshes: it defers to a SkinnedMesh's own
+ * `boundingBox`, and that is null until something computes it. Walking the
+ * geometry's bind-pose bounds through each mesh's world matrix is a little
+ * more work and actually answers the question.
+ */
+function measureHeight(root: THREE.Object3D): number {
+  root.updateMatrixWorld(true);
+  let lo = Infinity;
+  let hi = -Infinity;
+  const v = new THREE.Vector3();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry) return;
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const b = mesh.geometry.boundingBox;
+    if (!b) return;
+    for (const x of [b.min.x, b.max.x]) {
+      for (const y of [b.min.y, b.max.y]) {
+        for (const z of [b.min.z, b.max.z]) {
+          v.set(x, y, z).applyMatrix4(mesh.matrixWorld);
+          lo = Math.min(lo, v.y);
+          hi = Math.max(hi, v.y);
+        }
+      }
+    }
+  });
+  return hi > lo ? hi - lo : 0;
+}
+
 export function CreatureRig({
   url,
   clips: names,
@@ -72,11 +105,21 @@ export function CreatureRig({
      and a skeleton with no weight on it snaps to its bind pose. */
   const weights = useRef<Partial<Record<Key, number>>>({ idle: 1 });
 
-  const fit = useMemo(() => {
-    const size = new THREE.Vector3();
-    new THREE.Box3().setFromObject(scene).getSize(size);
-    return size.y > 1e-4 ? height / size.y : 1;
-  }, [scene, height]);
+  const outer = useRef<THREE.Group>(null);
+
+  /* Fitted on the first frame, not in an effect.
+   *
+   * Two earlier attempts got this wrong in different ways. Measuring the
+   * cloned scene before mounting reports a fraction of the truth, because
+   * a skinned mesh's size lives in the bone transforms above it and a
+   * fresh clone has no world matrices. Measuring in a layout effect
+   * reports nothing at all, because the effect runs before `primitive`
+   * has attached its object, so the box is empty and the guard skips.
+   *
+   * By the first frame the object is genuinely in the scene with real
+   * matrices, so the reading means something. This model, for the record,
+   * carries an internal scale of 100 and lands 1.5 units tall untouched. */
+  const fitted = useRef(false);
 
   useEffect(() => {
     scene.traverse((o) => {
@@ -98,6 +141,16 @@ export function CreatureRig({
   useFrame((_, rawDelta) => {
     const dt = Math.min(0.05, rawDelta);
     const s = state.current;
+
+    if (!fitted.current && outer.current) {
+      const g = outer.current;
+      g.scale.setScalar(1);
+      const h = measureHeight(g);
+      if (h > 1e-4) {
+        g.scale.setScalar(height / h);
+        fitted.current = true;
+      }
+    }
     const want: Key = s.greeting ? "greet" : s.moving ? "walk" : "idle";
 
     for (const key of KEYS) {
@@ -113,7 +166,7 @@ export function CreatureRig({
   });
 
   return (
-    <group scale={fit}>
+    <group ref={outer}>
       <primitive object={scene} />
     </group>
   );

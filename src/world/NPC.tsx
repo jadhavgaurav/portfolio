@@ -645,8 +645,12 @@ function Tentacle({ phase, tip }: { phase: number; tip: string }) {
     for (let i = 0; i < TENTACLE_SEGMENTS; i++) {
       const g = segs.current[i];
       if (!g) continue;
-      g.rotation.x = Math.sin(t * 2.1 - i * 0.75 + phase) * 0.3 + (i === 0 ? 0.5 : 0.16);
-      g.rotation.z = Math.cos(t * 1.6 - i * 0.55 + phase) * 0.12;
+      /* A gentle outward flare at the shoulder and a steady inward curl
+         after it, so the limb hangs and cups rather than sticking straight
+         out like a leg. The wave rides on top of that rest shape. */
+      const rest = i === 0 ? 0.34 : -0.1;
+      g.rotation.x = rest + Math.sin(t * 2.1 - i * 0.75 + phase) * 0.17;
+      g.rotation.z = Math.cos(t * 1.6 - i * 0.55 + phase) * 0.08;
     }
   });
 
@@ -684,6 +688,54 @@ function Tentacle({ phase, tip }: { phase: number; tip: string }) {
  *  contributor in the commit data. Deliberately not a second crab: it
  *  hovers rather than walks, so the two AI collaborators never read as the
  *  same character from a distance. */
+/**
+ * Jules' body, as its own component so it can be rendered without the
+ * wander loop, the greeting state and an INTERACTABLES entry around it —
+ * which is what makes it possible to look at.
+ */
+export function OctopusBody() {
+  return (
+    <>
+      {/* The mantle: a squashed dome, flattened underneath where the
+          tentacles leave it. */}
+      <mesh position={[0, 0.06, 0]} scale={[1, 0.82, 1]} castShadow>
+        <sphereGeometry args={[0.27, 20, 16]} />
+        <meshStandardMaterial color={JULES_BODY} roughness={0.32} metalness={0.12} />
+      </mesh>
+
+      {/* Eyes, set wide and forward, so it has a front to turn towards you. */}
+      {[-0.11, 0.11].map((ox) => (
+        <group key={ox} position={[ox, 0.04, 0.2]}>
+          <mesh>
+            <sphereGeometry args={[0.062, 12, 12]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, 0.045]}>
+            <sphereGeometry args={[0.03, 10, 10]} />
+            <meshStandardMaterial color="#1a1d21" roughness={0.15} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Eight tentacles, evenly round the mantle. Each is given its own
+          phase from its angle, so the whole ring of them ripples rather
+          than pulsing in unison. */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return (
+          <group
+            key={i}
+            position={[Math.cos(a) * 0.17, -0.02, Math.sin(a) * 0.17]}
+            rotation={[0, -a, 0]}
+          >
+            <Tentacle phase={i * 0.79} tip={JULES_BRAND[i % JULES_BRAND.length]} />
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
 function JulesBot({
   id,
   playerState,
@@ -741,42 +793,7 @@ function JulesBot({
 
   return (
     <group ref={root} position={[it.x, 1.1, it.z]}>
-      {/* The mantle: a squashed dome, flattened underneath where the
-          tentacles leave it. */}
-      <mesh position={[0, 0.06, 0]} scale={[1, 0.82, 1]} castShadow>
-        <sphereGeometry args={[0.27, 20, 16]} />
-        <meshStandardMaterial color={JULES_BODY} roughness={0.32} metalness={0.12} />
-      </mesh>
-
-      {/* Eyes, set wide and forward, so it has a front to turn towards you. */}
-      {[-0.11, 0.11].map((ox) => (
-        <group key={ox} position={[ox, 0.04, 0.2]}>
-          <mesh>
-            <sphereGeometry args={[0.062, 12, 12]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.2} />
-          </mesh>
-          <mesh position={[0, 0, 0.045]}>
-            <sphereGeometry args={[0.03, 10, 10]} />
-            <meshStandardMaterial color="#1a1d21" roughness={0.15} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Eight tentacles, evenly round the mantle. Each is given its own
-          phase from its angle, so the whole ring of them ripples rather
-          than pulsing in unison. */}
-      {Array.from({ length: 8 }, (_, i) => {
-        const a = (i / 8) * Math.PI * 2;
-        return (
-          <group
-            key={i}
-            position={[Math.cos(a) * 0.17, -0.02, Math.sin(a) * 0.17]}
-            rotation={[0, -a, 0]}
-          >
-            <Tentacle phase={i * 0.79} tip={JULES_BRAND[i % JULES_BRAND.length]} />
-          </group>
-        );
-      })}
+      <OctopusBody />
 
       <NameTag text="Jules" color="#8ab4f8" anchorY={0.62} />
       <GreetBubble text={greetText} accent="#8ab4f8" visible={greet.opacity} anchorY={0.82} />
