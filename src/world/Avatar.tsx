@@ -5,7 +5,6 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { PLAYER, type PlayerState } from "./Player";
 import { CharacterRig, type CharacterMotion } from "./characters/CharacterRig";
-import { hairFor } from "./characters/appearance";
 
 /**
  * The avatar.
@@ -21,10 +20,6 @@ import { hairFor } from "./characters/appearance";
  * actually contain. What stays is everything the clips do not know about:
  * where the character is, which way it faces, and how hard it just landed.
  */
-
-/** Seed for this one person's appearance. The player is not anonymous the
- *  way the crowd is, so this is a name rather than a hash source. */
-const PLAYER_SEED = "gaurav";
 
 export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }) {
   const root = useRef<THREE.Group>(null);
@@ -75,12 +70,10 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
 
   return (
     <group ref={root}>
-      <CharacterRig
-        body="male"
-        height={PLAYER.height}
-        hair={hairFor(PLAYER_SEED)}
-        motion={motion}
-      />
+      {/* The player's own body, not one of the crowd's two. Hair is left
+          untinted: the mesh already carries the right black, and the
+          per-person lift the NPCs use would only lighten it. */}
+      <CharacterRig body="player" height={PLAYER.height} hair="#ffffff" motion={motion} />
 
       {/* A soft blob directly underfoot, on top of whatever the real shadow
           map is doing. On the low-quality tier there is no shadow map at

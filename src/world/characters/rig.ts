@@ -25,11 +25,22 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
  * offering them as downloadable assets on their own, which this does not.
  */
 
-export type BodyType = "male" | "female";
+/**
+ * `player` is its own body, not a third pick from the crowd's two. Eleven
+ * NPCs share the male mesh, so making the player a repaint of that file
+ * would have made the whole crowd the player. It is Mixamo's Adam — the
+ * closest base in the catalogue to the person it stands for: a full dark
+ * beard, hair swept up, already in a hoodie — with the garments tinted
+ * per mesh (charcoal hoodie, indigo trousers) and the skin left as
+ * authored, which already matches. The likeness is in the colouring and
+ * the silhouette, which is all that survives at gameplay distance.
+ */
+export type BodyType = "male" | "female" | "player";
 
 const BODY_URL: Record<BodyType, string> = {
   male: "/characters/male.glb",
   female: "/characters/female.glb",
+  player: "/characters/player.glb",
 };
 
 export type ClipName = "Idle" | "Walk" | "Run" | "Wave";
@@ -102,4 +113,5 @@ export function useClips(): Partial<Record<ClipName, THREE.AnimationClip>> {
 
 useGLTF.preload(BODY_URL.male);
 useGLTF.preload(BODY_URL.female);
+useGLTF.preload(BODY_URL.player);
 for (const url of Object.values(CLIP_URL)) useGLTF.preload(url);
