@@ -4,6 +4,8 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { INTERACTABLES } from "./interactables";
+import { CharacterRig, type CharacterMotion } from "./characters/CharacterRig";
+import { bodyFor, hairFor, heightFor } from "./characters/appearance";
 import type { PlayerState } from "./Player";
 import { contributors, aiTools, greetingLine, aiGreetingLine } from "@/data/contributors";
 import * as audio from "@/audio/engine";
@@ -41,13 +43,16 @@ function hash(s: string): number {
   return (h >>> 0) / 4294967295;
 }
 
-const SKIN = "#c98a5e";
-const TROUSER = "#2b3440";
-const SHOE = "#12171a";
-const HAIR = "#17120f";
-
-/** A small palette of jacket/accent pairs, distinct from the player's own
- *  teal (#2fa89a) so an NPC is never mistaken for the avatar at a glance. */
+/**
+ * Signage colours.
+ *
+ * These used to clothe the figures as well as label them. The bodies are
+ * real meshes now and carry their own skin, hair and clothing, so only the
+ * accent survives: it tints this person's name tag, their speech bubble
+ * and the ring that flashes when they notice you. The jacket pairs are
+ * kept beside it because the accent was authored as the readable third of
+ * a set, not on its own.
+ */
 const PALETTE: [jacket: string, jacketDark: string, accent: string][] = [
   ["#7a4fd1", "#5c39a3", "#c9a6ff"],
   ["#d1704f", "#a3543c", "#ffb08c"],
@@ -333,6 +338,10 @@ function NoticeRing({ accent, t }: { accent: string; t: React.MutableRefObject<n
 /** How close is "noticed", how far you can drift while actually talking to
  *  someone, and the shape of the bubble's fade — shared by every NPC kind
  *  so a meetup always behaves the same regardless of who or what it is. */
+/** How fast a person walks between their two waypoints, world units per
+ *  second. Named now that the rig paces its clips off it. */
+const WALK_SPEED = 1.1;
+
 const GREET_RADIUS = 7.5;
 /** While their panel is open they hold the conversation over a wider ring,
  *  so standing on the edge of the greet radius cannot end it from under you. */
@@ -428,15 +437,11 @@ function HumanNPC({
   engagedId: EngagedRef;
 }) {
   const it = useMemo(() => INTERACTABLES.find((x) => x.id === id), [id]);
-  const [jacket, jacketDark, accent] = PALETTE[Math.floor(hash(seed) * PALETTE.length)];
+  const accent = PALETTE[Math.floor(hash(seed) * PALETTE.length)][2];
   const greetText = it?.contributor ? greetingLine(it.contributor) : "";
 
   const root = useRef<THREE.Group>(null);
-  const body = useRef<THREE.Group>(null);
-  const legL = useRef<THREE.Group>(null);
-  const legR = useRef<THREE.Group>(null);
-  const armR = useRef<THREE.Group>(null);
-  const phase = useRef(hash(seed) * 10);
+  const motion = useRef<CharacterMotion>({ speed: 0 });
   const leg = useRef(0); // 0 or 1: which waypoint is the current target
   const pause = useRef(0); // seconds remaining at the current waypoint
   const greet = useGreetState();
@@ -454,7 +459,7 @@ function HumanNPC({
     const distToPlayer = Math.hypot(pp.x - cur.x, pp.z - cur.z);
     tickGreet(greet, dt, distToPlayer, seed, engagedId.current === id);
 
-    let speed01 = 0;
+    let speed = 0;
     if (greet.greeting.current) {
       // Stopped, facing whoever just walked up.
       const dx = pp.x - cur.x;
@@ -471,12 +476,11 @@ function HumanNPC({
         leg.current = leg.current === 0 ? 1 : 0;
         pause.current = 1.2 + hash(seed + String(leg.current)) * 1.8;
       } else {
-        const spd = 1.1;
-        const step = Math.min(dist, spd * dt);
+        const step = Math.min(dist, WALK_SPEED * dt);
         cur.x += (dx / dist) * step;
         cur.z += (dz / dist) * step;
         root.current.rotation.y = Math.atan2(dx, dz);
-        speed01 = 1;
+        speed = WALK_SPEED;
       }
     }
 
@@ -486,86 +490,23 @@ function HumanNPC({
     it.x = cur.x;
     it.z = cur.z;
 
-    phase.current += speed01 * dt * 3.2;
-    const swing = Math.sin(phase.current) * 0.5 * speed01;
-    if (legL.current) legL.current.rotation.x = greet.greeting.current ? 0 : swing;
-    if (legR.current) legR.current.rotation.x = greet.greeting.current ? 0 : -swing;
-    if (body.current) {
-      body.current.position.y = greet.greeting.current
-        ? 0
-        : Math.abs(Math.sin(phase.current * 2)) * 0.05 * speed01;
-    }
-    if (armR.current) {
-      if (greet.greeting.current) {
-        // A raised, waving arm — reads as a greeting from any angle once
-        // the figure has already turned to face the player.
-        armR.current.rotation.x = -2.5;
-        armR.current.rotation.z = 0.35 + Math.sin(state.clock.elapsedTime * 9) * 0.35;
-      } else {
-        armR.current.rotation.x = 0;
-        armR.current.rotation.z = 0;
-      }
-    }
+    /* The clips own the gait now. All this has to say is how fast the
+       body is actually travelling and whether it is mid-greeting; the
+       raised, waving arm that used to be posed by hand here is the Wave
+       clip. */
+    motion.current.speed = greet.greeting.current ? 0 : speed;
+    motion.current.greeting = greet.greeting.current;
   });
 
   if (!it || !it.contributor) return null;
-  const h = 1.62; // a hair under the player's own 1.7 — this is not the player
+  const bodyType = bodyFor(seed);
+  // Varied per person and centred under the player's own 1.75: the one
+  // you are is not one of the crowd.
+  const h = heightFor(seed);
 
   return (
     <group ref={root} position={[it.x, 0, it.z]}>
-      <group ref={body}>
-        <mesh position={[0, h * 0.62, 0]} castShadow>
-          <boxGeometry args={[0.48, h * 0.34, 0.28]} />
-          <meshStandardMaterial color={jacket} roughness={0.72} />
-        </mesh>
-        <mesh position={[0, h * 0.9, 0]} castShadow>
-          <boxGeometry args={[0.28, 0.3, 0.27]} />
-          <meshStandardMaterial color={SKIN} roughness={0.85} />
-        </mesh>
-        <mesh position={[0, h * 0.985, -0.01]}>
-          <boxGeometry args={[0.305, 0.14, 0.285]} />
-          <meshStandardMaterial color={HAIR} roughness={0.95} />
-        </mesh>
-        <mesh position={[0, h * 0.64, 0.145]}>
-          <boxGeometry args={[0.12, 0.12, 0.02]} />
-          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.4} roughness={0.4} />
-        </mesh>
-        {/* Left arm — always hangs. */}
-        <group position={[-0.3, h * 0.85, 0]}>
-          <mesh position={[0, -h * 0.15, 0]} castShadow>
-            <boxGeometry args={[0.13, h * 0.3, 0.14]} />
-            <meshStandardMaterial color={jacketDark} roughness={0.75} />
-          </mesh>
-        </group>
-        {/* Right arm — the one that waves. */}
-        <group ref={armR} position={[0.3, h * 0.85, 0]}>
-          <mesh position={[0, -h * 0.15, 0]} castShadow>
-            <boxGeometry args={[0.13, h * 0.3, 0.14]} />
-            <meshStandardMaterial color={jacketDark} roughness={0.75} />
-          </mesh>
-        </group>
-      </group>
-
-      <group ref={legL} position={[-0.13, h * 0.45, 0]}>
-        <mesh position={[0, -h * 0.22, 0]} castShadow>
-          <boxGeometry args={[0.17, h * 0.44, 0.18]} />
-          <meshStandardMaterial color={TROUSER} roughness={0.8} />
-        </mesh>
-        <mesh position={[0, -h * 0.45, 0.03]}>
-          <boxGeometry args={[0.18, 0.1, 0.25]} />
-          <meshStandardMaterial color={SHOE} roughness={0.7} />
-        </mesh>
-      </group>
-      <group ref={legR} position={[0.13, h * 0.45, 0]}>
-        <mesh position={[0, -h * 0.22, 0]} castShadow>
-          <boxGeometry args={[0.17, h * 0.44, 0.18]} />
-          <meshStandardMaterial color={TROUSER} roughness={0.8} />
-        </mesh>
-        <mesh position={[0, -h * 0.45, 0.03]}>
-          <boxGeometry args={[0.18, 0.1, 0.25]} />
-          <meshStandardMaterial color={SHOE} roughness={0.7} />
-        </mesh>
-      </group>
+      <CharacterRig body={bodyType} height={h} hair={hairFor(seed)} motion={motion} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <circleGeometry args={[0.46, 18]} />
