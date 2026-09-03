@@ -12,6 +12,7 @@ import { Post } from "./Post";
 import { Scene } from "./Scene";
 import { LENS_ORDER } from "./discovery";
 import { ARRIVAL_POSE } from "./sequence";
+import { MarkThrow, type Throw } from "./MarkThrow";
 
 /**
  * The game canvas.
@@ -28,6 +29,7 @@ export default function GameCanvas({
   activeId,
   visited,
   engagedId,
+  shot,
 }: {
   input: React.MutableRefObject<Input>;
   state: React.MutableRefObject<PlayerState>;
@@ -39,6 +41,8 @@ export default function GameCanvas({
   /** Whose panel is open, so that person holds the conversation instead of
    *  wandering off while the player is reading it. */
   engagedId: React.MutableRefObject<string | null>;
+  /** The mark currently in flight, if any. */
+  shot: Throw | null;
 }) {
   const [tier, setTier] = useState<"high" | "low">(quality);
 
@@ -85,7 +89,8 @@ export default function GameCanvas({
           so the player gets it from the first frame. */}
       <Scene phase="PLAYER" t={1} scroll={0} quality={tier} lenses={LENS_ORDER} noticing={null} />
       <PlayerRig input={input} state={state} enabled={enabled} />
-      <Avatar state={state} />
+      <Avatar state={state} markThrown={!!shot} />
+      <MarkThrow shot={shot} />
       <Markers activeId={activeId} visited={visited} />
       <NPCs playerState={state} engagedId={engagedId} />
       <Post quality={tier} />

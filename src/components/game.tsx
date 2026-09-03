@@ -20,6 +20,7 @@ import * as audio from "@/audio/engine";
 import { computeProgress } from "@/world/progress";
 import { Objectives } from "./objectives";
 import { AchievementBanner } from "./achievement-banner";
+import { FLIGHT_MS, type Throw } from "@/world/MarkThrow";
 
 const GameCanvas = dynamic(() => import("@/world/GameCanvas"), {
   ssr: false,
@@ -92,6 +93,12 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const [near, setNear] = useState<Interactable | null>(null);
   const [open, setOpen] = useState<Interactable | null>(null);
   const [visited, setVisited] = useState<string[]>([]);
+  /* The mark in flight, and the id it counts up from. Only the named
+     achievements get the throw: forty-odd repository coins each demanding
+     a second of ceremony would make the ordinary case the slow one. */
+  const [shot, setShot] = useState<Throw | null>(null);
+  const shotId = useRef(0);
+  const shotTimers = useRef<number[]>([]);
   const [waypoint, setWaypoint] = useState<Waypoint | null>(null);
   const [muted, setMuted] = useState(false);
   const [enteredDistricts, setEnteredDistricts] = useState<string[]>([]);
@@ -302,6 +309,47 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
     return () => cancelAnimationFrame(raf);
   }, [supported, mode]);
 
+  /**
+   * Opening something.
+   *
+   * A named achievement gets the throw: the mark leaves the chest, and only
+   * when it lands is the marker counted as visited — which is what fires the
+   * flash and the shards — and only after those have played does the panel
+   * arrive. Ordinary markers and people stay instant. The burst was always
+   * there and always correct; it simply used to go off underneath a
+   * full-screen panel that opened on the same tick, so nobody ever saw it.
+   */
+  const beginOpen = (it: Interactable) => {
+    audio.interactOpen();
+    const major = it.kind === "PROJECT" || it.kind === "WORK";
+    if (!major) {
+      setOpen(it);
+      setVisited((v) => (v.includes(it.id) ? v : [...v, it.id]));
+      return;
+    }
+    const p = state.current.position;
+    shotId.current += 1;
+    setShot({
+      id: shotId.current,
+      from: [p.x, p.y + PLAYER.height * 0.72, p.z],
+      to: [it.x, it.y, it.z],
+      text: "</>",
+      color: styleFor(it.entity?.language ?? "Other").emissive,
+    });
+    shotTimers.current.forEach(clearTimeout);
+    shotTimers.current = [
+      window.setTimeout(() => {
+        setShot(null);
+        setVisited((v) => (v.includes(it.id) ? v : [...v, it.id]));
+      }, FLIGHT_MS),
+      window.setTimeout(() => setOpen(it), FLIGHT_MS + 620),
+    ];
+  };
+
+  /* Any pending throw is abandoned on unmount, so a timer cannot open a
+     panel into a game that is no longer running. */
+  useEffect(() => () => shotTimers.current.forEach(clearTimeout), []);
+
   /* E opens what is in reach, and I does the same for a person.
    *
    * E opens a thing and I talks to a person, and each key only answers to
@@ -315,9 +363,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
       const wanted = near.kind === "NPC" ? "KeyI" : "KeyE";
       if (e.code !== wanted) return;
       e.preventDefault();
-      audio.interactOpen();
-      setOpen(near);
-      setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
+      beginOpen(near);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -397,6 +443,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           activeId={near?.id ?? null}
           visited={visited}
           engagedId={engagedId}
+          shot={shot}
         />
       </div>
 
@@ -512,8 +559,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
           <button
             onClick={() => {
               audio.interactOpen();
-              setOpen(near);
-              setVisited((v) => (v.includes(near.id) ? v : [...v, near.id]));
+              beginOpen(near);
             }}
             className="u-btn u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
             style={{

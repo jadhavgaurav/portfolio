@@ -28,7 +28,14 @@ import { CharacterRig, type CharacterMotion, type ChestMark } from "./characters
  *  would re-attach it every render. */
 const CHEST_MARK: ChestMark = { text: "</>", color: "#2fa89a" };
 
-export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }) {
+export function Avatar({
+  state,
+  markThrown = false,
+}: {
+  state: React.MutableRefObject<PlayerState>;
+  /** True while the mark is in flight, so the chest is bare until it lands. */
+  markThrown?: boolean;
+}) {
   const root = useRef<THREE.Group>(null);
   const motion = useRef<CharacterMotion>({ speed: 0 });
 
@@ -85,7 +92,7 @@ export function Avatar({ state }: { state: React.MutableRefObject<PlayerState> }
         height={PLAYER.height}
         hair="#ffffff"
         motion={motion}
-        chestMark={CHEST_MARK}
+        chestMark={markThrown ? undefined : CHEST_MARK}
       />
 
       {/* A soft blob directly underfoot, on top of whatever the real shadow

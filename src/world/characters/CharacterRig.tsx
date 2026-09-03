@@ -81,7 +81,10 @@ const CHEST_BONE = /^mixamorig:?Spine2$/;
  *  not enough to read as a separate object. */
 const MARK_LIFT = 0.012;
 
-function markTexture(text: string, color: string): THREE.CanvasTexture {
+/** The glyph, drawn to a canvas. Exported so the thrown copy in the world
+ *  is the same texture as the one worn on the chest, rather than a second
+ *  drawing of it that could drift out of step. */
+export function markTexture(text: string, color: string): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 512;
   c.height = 256;
