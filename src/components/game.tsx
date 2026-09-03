@@ -304,15 +304,16 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
   /* E opens what is in reach, and I does the same for a person.
    *
-   * One key would have been tidier, but E for a building and I for a person
-   * is what the prompt can actually say: walking up to someone and being
-   * told to press "E" reads as operating them rather than talking to them,
-   * and the greeting was landing with no visible way to answer it. Both are
-   * live for both kinds, so neither is a dead key wherever it is pressed. */
+   * E opens a thing and I talks to a person, and each key only answers to
+   * its own kind. They used to both open anything, on the theory that no key
+   * should ever be dead — but two keys that do the same thing read as one
+   * key with a typo, and the prompt already says which one applies. Press
+   * the wrong one and nothing happens, which is the honest response. */
   useEffect(() => {
     if (!playing || !near) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "KeyE" && e.code !== "KeyI") return;
+      const wanted = near.kind === "NPC" ? "KeyI" : "KeyE";
+      if (e.code !== wanted) return;
       e.preventDefault();
       audio.interactOpen();
       setOpen(near);
