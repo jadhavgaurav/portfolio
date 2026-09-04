@@ -275,7 +275,11 @@ export function Minimap({
       ref={wrap}
       role="region"
       aria-label="Map"
-      className="fixed right-4 top-4 z-30 flex flex-col items-end gap-2 sm:right-6 sm:top-6"
+      // Under the compass, not over it. The compass strip runs the width of
+      // the screen up to 720px, and the map used to sit at the same height
+      // in the corner: on anything narrower than a wide desktop it covered
+      // the strip's right-hand end, and on a phone most of it.
+      className="fixed right-4 top-14 z-30 flex flex-col items-end gap-2 sm:right-6 xl:top-6"
     >
       <canvas
         ref={canvas}

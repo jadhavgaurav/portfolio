@@ -258,11 +258,12 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   /* Input is live only while the player has the world. With the title, the
      map or the document up, keys belong to those. */
   const playing = mode === "PLAYING" && !mapOpen && !reading && !open && !objectivesOpen;
-  // Keyboard-and-mouse-drag only. On touch this ran alongside the Joystick,
-  // both reading every pointerdown/pointermove on the same finger — the
-  // stick still drove movement, but this hook's own `dragging` bookkeeping
-  // and stray lookX/lookY writes had no reason to be live at the same time.
-  useKeyboardAndPointer(input, supported === true && playing && !touch);
+  // The mouse drag stays off on touch: it ran alongside the Joystick there,
+  // both reading every pointermove on the same finger, and the camera
+  // turned twice for every swipe. The keys stay on everywhere — a tablet
+  // with a keyboard attached still reports a coarse pointer, and switching
+  // the whole hook off with the drag left WASD dead on it.
+  useKeyboardAndPointer(input, supported === true && playing, !touch);
 
   /* M opens the map, O the log, Escape hands the world back to the title.
    *
@@ -560,17 +561,32 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
 
       {/* The prompt. Doubles as the tap target on touch, where there is no E
           key to press and a prompt you cannot act on is just a label. */}
+      {/* On touch it moves up out of the thumbs' way. It used to share the
+          bottom of the screen with the stick and the jump button, and a
+          prompt allowed 92vw on a phone ran straight across the left half
+          where the thumb lands: it sits above the stick's surface, so the
+          moment the player walked up to anything the next press to walk on
+          opened it instead — and a thumb going for Jump landed on Open. In
+          portrait it sits under the minimap block; on a short landscape
+          screen there is no room under it, so it tucks beside the map
+          instead, just under the compass. */}
       {playing && near && (
         <aside
           aria-label="Interact prompt"
-          className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-5 sm:bottom-20"
+          className={`pointer-events-none fixed inset-x-0 z-30 flex justify-center px-5 ${
+            touch
+              ? "top-[17.5rem] [@media(max-height:520px)]:top-14"
+              : "bottom-24 sm:bottom-20"
+          }`}
         >
           <button
             onClick={() => {
               audio.interactOpen();
               beginOpen(near);
             }}
-            className="u-btn u-mono pointer-events-auto flex min-h-[52px] max-w-[92vw] items-center gap-3 border px-5 text-left"
+            className={`u-btn u-mono pointer-events-auto flex min-h-[52px] touch-manipulation items-center gap-3 border px-5 text-left ${
+              touch ? "max-w-[92vw] [@media(max-height:520px)]:max-w-[46vw]" : "max-w-[92vw]"
+            }`}
             style={{
               borderColor: "rgba(240,223,174,0.4)",
               background: "rgba(20,14,6,0.85)",

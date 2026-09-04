@@ -258,47 +258,62 @@ export function PlayerRig({
         PLAYER.pitchMax,
         Math.max(PLAYER.pitchMin, s.camPitch + i.lookY),
       );
-      i.lookX = 0;
-      i.lookY = 0;
+    }
+    // Consumed either way. A delta that piles up behind a panel would snap
+    // the camera round the instant the panel closed.
+    i.lookX = 0;
+    i.lookY = 0;
 
-      // Camera-relative movement basis, flattened to the ground plane.
+    // Camera-relative movement basis, flattened to the ground plane. With
+    // the world's input taken away — a panel, the map, the title — this is
+    // simply no input: the friction branch below still runs, so the
+    // character comes to a stop rather than sliding on at whatever speed it
+    // had when the panel opened. It used to skip this whole block while
+    // disabled, and skipping the friction with it meant a character that
+    // was running when E was pressed carried on running, unseen, behind the
+    // panel for as long as it stayed open.
+    tmp.want.set(0, 0, 0);
+    if (enabled) {
       tmp.fwd.set(-Math.sin(s.camYaw), 0, -Math.cos(s.camYaw));
       tmp.right.set(Math.cos(s.camYaw), 0, -Math.sin(s.camYaw));
-      tmp.want
-        .set(0, 0, 0)
-        .addScaledVector(tmp.fwd, i.forward)
-        .addScaledVector(tmp.right, i.strafe);
+      tmp.want.addScaledVector(tmp.fwd, i.forward).addScaledVector(tmp.right, i.strafe);
+    }
 
-      const moving = tmp.want.lengthSq() > 0.0001;
-      if (moving) {
-        tmp.want.normalize();
-        const top = i.run ? PLAYER.run : PLAYER.walk;
-        s.velocity.x += tmp.want.x * PLAYER.accel * dt;
-        s.velocity.z += tmp.want.z * PLAYER.accel * dt;
-        const flat = Math.hypot(s.velocity.x, s.velocity.z);
-        if (flat > top) {
-          s.velocity.x = (s.velocity.x / flat) * top;
-          s.velocity.z = (s.velocity.z / flat) * top;
-        }
-        // Face where you are going, turning rather than snapping.
-        const want = Math.atan2(tmp.want.x, tmp.want.z);
-        let d = want - s.yaw;
-        while (d > Math.PI) d -= Math.PI * 2;
-        while (d < -Math.PI) d += Math.PI * 2;
-        s.yaw += d * Math.min(1, PLAYER.turnRate * dt);
-      } else {
-        const k = Math.max(0, 1 - PLAYER.friction * dt);
-        s.velocity.x *= k;
-        s.velocity.z *= k;
-        // Exponential decay never reaches zero. Below walking pace a tenth of
-        // a unit per second still slides the avatar and still plays the walk
-        // cycle, so it is snapped off.
-        if (Math.hypot(s.velocity.x, s.velocity.z) < 0.4) {
-          s.velocity.x = 0;
-          s.velocity.z = 0;
-        }
+    const moving = tmp.want.lengthSq() > 0.0001;
+    if (moving) {
+      // The stick is analog: half deflection is half walking pace. Keys are
+      // always a full press, and two keys held at once still do not add up
+      // to more than one.
+      const pace = Math.min(1, tmp.want.length());
+      tmp.want.normalize();
+      const top = i.run ? PLAYER.run : PLAYER.walk * pace;
+      s.velocity.x += tmp.want.x * PLAYER.accel * dt;
+      s.velocity.z += tmp.want.z * PLAYER.accel * dt;
+      const flat = Math.hypot(s.velocity.x, s.velocity.z);
+      if (flat > top) {
+        s.velocity.x = (s.velocity.x / flat) * top;
+        s.velocity.z = (s.velocity.z / flat) * top;
       }
+      // Face where you are going, turning rather than snapping.
+      const want = Math.atan2(tmp.want.x, tmp.want.z);
+      let d = want - s.yaw;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      s.yaw += d * Math.min(1, PLAYER.turnRate * dt);
+    } else {
+      const k = Math.max(0, 1 - PLAYER.friction * dt);
+      s.velocity.x *= k;
+      s.velocity.z *= k;
+      // Exponential decay never reaches zero. Below walking pace a tenth of
+      // a unit per second still slides the avatar and still plays the walk
+      // cycle, so it is snapped off.
+      if (Math.hypot(s.velocity.x, s.velocity.z) < 0.4) {
+        s.velocity.x = 0;
+        s.velocity.z = 0;
+      }
+    }
 
+    if (enabled) {
       if (i.jump) jumpBufferT.current = 0;
       i.jump = false;
 
@@ -432,6 +447,13 @@ export function PlayerRig({
 export function useKeyboardAndPointer(
   input: React.MutableRefObject<Input>,
   enabled: boolean,
+  /** Whether a mouse drag steers the camera. Off on a touch device, where
+   *  the right thumb already does that through the Joystick and both
+   *  reading the same finger doubled every turn. The keys stay on
+   *  regardless: a tablet docked to a keyboard is still a touch device
+   *  as far as the pointer query is concerned, and WASD used to be dead
+   *  on it. */
+  pointer = true,
 ) {
   useEffect(() => {
     if (!enabled) return;
@@ -506,19 +528,28 @@ export function useKeyboardAndPointer(
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    /* Not a contextmenu the page itself swallowed: the touch overlay
+       prevents the one Android raises on a long press, and the thumb that
+       raised it is still on the stick. */
+    const onMenu = (e: MouseEvent) => {
+      if (!e.defaultPrevented) stopAll();
+    };
+
     window.addEventListener("blur", stopAll);
-    window.addEventListener("contextmenu", stopAll);
+    window.addEventListener("contextmenu", onMenu);
     document.addEventListener("visibilitychange", stopAll);
-    window.addEventListener("pointerdown", pointerDown);
-    window.addEventListener("pointerup", pointerUp);
-    window.addEventListener("pointercancel", pointerUp);
-    window.addEventListener("pointermove", guard);
-    window.addEventListener("pointermove", pointerMove);
+    if (pointer) {
+      window.addEventListener("pointerdown", pointerDown);
+      window.addEventListener("pointerup", pointerUp);
+      window.addEventListener("pointercancel", pointerUp);
+      window.addEventListener("pointermove", guard);
+      window.addEventListener("pointermove", pointerMove);
+    }
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", stopAll);
-      window.removeEventListener("contextmenu", stopAll);
+      window.removeEventListener("contextmenu", onMenu);
       document.removeEventListener("visibilitychange", stopAll);
       window.removeEventListener("pointerdown", pointerDown);
       window.removeEventListener("pointerup", pointerUp);
@@ -527,5 +558,5 @@ export function useKeyboardAndPointer(
       window.removeEventListener("pointermove", pointerMove);
       stopAll();
     };
-  }, [input, enabled]);
+  }, [input, enabled, pointer]);
 }
