@@ -77,9 +77,60 @@ export interface ChestMark {
  *  the file's spelling silently finds nothing. */
 const CHEST_BONE = /^mixamorig:?Spine2$/;
 
-/** How far the mark floats off the surface. Enough to clear z-fighting,
- *  not enough to read as a separate object. */
-const MARK_LIFT = 0.012;
+/** Mixamo's neck bone, the other end of the span the print is placed
+ *  along. Colon-optional for the same reason as the chest bone. */
+const NECK_BONE = /^mixamorig:?Neck$/;
+
+/** How far up from the chest bone towards the neck the print sits, as a
+ *  fraction of the span. Spine2 on its own is level with the top of the
+ *  stomach, which is where the mark used to sit and read as being on the
+ *  belly; a garment print is centred well above that, below the collar. */
+const MARK_RISE = 0.45;
+
+/** How far the print stands off the fabric. Only enough to clear
+ *  z-fighting: what it stands off is measured now, so this no longer has
+ *  to make up for a front face that was really the character's nose. */
+const MARK_LIFT = 0.006;
+
+/** The print, in world units, at the texture's own two-to-one. Narrower
+ *  than the chest rather than the whole width of it, so the flat quad
+ *  stays close to a torso that curves away by about a centimetre and a
+ *  half across the span the old one covered. */
+const MARK_W = 0.2;
+const MARK_H = 0.1;
+
+/**
+ * The front of the torso at a given height, measured off the meshes.
+ *
+ * This used to be one clothing mesh's bounding box, read at its far +Z
+ * face. That is only the chest if the chest is the frontmost point on the
+ * whole body, and it never is: the box is bounded by the nose here and by
+ * the toe of a shoe on the body before it, so the mark hung seven
+ * centimetres clear of the character like a card held up in front of it.
+ *
+ * Every skinned mesh is sampled rather than one matched by name, so
+ * whatever is actually worn is what gets measured, and the height window
+ * is what excludes the face and the feet rather than a guess about which
+ * mesh is a garment.
+ */
+function frontOfTorso(
+  meshes: THREE.SkinnedMesh[],
+  y: number,
+  halfW: number,
+  halfH: number,
+): number | null {
+  let front = -Infinity;
+  for (const mesh of meshes) {
+    const pos = mesh.geometry.getAttribute("position");
+    if (!pos) continue;
+    for (let i = 0; i < pos.count; i++) {
+      if (Math.abs(pos.getY(i) - y) > halfH) continue;
+      if (Math.abs(pos.getX(i)) > halfW) continue;
+      front = Math.max(front, pos.getZ(i));
+    }
+  }
+  return Number.isFinite(front) ? front : null;
+}
 
 /** The glyph, drawn to a canvas. Exported so the thrown copy in the world
  *  is the same texture as the one worn on the chest, rather than a second
@@ -110,44 +161,46 @@ export function markTexture(text: string, color: string): THREE.CanvasTexture {
  * inverse bind matrix, and from then on the bone carries it.
  */
 function attachChestMark(scene: THREE.Object3D, mark: ChestMark): () => void {
-  let skinned: THREE.SkinnedMesh | null = null;
-  let hoodie: THREE.Mesh | null = null;
+  const skinned: THREE.SkinnedMesh[] = [];
   scene.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
-    if (!m.isSkinnedMesh) return;
-    if (!skinned) skinned = m;
-    if (/hoodie|sweater|top|shirt|body/i.test(m.name) && !hoodie) hoodie = m;
+    if (m.isSkinnedMesh) skinned.push(m);
   });
-  if (!skinned) return () => {};
-  const skel = (skinned as THREE.SkinnedMesh).skeleton;
+  if (!skinned.length) return () => {};
+  const skel = skinned[0].skeleton;
   const idx = skel.bones.findIndex((b) => CHEST_BONE.test(b.name));
   if (idx < 0) return () => {};
   const bone = skel.bones[idx];
   const inverseBind = skel.boneInverses[idx];
-  const bindWorld = inverseBind.clone().invert();
 
-  // Where the chest is, from the bone's bind pose; how far forward the
-  // surface is, from the unposed clothing mesh in front of it. The hood
-  // hangs at the back, so the geometry's far +Z is the front of the torso.
-  const chest = new THREE.Vector3().setFromMatrixPosition(bindWorld);
-  const surface = hoodie ?? skinned;
-  const geo = (surface as THREE.Mesh).geometry;
-  if (!geo.boundingBox) geo.computeBoundingBox();
-  const frontZ = geo.boundingBox ? geo.boundingBox.max.z : chest.z + 0.15;
-  const point = new THREE.Vector3(0, chest.y - 0.025, frontZ + MARK_LIFT);
+  const bindPos = (i: number) =>
+    new THREE.Vector3().setFromMatrixPosition(skel.boneInverses[i].clone().invert());
+
+  // Height first, from the bind pose: up from the chest bone towards the
+  // neck, because the chest bone itself is level with the stomach.
+  const chest = bindPos(idx);
+  const neck = skel.bones.findIndex((b) => NECK_BONE.test(b.name));
+  const y = neck >= 0 ? THREE.MathUtils.lerp(chest.y, bindPos(neck).y, MARK_RISE) : chest.y;
+
+  // Then depth, from the fabric that is actually at that height.
+  const front = frontOfTorso(skinned, y, MARK_W / 2, MARK_H / 2);
+  const point = new THREE.Vector3(0, y, (front ?? chest.z + 0.12) + MARK_LIFT);
 
   const texture = markTexture(mark.text, mark.color);
-  const material = new THREE.MeshBasicMaterial({
+  // Lit, and tone mapped with everything else. Unlit it stayed the same
+  // flat teal whichever way the character turned, which is what made it
+  // read as a decal hovering over the hoodie rather than something printed
+  // on it; taking the light means it darkens into the folds and the shade.
+  const material = new THREE.MeshStandardMaterial({
     map: texture,
     transparent: true,
+    roughness: 0.9,
+    metalness: 0,
     depthWrite: false,
-    toneMapped: false,
     polygonOffset: true,
     polygonOffsetFactor: -1,
   });
-  // About a third of the chest's width, which is what the reference wore and
-  // what still reads at the distance the camera actually keeps.
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.13), material);
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(MARK_W, MARK_H), material);
   quad.renderOrder = 2;
   quad.frustumCulled = false;
 
@@ -327,7 +380,7 @@ export function CharacterRig({
     mixer.update(dt);
   });
 
-  const scale = height / MODEL_HEIGHT;
+  const scale = height / MODEL_HEIGHT[body];
 
   return (
     <group ref={group} scale={scale}>

@@ -33,3 +33,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# avatar working files
+# public/ is served verbatim, so the reference photographs and the Avaturn
+# exports they came from must never be committed into it.
+/public/gaurav-avatar
+/scratch_textures
+/scratch_model_textures
+*.glb.bak

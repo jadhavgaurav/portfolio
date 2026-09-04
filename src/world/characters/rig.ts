@@ -28,12 +28,19 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 /**
  * `player` is its own body, not a third pick from the crowd's two. Eleven
  * NPCs share the male mesh, so making the player a repaint of that file
- * would have made the whole crowd the player. It is Mixamo's Adam — the
- * closest base in the catalogue to the person it stands for: a full dark
- * beard, hair swept up, already in a hoodie — with the garments tinted
- * per mesh (charcoal hoodie, indigo trousers) and the skin left as
- * authored, which already matches. The likeness is in the colouring and
- * the silhouette, which is all that survives at gameplay distance.
+ * would have made the whole crowd the player.
+ *
+ * It used to be Mixamo's Adam, tinted per garment to suggest a likeness
+ * the base mesh did not have. It is now an Avaturn avatar generated from
+ * a photograph, so the face is the real one instead of the nearest thing
+ * in a catalogue.
+ *
+ * Avaturn rigs to the Mixamo skeleton, which is the only reason the same
+ * four clips still drive it. Two things were changed on the way in. Its
+ * bones ship as `Hips` and `Spine2`, and every track in those clips is
+ * addressed to `mixamorig:Hips`, so without the prefix the body loads,
+ * renders, and then stands in its bind pose forever. It also carries
+ * Avaturn's own idle, which nothing here plays.
  */
 export type BodyType = "male" | "female" | "player";
 
@@ -69,13 +76,24 @@ const CLIP_URL: Record<ClipName, string> = {
 };
 
 /**
- * How tall the exported mesh stands, in world units, measured from the
+ * How tall each exported mesh stands, in world units, measured from the
  * glTF's own position bounds rather than assumed. Everything that places
- * a character scales by `wantedHeight / MODEL_HEIGHT`, so the one number
- * that would silently desynchronise the avatar from its collision radius
- * and its name tag lives here instead of in three call sites.
+ * a character scales by `wantedHeight / MODEL_HEIGHT[body]`, so the
+ * numbers that would silently desynchronise a character from its
+ * collision radius and its name tag live here rather than in three call
+ * sites.
+ *
+ * One per body, not one for all three. The two Mixamo meshes agree to
+ * within two centimetres, so a single constant was harmless while those
+ * were the only bodies. The Avaturn player stands 1.88m against their
+ * 1.78m, and sharing their figure drew it nearly ten centimetres taller
+ * than the height its own camera and collision capsule were using.
  */
-export const MODEL_HEIGHT = 1.782;
+export const MODEL_HEIGHT: Record<BodyType, number> = {
+  male: 1.7823,
+  female: 1.7636,
+  player: 1.8789,
+};
 
 /**
  * An independent copy of a body.
