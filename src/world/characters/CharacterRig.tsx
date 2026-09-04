@@ -187,15 +187,20 @@ function attachChestMark(scene: THREE.Object3D, mark: ChestMark): () => void {
   const point = new THREE.Vector3(0, y, (front ?? chest.z + 0.12) + MARK_LIFT);
 
   const texture = markTexture(mark.text, mark.color);
-  // Lit, and tone mapped with everything else. Unlit it stayed the same
-  // flat teal whichever way the character turned, which is what made it
-  // read as a decal hovering over the hoodie rather than something printed
-  // on it; taking the light means it darkens into the folds and the shade.
-  const material = new THREE.MeshStandardMaterial({
+  // Unlit, but tone mapped along with everything else.
+  //
+  // A lit material is the obvious choice for something printed on cloth,
+  // and it was tried. It shades into the folds correctly and it is far too
+  // dark to read: this world's fill is 0.3 and its key is behind the
+  // player for much of the walk, so a mid teal on a grey hoodie lands
+  // within a luminance step or two of the fabric, which at the distance
+  // the camera actually keeps is no mark at all. Unlit keeps it legible
+  // from every angle. Tone mapping it, which the first version of this
+  // skipped, is what stops it reading as a raw-value sticker laid over
+  // the picture rather than something on the garment.
+  const material = new THREE.MeshBasicMaterial({
     map: texture,
     transparent: true,
-    roughness: 0.9,
-    metalness: 0,
     depthWrite: false,
     polygonOffset: true,
     polygonOffsetFactor: -1,
