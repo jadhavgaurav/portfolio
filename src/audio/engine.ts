@@ -23,7 +23,7 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let ambientGain: GainNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
-let muted = false;
+let muted = true;
 
 function ensure(): AudioContext | null {
   if (typeof window === "undefined") return null;

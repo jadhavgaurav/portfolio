@@ -100,7 +100,7 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   const shotId = useRef(0);
   const shotTimers = useRef<number[]>([]);
   const [waypoint, setWaypoint] = useState<Waypoint | null>(null);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [enteredDistricts, setEnteredDistricts] = useState<string[]>([]);
   const [objectivesOpen, setObjectivesOpen] = useState(false);
   /* A queue, not a single slot. A category completing used to call
@@ -145,11 +145,20 @@ export function Game({ fallback }: { fallback: React.ReactNode }) {
   });
 
   useEffect(() => {
+    /* Silent on arrival. A portfolio that starts making noise at someone is
+       a portfolio they close, so the default is muted no matter what the
+       last session did.
+       Muted is only the default, though. The toggle writes the choice down
+       and that record was being ignored, which meant unmuting lasted until
+       the next reload and no longer; only an explicit "0" turns the sound
+       back on here, so the default survives a visitor who has never
+       touched it. */
+    setMuted(true);
+    audio.setMuted(true);
     try {
-      const saved = window.localStorage.getItem("null:muted");
-      if (saved === "1") {
-        setMuted(true);
-        audio.setMuted(true);
+      if (window.localStorage.getItem("null:muted") === "0") {
+        setMuted(false);
+        audio.setMuted(false);
       }
       const v = window.localStorage.getItem("null:visited");
       if (v) setVisited(JSON.parse(v));
